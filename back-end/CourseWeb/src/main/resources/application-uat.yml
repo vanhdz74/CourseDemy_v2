@@ -1,0 +1,13 @@
+# Chạy test ở đây
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/Web
+    #    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: Vanh7405@
+  # Không thay đổi ở đây tránh ảnh hưởng đến db nhé!
+  jpa:
+    hibernate:
+      ddl-auto: none
+server:
+  port: 8081
