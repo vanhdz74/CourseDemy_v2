@@ -6,11 +6,9 @@ import com.vanh.CourseWeb.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,9 +16,9 @@ import java.util.Map;
 public class OrderController {
     private final OrderService orderService;
 
-    // POST: Thanh toán từ giỏ hàng
-    @PostMapping("/checkout/cart")
-    public ResponseEntity<?> checkoutFromCart(@RequestBody OrderDTO.CheckoutCartDTO request) {
+    // POST: tạo đơn hàng
+    @PostMapping("/checkout")
+    public ResponseEntity<?> checkoutFromCart(@RequestBody OrderDTO.CheckoutDTO request) {
         OrderEntity od = orderService.createOrderFromCart(request);
         return ResponseEntity.ok(od.getId());
     }
@@ -31,6 +29,19 @@ public class OrderController {
         try {
             orderService.handlePaymentSuccess(orderId);
             return ResponseEntity.ok(Map.of("message", "Thanh toán thành công"));
+        } catch (Exception e) {
+            // Các lỗi khác
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Lỗi hệ thống: " + e.getMessage()));
+        }
+    }
+
+    // GET: Lấy ra thông tin trong bảng order và các khoá liên quan
+    @GetMapping("/transaction")
+    public ResponseEntity<?> transaction() {
+        try {
+            List<OrderDTO.TransactionDTO> result = orderService.transaction();
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             // Các lỗi khác
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

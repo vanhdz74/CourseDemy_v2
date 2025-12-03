@@ -35,27 +35,30 @@ const Categories = () => {
   }, []);
 
   return (
-    <div className="hidden md:flex flex-wrap gap-3 max-w-[80%] mt-[10px]">
-      {categories.length > 0
-        ? categories.map((cat) => (
-            <div
-              key={cat.id}
-              className="px-5 py-2 border rounded-xl hover:bg-gray-100 cursor-pointer transition"
-            >
-              <button onClick={() => saveCategoryName(cat.name)}>
-                <Link href={`/courses/category/${cat.id}`}>{cat.name}</Link>
-              </button>
-            </div>
-          ))
-        : Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton
-              key={index}
-              className="px-5 py-2 border rounded-xl w-[100px] h-[36px] animate-pulse"
-            >
-              <h1 className="opacity-0">Danh muc</h1>
-            </Skeleton>
-          ))}
-    </div>
+    <>
+      <div className="text-2xl font-bold">Danh sách danh mục</div>
+      <div className="hidden md:flex flex-wrap gap-3 max-w-[80%] mt-[10px]">
+        {categories.length > 0
+          ? categories.map((cat) => (
+              <div
+                key={cat.id}
+                className="px-5 py-2 border rounded-xl hover:bg-gray-100 cursor-pointer transition"
+              >
+                <button onClick={() => saveCategoryName(cat.name)}>
+                  <Link href={`/courses/category/${cat.id}`}>{cat.name}</Link>
+                </button>
+              </div>
+            ))
+          : Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton
+                key={index}
+                className="px-5 py-2 border rounded-xl w-[100px] h-[36px] animate-pulse"
+              >
+                <h1 className="opacity-0">Danh muc</h1>
+              </Skeleton>
+            ))}
+      </div>
+    </>
   );
 };
 

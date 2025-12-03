@@ -1,24 +1,25 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useApi } from "@/hooks/useApi";
+import { useState, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setCart } from "@/features/cart/cartSlice";
+import { setCheckoutCourses } from "@/features/checkout/checkoutSlice"; // slice mới
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { ArrowRight } from "lucide-react";
-import { toast } from "sonner";
-import { useAppSelector } from "@/redux/hooks";
-import { useRouter } from "next/navigation";
-import { da } from "zod/v4/locales";
+import { useApi } from "@/hooks/useApi";
+import Image from "next/image";
 
 const CartItemDisplay = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
-  const { get, remove, post } = useApi();
+  const { get, remove } = useApi();
 
   const [cartItems, setCartItems] = useState<any[]>([]);
-  const [courseIds, setCourseIds] = useState<any[]>([]);
-  const [total, setTotal] = useState(0);
+  const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
 
-  // Lấy giỏ hàng
   const getCoursesInCart = async () => {
     if (!user?.id) return;
 
@@ -26,18 +27,11 @@ const CartItemDisplay = () => {
       const data = await get(`/cart/user/${user.id}`);
       const items = Array.isArray(data?.cart_items) ? data.cart_items : [];
 
-      // Gọi API lấy thông tin từng khóa học
       const detailedItems = await Promise.all(
         items.map(async (item: any) => {
           try {
             const course = await get(`/course/${item.course_id}`);
-
-            return {
-              ...item,
-              title: course.title,
-              level: course.level,
-              teacher_name: course.teacher_name,
-            };
+            return { ...item, ...course };
           } catch {
             return { ...item, title: `Khóa học #${item.course_id}` };
           }
@@ -45,74 +39,82 @@ const CartItemDisplay = () => {
       );
 
       setCartItems(detailedItems);
-      setCourseIds(detailedItems.map((i) => i.course_id));
-
-      // Tính tổng
-      const totalAmount = detailedItems.reduce(
-        (sum: number, item: any) =>
-          sum + (item.price || 0) * (item.quantity || 1),
-        0
-      );
-      setTotal(totalAmount);
+      // select all by default nếu muốn
+      setSelectedCourses(detailedItems.map((i) => i.course_id));
     } catch (err) {
       toast.error("Lỗi khi lấy giỏ hàng: " + err);
       setCartItems([]);
-      setTotal(0);
     }
   };
 
-  // Xoá khóa học khỏi giỏ
   const handleRemove = async (course_id: number) => {
-    if (!user?.id) {
-      toast.error("Bạn chưa đăng nhập!");
-      return;
-    }
+    if (!user?.id) return toast.error("Bạn chưa đăng nhập!");
 
     try {
       await remove(`/cart/remove?userId=${user.id}&courseId=${course_id}`);
-      getCoursesInCart(); // load lại
-    } catch (error) {
-      toast.error("Xoá thất bại!");
+      setCartItems((prev) => prev.filter((i) => i.course_id !== course_id));
+      dispatch(setCart(cartItems.filter((i) => i.course_id !== course_id)));
+      setSelectedCourses((prev) => prev.filter((id) => id !== course_id));
+      toast.success("Xoá thành công");
+    } catch (err: any) {
+      toast.error(err?.data?.response?.error || "Lỗi khi xoá");
     }
   };
 
-  //
-  const handleCreateOrder = async () => {
-    const body = {
-      user_id: user?.id,
-      course_id: courseIds,
-      payment_method: "momo",
-    };
+  const handleSelect = (course_id: number) => {
+    setSelectedCourses((prev) =>
+      prev.includes(course_id)
+        ? prev.filter((id) => id !== course_id)
+        : [...prev, course_id]
+    );
+  };
 
-    try {
-      const data = await post("/checkout/cart", body);
-      console.log(data);
-      router.push("/payment/checkout");
-    } catch (err) {
-      toast.error("Lỗi: " + err || "Có lỗi xảy ra");
+  const goToPayment = () => {
+    if (selectedCourses.length === 0) {
+      return toast.error("Vui lòng chọn ít nhất một khóa học");
     }
+
+    // dispatch vào checkout slice
+    // console.log(selectedCourses);
+    dispatch(setCheckoutCourses(selectedCourses));
+    router.push("/payment/checkout");
   };
 
   useEffect(() => {
     getCoursesInCart();
   }, [user?.id]);
 
+  let total = cartItems
+    .filter((i) => selectedCourses.includes(i.course_id))
+    .reduce((sum, i) => sum + Number(i.price || 0), 0);
+
   return (
-    <div className="flex gap-6 p-4 cursor-pointer">
-      {/* Bên trái: danh sách khóa học */}
+    <div className="flex gap-6 p-4">
       <div className="flex-1">
         <h5 className="font-semibold text-lg mb-5 border-b">
           Có {cartItems.length} khóa học trong giỏ hàng
         </h5>
-
         <div className="space-y-3">
-          {cartItems.map((item, index) => (
+          {cartItems.map((item) => (
             <div
-              key={index}
-              className="border p-3 rounded flex justify-between"
+              key={item.course_id}
+              className="border p-3 rounded flex justify-between items-center"
             >
               <div className="flex items-center gap-3">
-                <div className="w-[100px] h-[60px] bg-gray-200 rounded"></div>
+                <input
+                  type="checkbox"
+                  checked={selectedCourses.includes(item.course_id)}
+                  onChange={() => handleSelect(item.course_id)}
+                />
+                <div>
+                  <Image
+                    src={item.course_img}
+                    width={100}
+                    height={100}
+                    alt={item.course_img}
+                    className="w-25 h-15"
+                  />
+                </div>
                 <div>
                   <h3 className="font-semibold">{item.title}</h3>
                   <p className="text-sm text-gray-600">
@@ -124,10 +126,10 @@ const CartItemDisplay = () => {
                 </div>
               </div>
 
-              <div className="flex gap-6">
+              <div className="flex gap-6 items-center">
                 <span
                   onClick={() => handleRemove(item.course_id)}
-                  className="text-sm text-red-500 hover:underline"
+                  className="text-sm text-red-500 hover:underline cursor-pointer"
                 >
                   Xoá
                 </span>
@@ -137,32 +139,17 @@ const CartItemDisplay = () => {
               </div>
             </div>
           ))}
-
-          {cartItems.length === 0 && (
-            <p className="text-gray-500 italic text-center mt-6">
-              Giỏ hàng trống
-            </p>
-          )}
         </div>
       </div>
 
-      {/* Bên phải: tổng tiền */}
       <div className="min-w-[300px] p-4 h-fit">
         <h2 className="font-semibold text-lg mb-2">Tổng tiền</h2>
         <h1 className="text-2xl font-bold text-red-600 mb-[30px]">
           {total.toLocaleString()} đ
         </h1>
-
-        <Button
-          className="w-full h-[50px] cursor-pointer"
-          onClick={handleCreateOrder}
-        >
-          Thanh toán <ArrowRight className="ml-2" />
+        <Button className="w-full h-[50px]" onClick={goToPayment}>
+          Tiến hành thanh toán <ArrowRight className="ml-2" />
         </Button>
-        <p className="text-sm text-[#3d2626] my-2">
-          Bạn sẽ không bị tính phí ngay bây giờ
-        </p>
-        <hr />
       </div>
     </div>
   );

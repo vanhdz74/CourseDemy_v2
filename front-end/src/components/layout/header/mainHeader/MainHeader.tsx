@@ -23,6 +23,7 @@ import { useState, ChangeEvent, useEffect } from "react";
 
 const MainHeader = () => {
   const { user } = useAppSelector((state) => state.auth);
+  const cartItem = useAppSelector((state) => state.cart.items);
   const dispatch = useAppDispatch();
 
   const pathname = usePathname();
@@ -93,8 +94,13 @@ const MainHeader = () => {
         {/* Nếu là học viên */}
         {user?.role === "STUDENT" ? (
           <>
-            <Link href="/cart">
+            <Link href="/cart" className="relative">
               <ShoppingCart className="cursor-pointer" />
+
+              {/* Badge */}
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {cartItem.length}
+              </span>
             </Link>
 
             {/* Dropdown: Khóa học của tôi */}
@@ -116,7 +122,7 @@ const MainHeader = () => {
           </>
         ) : (
           <Button>
-            <Link href={"/teacher/my-courses"}>Về trang điều khiển</Link>
+            <Link href={`/user-class`}>Về trang điều khiển</Link>
           </Button>
         )}
 
@@ -165,9 +171,7 @@ const MainHeader = () => {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem asChild>
-                  <Link href="/student/edit-information">
-                    Sửa thông tin cá nhân
-                  </Link>
+                  <Link href={`/edit-information`}>Sửa thông tin cá nhân</Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem asChild>

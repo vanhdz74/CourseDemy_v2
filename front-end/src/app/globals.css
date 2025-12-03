@@ -119,7 +119,7 @@
   :root {
     /*  */
     --font-size: 10px;  /* Chữ toàn cục */
-    --carousel-height: 250px;  /* Chiều cao carousel */
+    --carousel-height: 350px;  /* Chiều cao carousel */
     --font-size-des: 13px;
     --navHeight: 60px;  /* chiều cao nav */
     --paddingDiv: 60px;  /* p của body */

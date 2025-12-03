@@ -10,7 +10,7 @@ const CourseSearchPage = () => {
     <div>
       <h1 className="text-2xl mb-[20px]">
         Danh mục
-        <p className="text-[red]">{`${localStorage.getItem("category")}`}</p>
+        <p className="text-[red]">{`${localStorage.getItem("select")}`}</p>
       </h1>
 
       <CourseDisplay

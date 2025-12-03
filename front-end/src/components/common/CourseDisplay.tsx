@@ -1,5 +1,7 @@
 "use client";
 
+import dayjs from "dayjs";
+
 import React, { useEffect, useState } from "react";
 import CourseCard from "@/components/common/card-course";
 import PaginationCustom from "./Panigation";
@@ -37,6 +39,7 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
     setCurrentPage(1);
   }, [keywordParams]);
 
+  // Lấy danh sách khoá học
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -96,13 +99,17 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
             {courses.length > 0 ? (
               courses.map((course) => (
                 <CourseCard
+                  img=""
                   key={course.id}
                   id={course.id} // phải có id để link tới khoá học
-                  img="https://img4.thuthuatphanmem.vn/uploads/2020/05/07/hinh-anh-cute-dep-nhat_093404024.jpg"
+                  course_img={course.course_img}
                   title={course.title}
                   description={course.description}
                   teacher_name={course.teacher_name}
                   price={Number(course.price)}
+                  update_at={dayjs(String(course.update_at)).format(
+                    "DD/MM/YYYY HH:mm"
+                  )}
                   beginLessonId={1} // tìm id đầu tiên xh của khoá học -> là bài đầu tiên
                 />
               ))

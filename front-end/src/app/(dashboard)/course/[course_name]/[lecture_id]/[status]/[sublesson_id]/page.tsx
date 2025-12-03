@@ -26,6 +26,7 @@ const LessonPage = () => {
   const [selectedSubLessonId, setSelectedSubLessonId] = useState<number | null>(
     null
   ); // sub_lesson đc chọn
+  const [reloadFlag, setReloadFlag] = useState(false); // reload mõi khi LessonsCourses cập nhật
 
   // Đọc subLessonId từ URL khi load trang
   useEffect(() => {
@@ -55,7 +56,7 @@ const LessonPage = () => {
       setLessons(data);
     };
     fetchLessons();
-  }, []);
+  }, [reloadFlag]);
 
   // Xử lý khi load trang thì hiển thị lại trang vừa rồi
   useEffect(() => {
@@ -153,6 +154,7 @@ const LessonPage = () => {
       >
         <div className="overflow-y-auto py-4 h-[100vh] cursor-pointer">
           <LessonsCourse
+            onReload={() => setReloadFlag((prev) => !prev)}
             lessons={lessons}
             openLessonIds={openLessonIds}
             selectedSubLessonId={selectedSubLessonId}

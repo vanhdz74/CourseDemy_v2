@@ -35,7 +35,7 @@ public class MapperConfiguration {
             }
         });
 
-        // Cấu hình map riêng cho UserEntity → UserDTO
+        // Cấu hình map riêng cho CourseEntity → CourseDTO
         mapper.addMappings(new PropertyMap<CourseEntity, CourseDTO>() {
             @Override
             protected void configure() {
@@ -43,6 +43,7 @@ public class MapperConfiguration {
                 map().setCategoryName(source.getCategory().getName());
                 map().setTeacherName(source.getUser().getUsername());
                 map().setTeacherId(source.getUser().getId());
+                map().setImageUrl(source.getCourseImageEntity().getImageUrl());
             }
         });
 
@@ -80,5 +81,17 @@ public class MapperConfiguration {
 
     public CartItemDTO toCartItemDTO(CartItemEntity entity) {
         return modelMapper().map(entity, CartItemDTO.class);
+    }
+
+    public CourseDetailDTO toCourseDetailDTO(CoursesDetailEntity coursesDetailEntity) {
+        return modelMapper().map(coursesDetailEntity, CourseDetailDTO.class);
+    }
+
+    public OrderDTO.TransactionDTO toOrderDTO(OrderEntity orderEntity) {
+        return modelMapper().map(orderEntity, OrderDTO.TransactionDTO.class);
+    }
+
+    public OrderDetailDTO toOrderDetailDTO(OrderDetailEntity orderDetailEntity) {
+        return modelMapper().map(orderDetailEntity, OrderDetailDTO.class);
     }
 }

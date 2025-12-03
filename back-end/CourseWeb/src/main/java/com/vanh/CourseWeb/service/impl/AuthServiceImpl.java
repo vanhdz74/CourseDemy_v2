@@ -69,15 +69,15 @@ public class AuthServiceImpl implements AuthService {
 
         // Kiểm tra xem email đã tồn tại hay chưa
         if (authRepository.existsByEmail(email)) {
-            throw new DataIntegrityViolationException("Phone number already exists");
+            throw new DataIntegrityViolationException("Email đã tồn tại");
         }
 
         // Chọn vai trò
         RoleEntity roleEntity = roleRepository.findByRoleName(userDTO.getRole().toUpperCase())
-                .orElseThrow(() -> new DataNotFoundException("Role not found"));
+                .orElseThrow(() -> new DataNotFoundException("Vai trò không tồn tại"));
 
         if (roleEntity.getRoleName().toUpperCase().equals(RoleEntity.ADMIN)) {
-            throw new PermissionDenyException("You cannot register an admin account");
+            throw new PermissionDenyException("Bạn không thể đăng ký vai trò admin");
         }
 
         // Convert from userDTO => userEntity sử dụng builder pattern

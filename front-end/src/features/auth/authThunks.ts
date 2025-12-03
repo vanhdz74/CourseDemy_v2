@@ -1,14 +1,14 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { useApi } from "@/hooks/useApi";
-
-const { post } = useApi();
+import { jwtDecode } from "jwt-decode";
+import { fetchCartThunk } from "../cart/cartThunk";
+import { fetchRegisteredCourses } from "../my_course/myCourseThunk";
 
 // ---- LOGIN ----
 export const loginUserThunk = createAsyncThunk(
   "auth/login",
   async (
     credentials: { email: string; password: string },
-    { rejectWithValue }
+    { rejectWithValue, dispatch }
   ) => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
@@ -23,6 +23,14 @@ export const loginUserThunk = createAsyncThunk(
       }
 
       const data = await res.json();
+      const token = data.token;
+      const decoded: any = jwtDecode(data.token);
+
+      if (decoded.role === "STUDENT") {
+        dispatch(fetchCartThunk({ userId: decoded.id, token }));
+        dispatch(fetchRegisteredCourses({ userId: decoded.id, token }));
+      }
+
       return data.token;
     } catch (err: any) {
       return rejectWithValue(err.message);

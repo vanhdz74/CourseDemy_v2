@@ -26,4 +26,7 @@ public class LessonEntity {
     @ManyToOne
     @JoinColumn(name = "course_id")
     private CourseEntity courseEntity;
+
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
+    private List<SubLessonEntity> subLessonEntity;
 }

@@ -12,6 +12,8 @@ import java.util.List;
 public interface UserService {
     List<UserDTO> getAllUsers();
 
+    void addUser(UserDTO userDTO);
+
     UserProfileUpdateDTO getUserById(@PathVariable Long id);
 
     void updateProfileById(@PathVariable Long id,
@@ -20,4 +22,10 @@ public interface UserService {
     void deleteUserById(@PathVariable Long id);
 
     String updateAvatar(Long id, MultipartFile file) throws IOException;
+
+    List<UserDTO> getStudentsByCourseId(Long courseId);
+
+    void addStudentToCourseByEmail(Long courseId, String email);
+
+    void removeStudentFromCourse(Long courseId, Long userId);
 }

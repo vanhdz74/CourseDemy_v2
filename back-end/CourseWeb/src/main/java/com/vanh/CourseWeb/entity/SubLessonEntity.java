@@ -9,7 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "lessons_detail")
+@Table(name = "sub_lessons")
 public class SubLessonEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

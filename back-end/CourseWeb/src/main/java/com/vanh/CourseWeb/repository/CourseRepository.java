@@ -12,4 +12,8 @@ public interface CourseRepository extends JpaRepository<CourseEntity, Long>,
     List<CourseEntity> findByCategoryId(Integer categoryId);
 
     List<CourseEntity> findByUser_id(Long teacherId);
+
+    CourseEntity findByTitle(String title);
+
+    List<CourseEntity> findAllByIdIn(List<Long> courseIds);
 }

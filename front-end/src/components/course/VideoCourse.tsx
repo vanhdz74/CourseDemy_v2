@@ -18,20 +18,15 @@ const VideoCourse = ({ subLesson }: VideoCourseProps) => {
 
   return (
     <div className="h-[75vh] flex flex-col">
-      {/* Video player */}
-      <div className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full aspect-video bg-black overflow-hidden">
-          <video
-            key={subLesson.video_url}
-            src={subLesson.video_url}
-            controls
-            className="w-full h-full object-contain"
-          />
-        </div>
+      {/* Video wrapper giữ tỉ lệ */}
+      <div className="relative w-full aspect-video bg-black">
+        <video
+          key={subLesson.video_url}
+          src={subLesson.video_url}
+          controls
+          className="absolute inset-0 w-full h-full object-contain"
+        />
       </div>
-
-      {/* Tiêu đề bài học */}
-      <h2 className="text-xl font-semibold mt-4 px-4">{subLesson.title}</h2>
     </div>
   );
 };

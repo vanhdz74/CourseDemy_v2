@@ -19,10 +19,10 @@ public class OrderDetailEntity {
     private Double price;
 
     @ManyToOne
-    @JoinColumn(name = "order_id", unique = true)
+    @JoinColumn(name = "order_id")
     private OrderEntity orderEntity;
 
     @ManyToOne
-    @JoinColumn(name = "course_id", unique = true)
+    @JoinColumn(name = "course_id")
     private CourseEntity courseEntity;
 }

@@ -52,7 +52,7 @@ public class CartController {
             @RequestParam Long courseId) {
         try {
             cartService.removeFromCart(userId, courseId);
-            return ResponseEntity.ok("Xóa khóa học khỏi giỏ hàng thành công!");
+            return ResponseEntity.ok(Map.of("message", "Xóa khóa học khỏi giỏ hàng thành công!"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404).body(e.getMessage());
         } catch (Exception e) {

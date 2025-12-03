@@ -6,6 +6,7 @@ import lombok.Data;
 @Data
 public class UserProfileUpdateDTO {
     private String username;
+
     private String email;
 
     @JsonProperty("phone_number")
@@ -19,5 +20,11 @@ public class UserProfileUpdateDTO {
 
     @JsonProperty("youtube_link")
     private String youtubeLink;
+
+    @JsonProperty("is_active")
+    private String isActive;
+
+    @JsonProperty("role")
+    private String role;
 }
 

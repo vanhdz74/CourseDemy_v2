@@ -2,11 +2,12 @@ package com.vanh.CourseWeb.service.impl;
 
 import com.vanh.CourseWeb.configurations.MapperConfiguration;
 import com.vanh.CourseWeb.dto.CourseDTO;
-import com.vanh.CourseWeb.entity.CourseEntity;
-import com.vanh.CourseWeb.entity.UserCourseEntity;
-import com.vanh.CourseWeb.repository.CourseRepository;
-import com.vanh.CourseWeb.repository.UserCourseRepository;
+import com.vanh.CourseWeb.dto.CourseDetailDTO;
+import com.vanh.CourseWeb.entity.*;
+import com.vanh.CourseWeb.repository.*;
+import com.vanh.CourseWeb.service.CloudinaryService;
 import com.vanh.CourseWeb.service.CourseService;
+import com.vanh.CourseWeb.utils.ExtractUtils;
 import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,12 +16,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.awt.print.Pageable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.io.IOException;
+import java.util.*;
 
 
 @Service
@@ -28,8 +28,14 @@ import java.util.Optional;
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
+    private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;
     private final MapperConfiguration mapperConfiguration;
     private final UserCourseRepository userCourseRepository;
+    private final CourseDetailRepository courseDetailRepository;
+    private final CourseImageRepository courseImageRepository;
+
 
     @Value("${course.limit}")
     private String courseLimit;
@@ -131,14 +137,41 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public List<CourseDTO> getCoursesByTeacherId(Long teacherId) {
-        List<CourseEntity> courseEntities = courseRepository.findByUser_id(teacherId);
+    public List<CourseDTO> getCoursesByUserId(Long userId) {
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Ngừoi dùng không tồn tại"));
 
         List<CourseDTO> result = new ArrayList<>();
-        for (CourseEntity item : courseEntities) {
-            CourseDTO course = mapperConfiguration.toCourseDTO(item);
-            result.add(course);
+
+        if (Objects.equals(userEntity.getRoleEntity().getRoleName(), "ADMIN")) {
+            List<CourseEntity> courseEntities = courseRepository.findAll();
+
+            for (CourseEntity item : courseEntities) {
+                CourseDTO course = mapperConfiguration.toCourseDTO(item);
+                result.add(course);
+            }
         }
+
+        if (Objects.equals(userEntity.getRoleEntity().getRoleName(), "TEACHER")) {
+            List<CourseEntity> courseEntities = courseRepository.findByUser_id(userId);
+
+            for (CourseEntity item : courseEntities) {
+                CourseDTO course = mapperConfiguration.toCourseDTO(item);
+                result.add(course);
+            }
+        }
+
+        if (Objects.equals(userEntity.getRoleEntity().getRoleName(), "STUDENT")) {
+            // Danh sách tìm thấy trong user_course
+            List<UserCourseEntity> userCourseList = userCourseRepository.findByUserEntity_Id(userId);
+
+            for (UserCourseEntity item : userCourseList) {
+                CourseEntity courseEntity = item.getCourseEntity(); // Lấy khoá học từ quan hệ
+                CourseDTO dto = mapperConfiguration.toCourseDTO(courseEntity); // Map sang DTO
+                result.add(dto);
+            }
+        }
+
         return result;
     }
 
@@ -152,19 +185,145 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public List<CourseDTO> getCoursesByStudentId(Long studentId) {
-        // Danh sách tìm thấy trong user_course
-        List<UserCourseEntity> userCourseList = userCourseRepository.findByUserEntity_Id(studentId);
+    public CourseDetailDTO getCourseDetailByCourseId(Long id) {
+        CourseEntity courseEntity = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
 
-        // Kết quả trả về
-        List<CourseDTO> result = new ArrayList<>();
+        CoursesDetailEntity coursesDetailEntity = courseDetailRepository.findByCourseEntity_Id(courseEntity.getId());
+        CourseDetailDTO dto = mapperConfiguration.toCourseDetailDTO(coursesDetailEntity);
 
-        for (UserCourseEntity item : userCourseList) {
-            CourseEntity courseEntity = item.getCourseEntity(); // Lấy khoá học từ quan hệ
-            CourseDTO dto = mapperConfiguration.toCourseDTO(courseEntity); // Map sang DTO
-            result.add(dto);
+        return dto;
+    }
+
+    @Override
+    public void addCourse(CourseDTO courseDTO) {
+
+        CourseEntity exist = courseRepository.findByTitle(courseDTO.getTitle());
+        if (exist != null) throw new RuntimeException("Khoá học đã tồn tại");
+
+        CategoryEntity category = categoryRepository.findByName(courseDTO.getCategoryName())
+                .orElseThrow(() -> new RuntimeException("Danh mục không tồn tại"));
+
+        UserEntity user = userRepository.findById(courseDTO.getTeacherId())
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+
+        // Create detail
+        CoursesDetailEntity detail = new CoursesDetailEntity();
+
+        // Create course
+        CourseEntity course = new CourseEntity();
+        course.setTitle(courseDTO.getTitle());
+        course.setDescription(courseDTO.getDescription());
+        course.setPrice(Double.valueOf(courseDTO.getPrice()));
+        course.setUser(user);
+        course.setCategory(category);
+
+        // Set mapping 2 chiều
+        course.setCoursesDetailEntity(detail);
+        detail.setCourseEntity(course);
+
+        // Chỉ save course (nếu có cascade)
+        courseRepository.save(course);
+    }
+
+
+    @Override
+    public void deleteCourseById(Long id) {
+        CourseEntity courseEntity = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
+
+        courseRepository.delete(courseEntity);
+    }
+
+    @Override
+    public void updateCourse(long id, CourseDTO courseDTO) {
+        CourseEntity courseEntity = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
+
+        CategoryEntity categoryEntity = categoryRepository.findByName(courseDTO.getCategoryName())
+                .orElseThrow(() -> new RuntimeException("Danh mục không tồn tại"));
+
+        UserEntity userEntity = userRepository.findById(courseDTO.getTeacherId())
+                .orElseThrow(() -> new RuntimeException("Ngừoi dùng không tồn tại"));
+
+        courseEntity.setTitle(courseDTO.getTitle());
+        courseEntity.setDescription(courseDTO.getDescription());
+        courseEntity.setPrice(Double.valueOf(courseDTO.getPrice()));
+        courseEntity.setUser(userEntity);
+        courseEntity.setCategory(categoryEntity);
+
+        courseRepository.save(courseEntity);
+    }
+
+    @Override
+    public void updateFullCourse(long id, CourseDetailDTO courseDetailDTO) {
+        CourseEntity courseEntity = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
+
+        CategoryEntity categoryEntity = categoryRepository.findByName(courseDetailDTO.getCourse().getCategoryName())
+                .orElseThrow(() -> new RuntimeException("Danh mục không tồn tại"));
+
+        UserEntity userEntity = userRepository.findById(courseDetailDTO.getCourse().getTeacherId())
+                .orElseThrow(() -> new RuntimeException("Ngừoi dùng không tồn tại"));
+
+        CourseImageEntity courseImageEntity =
+                courseImageRepository.findByCourseEntity_Id(id)
+                        .orElse(new CourseImageEntity());
+
+        courseImageEntity.setCourseEntity(courseEntity);  // GÁN COURSE
+        courseImageEntity.setImageUrl(courseDetailDTO.getCourse().getImageUrl());  // GÁN IMAGE
+
+        courseImageRepository.save(courseImageEntity);  // LƯU LẠI
+
+
+        courseEntity.setTitle(courseDetailDTO.getCourse().getTitle());
+        courseEntity.setDescription(courseDetailDTO.getCourse().getDescription());
+        courseEntity.setPrice(Double.valueOf(courseDetailDTO.getCourse().getPrice()));
+        courseEntity.setLevel(courseDetailDTO.getCourse().getLevel());
+        courseEntity.setCourseImageEntity(courseImageEntity);
+        courseEntity.setCategory(categoryEntity);
+
+        courseRepository.save(courseEntity);
+
+        // 3. Lấy detail theo course_id
+        CoursesDetailEntity detail =
+                courseDetailRepository.findByCourseEntity_Id(id);
+
+        if (detail == null) {
+            detail = new CoursesDetailEntity();
         }
 
-        return result;
+        // 4. Update detail
+        detail.setContent(courseDetailDTO.getContent());
+        detail.setDescription(courseDetailDTO.getDescription());
+        detail.setRequest(courseDetailDTO.getRequest());
+        detail.setCourseInclude(courseDetailDTO.getCourseInclude());
+
+        // 5. Gán lại courseEntity (entity thật)
+        detail.setCourseEntity(courseEntity);
+
+        // 6. Lưu
+        courseDetailRepository.save(detail);
+    }
+
+    @Override
+    public String uploadImg(Long id, MultipartFile file) throws IOException {
+        // 1. Tìm user theo ID
+        CourseEntity courseEntity = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khoá học"));
+
+        // 2. Xóa img cũ nếu có
+        if (courseEntity.getCourseImageEntity() != null) {
+            String publicId = ExtractUtils.extractPublicIdFromUrl(courseEntity.getCourseImageEntity().getImageUrl());
+            if (publicId != null) {
+                cloudinaryService.deleteFile(publicId);
+            }
+        }
+
+        // 3. Upload img mới lên Cloudinary - tạo url
+        Map<String, String> uploadResult = cloudinaryService.uploadImage(file);
+        String newUrl = uploadResult.get("url");
+
+        return newUrl;
     }
 }

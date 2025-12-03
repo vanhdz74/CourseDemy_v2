@@ -3,6 +3,7 @@ package com.vanh.CourseWeb.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -10,7 +11,7 @@ import java.util.List;
 public class OrderDTO {
 
     @Data
-    public static class CheckoutCartDTO {
+    public static class CheckoutDTO {
         @JsonProperty(value = "user_id")
         private Long userId;
 
@@ -22,9 +23,30 @@ public class OrderDTO {
     }
 
     @Data
-    public static class CheckoutDirectDTO {
-        private Long userId;
-        private Long courseId;
+    public static class TransactionDTO {
+        private Long orderId;
+
+        @JsonProperty(value = "total_price")
+        private Double totalPrice;
+
+        @JsonProperty(value = "payment_method")
         private String paymentMethod;
+
+        @JsonProperty(value = "payment_time")
+        private LocalDateTime paymentTime;
+
+        private String status;
+
+        @JsonProperty(value = "created_at")
+        private LocalDateTime createdAt;
+
+        @JsonProperty(value = "user_id")
+        private Long userId;
+
+        @JsonProperty(value = "email")
+        private String email;
+
+        @JsonProperty(value = "order_details")
+        private List<OrderDetailDTO> orderDetailDTOs;
     }
 }

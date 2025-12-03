@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { LoginForm } from "@/components/form/login-form";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { fetchRegisteredCourses } from "@/features/my_course/myCourseThunk";
 
 export default function LoginPage() {
   const router = useRouter();

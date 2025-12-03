@@ -7,7 +7,6 @@ import { useAppSelector } from "@/redux/hooks";
 import { Course } from "@/types/courseType";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { da } from "zod/v4/locales";
 
 const MyCourse = () => {
   const { get } = useApi();
@@ -17,7 +16,7 @@ const MyCourse = () => {
 
   const getCourses = async () => {
     try {
-      const data = await get(`/courses/student/${user?.id}`);
+      const data = await get(`/courses/user/${user?.id}`);
       setCourses(data);
     } catch (err: any) {
       toast.error(err);
@@ -35,8 +34,9 @@ const MyCourse = () => {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         {courses.map((item) => (
           <CourseCard
+            key={item.id}
             id={item.id}
-            img="https://img4.thuthuatphanmem.vn/uploads/2020/05/07/hinh-anh-cute-dep-nhat_093404024.jpg"
+            course_img={item.course_img}
             title={item.title}
             description={item.description}
             price={item.price}

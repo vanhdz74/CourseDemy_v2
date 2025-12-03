@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.Date;
+import java.util.List;
 
 @Getter
 @Setter
@@ -46,4 +47,10 @@ public class CourseEntity {
     @ManyToOne
     @JoinColumn(name = "teacher_id")
     private UserEntity user;
+
+    @OneToOne(mappedBy = "courseEntity", cascade = CascadeType.ALL)
+    private CourseImageEntity courseImageEntity;
+
+    @OneToOne(mappedBy = "courseEntity", cascade = CascadeType.ALL)
+    private CoursesDetailEntity coursesDetailEntity;
 }

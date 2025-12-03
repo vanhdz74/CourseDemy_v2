@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -48,20 +49,52 @@ public class WebSecurityConfig {
                                 String.format("%s/categories/**", apiPrefix),
                                 String.format("%s/courses/**", apiPrefix),
                                 ("/course/**"),
-                                ("/cart/add")
-
+                                ("/course-detail/{id}"),
+                                ("/cart/add"),
+                                ("/api/payment/{provider}/ipn**"),
+                                ("/api/payment/{provider}/return**")
                         ).permitAll()
 
+                        // user
                         .requestMatchers(GET, "/user/all").hasRole(RoleEntity.ADMIN)
                         .requestMatchers(GET, "/user/{id}").authenticated()
+                        .requestMatchers(POST, "/user").hasRole(RoleEntity.ADMIN)
+                        .requestMatchers(DELETE, "/user/{id}").authenticated()
                         .requestMatchers(POST, "/user/upload-avatar").authenticated()
                         .requestMatchers(PUT, "/user/update/{id}").authenticated()
                         .requestMatchers(DELETE, "/user/delete/{id}").hasAnyRole(RoleEntity.STUDENT, RoleEntity.ADMIN)
-                        .requestMatchers(GET, "/lessons/course/{id}").authenticated()
+                        .requestMatchers(PUT, "/course-detail/m1/*").hasAnyRole(RoleEntity.ADMIN, RoleEntity.TEACHER)
+                        .requestMatchers(GET, "/users/course/{id}").hasAnyRole(RoleEntity.ADMIN, RoleEntity.TEACHER)
+                        .requestMatchers(POST, "/courses/{id}/students").hasAnyRole(RoleEntity.ADMIN, RoleEntity.TEACHER)
+                        .requestMatchers(DELETE, "/courses/{course_id}/students/{student_id}").hasAnyRole(RoleEntity.ADMIN, RoleEntity.TEACHER)
+
+                        // cart
+                        .requestMatchers(DELETE, "/cart/remove*").hasRole(RoleEntity.STUDENT)
                         .requestMatchers(POST, "/cart/{id}").hasRole(RoleEntity.STUDENT)
-                        .requestMatchers(GET, "/courses/student/{id}").authenticated()
-                        .requestMatchers(POST, "/checkout/cart").authenticated()
+
+                        //course
+                        .requestMatchers(GET, "/courses/user/{id}").authenticated()
+                        .requestMatchers(POST, "/course").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+                        .requestMatchers(DELETE, "/course/{id}").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+                        .requestMatchers(PUT, "/course/{id}").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+                        .requestMatchers(POST, "/upload-course-img/{id}").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+
+                        // payment
+                        .requestMatchers(POST, "/checkout").authenticated()
                         .requestMatchers(POST, "/payment/success/**").hasRole(RoleEntity.ADMIN)
+                        .requestMatchers(POST, "/api/payment/create").authenticated()
+
+                        // lesson, sublesson
+                        .requestMatchers(GET, "/lessons/course/{id}").authenticated()
+                        .requestMatchers(DELETE, "/sublesson/{id}").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+                        .requestMatchers(POST, "/lesson/{lessonId}/sublesson/add-relative").hasRole(RoleEntity.TEACHER)
+                        .requestMatchers(POST, "/lesson/**").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+                        .requestMatchers(DELETE, "/lesson/**").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+                        .requestMatchers(PUT, "/lesson/**").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+                        .requestMatchers(POST, "/sublesson/lesson/**").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+
+                        // transaction
+                        .requestMatchers(GET, "/transaction/**").hasRole(RoleEntity.ADMIN)
 
                         .anyRequest().authenticated()
                 );

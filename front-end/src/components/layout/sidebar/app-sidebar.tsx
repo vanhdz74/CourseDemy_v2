@@ -2,7 +2,16 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarPlus, Users, Book } from "lucide-react";
+import {
+  CalendarPlus,
+  Users,
+  Book,
+  Library,
+  UserCheck,
+  BarChart3,
+  LineChart,
+  CreditCard,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -20,25 +29,46 @@ const icons = {
   CalendarPlus,
   Users,
   Book,
+  Library,
+  UserCheck,
+  BarChart3,
+  LineChart,
+  CreditCard,
 };
 
 // Dữ liệu sidebar theo role
 const sidebarData = {
   TEACHER: [
     {
-      title: "Khoá học của tôi",
-      url: "/teacher/my-courses",
+      title: "Xem thông tin học viên",
+      url: "/user-class",
       icon: "CalendarPlus",
     },
     {
-      title: "Quản lý học viên",
-      url: "/teacher/student-managerment",
+      title: "Quản lý khoá học",
+      url: "/teacher/my-courses",
       icon: "CalendarPlus",
     },
   ],
   ADMIN: [
     { title: "Quản lý người dùng", url: "/admin/users", icon: "Users" },
-    { title: "Quản lý khoá học", url: "/admin/courses", icon: "Book" },
+    { title: "Quản lý khoá học", url: "/admin/courses", icon: "Library" },
+    { title: "Quản lý học viên", url: "/user-class", icon: "UserCheck" },
+    {
+      title: "Thống kê học viên",
+      url: "/statistics/students",
+      icon: "BarChart3",
+    },
+    {
+      title: "Thống kê doanh thu",
+      url: "/statistics/revenue",
+      icon: "LineChart",
+    },
+    {
+      title: "Quản lý thanh toán",
+      url: "/admin/payment_manager",
+      icon: "CreditCard",
+    },
   ],
 };
 

@@ -7,8 +7,6 @@ import java.util.Date;
 
 @Data //toString
 @Builder
-@Setter
-@Getter
 @AllArgsConstructor
 @NoArgsConstructor
 public class CourseDTO {
@@ -30,6 +28,9 @@ public class CourseDTO {
 
     @JsonProperty("update_at")
     private Date updateAt;
+
+    @JsonProperty("course_img")
+    private String imageUrl;
 
     @JsonProperty("category_name")
     private String categoryName;

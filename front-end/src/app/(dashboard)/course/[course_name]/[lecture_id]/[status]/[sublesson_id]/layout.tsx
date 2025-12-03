@@ -5,6 +5,7 @@ import { useAppSelector } from "@/redux/hooks";
 
 import { slugify } from "@/lib/utils";
 import Link from "next/link";
+import { Star } from "lucide-react";
 
 export default function CourseLayout({ children }: { children: ReactNode }) {
   const { courseTitle } = useAppSelector((state) => state.course);
@@ -21,7 +22,10 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
           </Link>
         </div>
 
-        <div>Chức năng</div>
+        <div className="px-10 flex items-center gap-2">
+          <Star className="text-[yellow] w-3" />
+          Đánh giá khoá học
+        </div>
       </div>
 
       <div>{children}</div>

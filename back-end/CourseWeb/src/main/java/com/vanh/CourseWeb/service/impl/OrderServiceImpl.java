@@ -1,6 +1,8 @@
 package com.vanh.CourseWeb.service.impl;
 
+import com.vanh.CourseWeb.configurations.MapperConfiguration;
 import com.vanh.CourseWeb.dto.OrderDTO;
+import com.vanh.CourseWeb.dto.OrderDetailDTO;
 import com.vanh.CourseWeb.entity.*;
 import com.vanh.CourseWeb.repository.*;
 import com.vanh.CourseWeb.service.OrderService;
@@ -8,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor // thay authrided
@@ -19,9 +22,10 @@ public class OrderServiceImpl implements OrderService {
     private final CourseRepository courseRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final UserCourseRepository userCourseRepository;
+    private final MapperConfiguration mapperConfiguration;
 
     @Override
-    public OrderEntity createOrderFromCart(OrderDTO.CheckoutCartDTO request) {
+    public OrderEntity createOrderFromCart(OrderDTO.CheckoutDTO request) {
         UserEntity userEntity = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
 
@@ -75,4 +79,37 @@ public class OrderServiceImpl implements OrderService {
             }
         }
     }
+
+    @Override
+    public List<OrderDTO.TransactionDTO> transaction() {
+
+        List<OrderDTO.TransactionDTO> transactions = new ArrayList<>();
+
+        // Lấy tất cả Order
+        List<OrderEntity> orderEntities = orderRepository.findAll();
+
+        for (OrderEntity order : orderEntities) {
+
+            // Convert Order → TransactionDTO
+            OrderDTO.TransactionDTO transactionDTO = mapperConfiguration.toOrderDTO(order);
+            String email = order.getUserEntity().getEmail();
+            transactionDTO.setEmail(email);
+
+            // Convert List<OrderDetailEntity> → List<OrderDetailDTO>
+            List<OrderDetailDTO> detailDTOs = order.getOrderDetailEntities()
+                    .stream()
+                    .map(mapperConfiguration::toOrderDetailDTO)
+                    .toList();
+
+            // set DTO list vào transactionDTO
+            transactionDTO.setOrderDetailDTOs(detailDTOs);
+
+            // add vào list trả về
+            transactions.add(transactionDTO);
+        }
+
+        return transactions;
+    }
+
+
 }

@@ -7,32 +7,48 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import Image from "next/image";
 
 const CarouselPage = () => {
+  const images = [
+    "/images/banner/banner1.png",
+    "/images/banner/banner2.png",
+    "/images/banner/banner3.png",
+    "/images/banner/banner4.png",
+    "/images/banner/banner5.png",
+  ];
+
+  const logos = ["/logo1.png", "/logo2.png", "/logo3.png", "/logo4.png"];
+
   return (
-    <div id="">
+    <div>
+      {/* ================= CAROUSEL ================= */}
       <div
-        className="w-full mx-auto my-[10px]"
+        className="w-full mx-auto my-[10px] rounded-xl overflow-hidden shadow-md"
         style={{ height: "var(--carousel-height)" }}
       >
         <Carousel
-          plugins={[
-            Autoplay({
-              delay: 10000,
-            }),
-          ]}
-          className="w-full h-full relative "
+          plugins={[Autoplay({ delay: 8000 })]}
+          className="w-full h-full relative"
         >
           <CarouselContent className="h-full">
-            {Array.from({ length: 5 }).map((_, index) => (
+            {images.map((src, index) => (
               <CarouselItem key={index} className="h-full basis-full">
-                {/* Lay h = h cua div dau tien */}
                 <Card
-                  className="w-full flex"
-                  style={{ height: "var(--carousel-height)" }}
+                  className="w-full h-full"
+                  style={{
+                    height: "var(--carousel-height)",
+                  }}
                 >
-                  <CardContent className="h-full flex-1 flex items-center justify-center">
-                    <span className="text-4xl font-semibold">{index + 1}</span>
+                  <CardContent className="w-full h-full">
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={src}
+                        fill
+                        alt="Banner"
+                        className="object-cover"
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               </CarouselItem>
@@ -44,20 +60,25 @@ const CarouselPage = () => {
         </Carousel>
       </div>
 
-      {/* Web Description */}
-      <div className="mx-auto max-w-[90%]">
+      {/* ================= TRUSTED BY ================= */}
+      <div className="mx-auto max-w-[90%] mt-[40px]">
         <h3
-          className="text-center my-[30px]"
+          className="text-center mb-[30px] font-semibold"
           style={{ fontSize: "var(--font-size-des)" }}
         >
           Được hơn 17.000 công ty và hàng triệu học viên trên khắp thế giới tin
           dùng
         </h3>
-        <div className="text-center flex justify-around">
-          <div>LOGO 1</div>
-          <div>LOGO 2</div>
-          <div>LOGO 3</div>
-          <div>LOGO 4</div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 place-items-center">
+          {logos.map((logo, i) => (
+            <div
+              key={i}
+              className="w-28 h-12 relative grayscale opacity-70 hover:opacity-100 hover:grayscale-0 transition"
+            >
+              <Image src={logo} alt="Logo" fill className="object-contain" />
+            </div>
+          ))}
         </div>
       </div>
     </div>

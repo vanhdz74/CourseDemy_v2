@@ -1,5 +1,6 @@
 "use client";
 
+import dayjs from "dayjs";
 import {
   Card,
   CardContent,
@@ -18,36 +19,47 @@ import { slugify } from "@/lib/utils";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/useApi";
 import { useEffect, useState } from "react";
+import { setCart } from "@/features/cart/cartSlice";
+import { number } from "zod";
 
 const CourseCard = ({
   id,
-  img,
+  course_img,
   title,
   description,
   teacher_name,
   completeSpeed,
   star,
   price,
+  update_at,
   beginLessonId,
 }: Course) => {
   const pathname = usePathname();
   const router = useRouter();
   const { get, post } = useApi();
+  const cartItems = useAppSelector((state) => state.cart.items);
+  const myItems = useAppSelector((state) => state.my_course.courses);
 
   const { user } = useAppSelector((state) => state.auth);
+
   const dispatch = useAppDispatch();
-  const [cartCourses, setCartCourses] = useState<number[]>([]);
+  const [cartCourses, setCartCourses] = useState<number[]>(cartItems);
 
   const isInCart = cartCourses.includes(id);
+  const isInMyCourse = myItems.some((course) => course.id === id);
 
-  const handleGoToCourse = () => {
+  const handleGoToCourse = (e: any) => {
+    e.stopPropagation(); // Dừng sự kiện nổi lên Card
     dispatch(setCourse({ courseId: id, courseTitle: title }));
     router.push(`/course/${slugify(title)}/${beginLessonId}/edit/0`);
   };
 
-  const handleAddToCart = async (course_id: number) => {
+  const handleAddToCart = async (course_id: number, e: any) => {
+    e.stopPropagation(); // Dừng sự kiện nổi lên Card
+
     if (!user?.id) {
       toast.error("Bạn chưa đăng nhập!");
+      router.push("/login");
       return;
     }
 
@@ -57,39 +69,29 @@ const CourseCard = ({
       );
       toast.success(data?.message || data || "Đã thêm vào giỏ hàng!");
       setCartCourses((prev) => [...prev, course_id]);
+
+      // Dispatch redux để cập nhật giỏ hàng
+      dispatch(setCart([...cartItems, course_id]));
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || "Khóa học đã có trong giỏ hàng!"
-      );
+      user.role === "STUDENT" &&
+        toast.error(
+          err?.response?.data?.message || "Khóa học đã có trong giỏ hàng!"
+        );
     }
   };
 
-  // Lấy course có trong giỏ hàng
-  useEffect(() => {
-    const fetchCart = async () => {
-      if (!user?.id) return;
-      try {
-        const data = await get(`/cart/user/${user.id}`);
-        const items = Array.isArray(data?.cart_items) ? data.cart_items : [];
-        setCartCourses(items.map((i: any) => i.course_id));
-      } catch (err) {
-        console.error("Lỗi lấy giỏ hàng:", err);
-      }
-    };
-
-    fetchCart();
-  }, [user]);
-
   return (
-    <Card className="overflow-hidden rounded-xl shadow-md">
+    <Card
+      className="overflow-hidden rounded-xl shadow-md transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl cursor-pointer"
+      onClick={() => {
+        dispatch(setCourse({ courseId: id, courseTitle: title }));
+        router.push(`/course-detail/${slugify(title)}`);
+      }}
+    >
       <CardHeader className="px-4">
         <div className="relative h-48">
           <Image
-            src={
-              img && (img.startsWith("http") || img.startsWith("/"))
-                ? img
-                : "/default.jpg"
-            }
+            src={course_img}
             alt={title || "Course image"}
             fill
             className="object-cover"
@@ -112,6 +114,7 @@ const CourseCard = ({
           )}
           <div className="text-yellow-500">⭐ {star}</div>
         </div>
+        <div className="text-sm">Cập nhật mới nhất: {update_at}</div>
       </CardContent>
 
       <CardFooter className="flex justify-between items-center text-sm">
@@ -124,29 +127,46 @@ const CourseCard = ({
             <div className="font-bold">{price?.toLocaleString()} đ</div>
 
             {user?.role === "STUDENT" ? (
-              isInCart ? (
+              isInMyCourse ? (
+                // --- User đã mua khóa học ---
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/student/my-course`);
+                  }}
+                >
+                  Đi đến khóa học
+                </Button>
+              ) : isInCart ? (
+                // --- Khóa học đang nằm trong giỏ ---
                 <Button
                   className="bg-gray-500 hover:bg-gray-600"
-                  onClick={() => router.push("/cart")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push("/cart");
+                  }}
                 >
                   Vào giỏ hàng
                 </Button>
               ) : (
+                // --- Chưa mua & chưa có trong giỏ ---
                 <Button
                   className="bg-[var(--buttonAll)] hover:bg-[#ae6868]"
-                  onClick={() => handleAddToCart(id)}
+                  onClick={(e) => handleAddToCart(id, e)}
                 >
                   Thêm vào giỏ hàng
                 </Button>
               )
-            ) : (
+            ) : !user?.role ? (
+              // --- Chưa đăng nhập ---
               <Button
                 className="bg-[var(--buttonAll)]"
-                onClick={handleGoToCourse}
+                onClick={(e) => handleAddToCart(id, e)}
               >
-                Sửa
+                Thêm vào giỏ hàng
               </Button>
-            )}
+            ) : null}
           </>
         )}
       </CardFooter>
