@@ -1,10 +1,7 @@
 package com.vanh.CourseWeb.payment;
 
 import com.vanh.CourseWeb.configurations.payment.VnPayConfig;
-import com.vanh.CourseWeb.entity.CourseEntity;
-import com.vanh.CourseWeb.entity.OrderDetailEntity;
-import com.vanh.CourseWeb.entity.OrderEntity;
-import com.vanh.CourseWeb.entity.UserCourseEntity;
+import com.vanh.CourseWeb.entity.*;
 import com.vanh.CourseWeb.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -20,6 +17,8 @@ public class VnPayProvider implements PaymentProvider {
     private final OrderDetailRepository orderDetailRepository;
     private final UserCourseRepository userCourseRepository;
     private final CourseRepository courseRepository;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
 
     @Override
     public String createPaymentUrl(OrderEntity order, Map<String, String> extraParams) throws Exception {
@@ -98,6 +97,20 @@ public class VnPayProvider implements PaymentProvider {
             CourseEntity courseEntity = courseRepository.findById(orderDetailEntity.getCourseEntity().getId()).orElse(null);
             if (courseEntity != null) {
                 courseEntity.setQuantity(courseEntity.getQuantity() + 1);
+                courseRepository.save(courseEntity);
+            }
+
+            // Xoá item trong giỏ hàng (chỉ xoá khoá học đã mua)
+            CartEntity cartEntity = cartRepository.findByUserEntity_Id(order.getUserEntity().getId());
+            if (cartEntity != null) {
+                CartItemEntity cartItem = cartItemRepository.findByCartEntity_IdAndCourseEntity_Id(
+                        cartEntity.getId(),
+                        orderDetailEntity.getCourseEntity().getId()
+                );
+
+                if (cartItem != null) {
+                    cartItemRepository.delete(cartItem); // Chỉ xoá item này, không xoá toàn giỏ
+                }
             }
 
             userCourseRepository.save(userCourseEntity);
@@ -123,7 +136,18 @@ public class VnPayProvider implements PaymentProvider {
         // Nếu thành công, gọi processCallback luôn
         if ("00".equals(params.get("vnp_ResponseCode"))) {
             Map<String, String> callbackResponse = processCallback(params);
-            return "GD Thanh cong";
+            return """
+                    <html>
+                        <body>
+                            <h2>Giao dịch thành công! Đang chuyển hướng...</h2>
+                            <script>
+                                setTimeout(function() {
+                                    window.location.href = "localhost:3000/home";
+                                }, 5000);
+                            </script>
+                        </body>
+                    </html>
+                    """;
         } else {
             return "GD Khong thanh cong";
         }
