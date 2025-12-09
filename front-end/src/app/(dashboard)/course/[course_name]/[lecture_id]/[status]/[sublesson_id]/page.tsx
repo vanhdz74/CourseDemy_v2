@@ -132,6 +132,8 @@ const LessonPage = () => {
     }
   }, [isFixed]);
 
+  const ok = currentSubLesson;
+
   return (
     <div className="flex min-h-[100vh]">
       {/* Phần video */}
@@ -140,7 +142,10 @@ const LessonPage = () => {
 
         {/* Tiêu đề dưới */}
         <div className="border-t-[1px]">
-          <SubTitle />
+          {/* selectedSubLessonId được set sau khi: useEffect đọc pathname */}
+          {currentSubLesson && (
+            <SubTitle selectedSubLessonId={currentSubLesson} />
+          )}
         </div>
       </div>
 
@@ -159,7 +164,8 @@ const LessonPage = () => {
             openLessonIds={openLessonIds}
             selectedSubLessonId={selectedSubLessonId}
             onToggleLesson={handleToggleLesson}
-            onSelectSubLesson={(lessonId, subLessonId) => {
+            onSelectSubLesson={async (lessonId, subLessonId) => {
+              await loadSubLessons(lessonId); // Load sub_lessons đảm bảo có data
               setSelectedSubLessonId(subLessonId);
               // Cập nhật URL mà vẫn giữ lịch sử + không reload
               window.history.pushState(

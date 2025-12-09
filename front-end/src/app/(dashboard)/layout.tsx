@@ -36,6 +36,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     >
       {pathname.includes("teacher") ||
       pathname.includes("admin") ||
+      pathname.includes("statistics") ||
       pathname.includes("user-class") ? (
         <>
           <AppSidebar />

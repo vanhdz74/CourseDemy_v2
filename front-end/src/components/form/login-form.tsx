@@ -57,7 +57,7 @@ export function LoginForm({ className, onSubmit, ...props }: LoginFormProps) {
         </Field>
         <Field>
           <div className="flex items-center">
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <FieldLabel htmlFor="password">Mật khẩu</FieldLabel>
             <a
               href="#"
               className="ml-auto text-sm underline-offset-4 hover:underline"

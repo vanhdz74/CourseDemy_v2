@@ -1,14 +1,29 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useAppSelector } from "@/redux/hooks";
-
 import { slugify } from "@/lib/utils";
 import Link from "next/link";
 import { Star } from "lucide-react";
 
+import ReviewModal from "@/components/course/ReviewModal";
+import { useApi } from "@/hooks/useApi";
+
 export default function CourseLayout({ children }: { children: ReactNode }) {
-  const { courseTitle } = useAppSelector((state) => state.course);
+  const { courseId, courseTitle } = useAppSelector((state) => state.course);
+  const [openModal, setOpenModal] = useState(false);
+
+  const { post } = useApi();
+
+  const handleSubmitReview = async (rating: number, comment: string) => {
+    // Gọi API tạo review
+    const data = await post(`/review/course/${courseId}`, {
+      rating,
+      comment,
+    });
+
+    console.log("Đánh giá đã gửi:", rating, comment);
+  };
 
   return (
     <div>
@@ -22,11 +37,20 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
           </Link>
         </div>
 
-        <div className="px-10 flex items-center gap-2">
+        <div
+          className="px-10 flex items-center gap-2 cursor-pointer hover:opacity-80"
+          onClick={() => setOpenModal(true)}
+        >
           <Star className="text-[yellow] w-3" />
           Đánh giá khoá học
         </div>
       </div>
+
+      <ReviewModal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        onSubmit={handleSubmitReview}
+      />
 
       <div>{children}</div>
     </div>

@@ -52,6 +52,7 @@ const sidebarData = {
   ],
   ADMIN: [
     { title: "Quản lý người dùng", url: "/admin/users", icon: "Users" },
+    { title: "Quản lý danh mục", url: "/admin/users", icon: "Users" },
     { title: "Quản lý khoá học", url: "/admin/courses", icon: "Library" },
     { title: "Quản lý học viên", url: "/user-class", icon: "UserCheck" },
     {

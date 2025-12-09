@@ -122,6 +122,10 @@ const CourseCard = ({
           <Button className="bg-[var(--buttonAll)]" onClick={handleGoToCourse}>
             Đi đến học
           </Button>
+        ) : pathname.includes("teacher") ? (
+          <Button className="bg-[var(--buttonAll)]" onClick={handleGoToCourse}>
+            Sửa
+          </Button>
         ) : (
           <>
             <div className="font-bold">{price?.toLocaleString()} đ</div>

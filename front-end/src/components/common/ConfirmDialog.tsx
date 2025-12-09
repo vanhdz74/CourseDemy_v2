@@ -33,7 +33,7 @@ export default function ConfirmDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-center">{title}</DialogTitle>
         </DialogHeader>
 
         <div className="py-4 text-sm text-gray-600">{message}</div>
@@ -46,7 +46,6 @@ export default function ConfirmDialog({
           <Button
             onClick={() => {
               onConfirm();
-              onClose();
             }}
           >
             {confirmText}
