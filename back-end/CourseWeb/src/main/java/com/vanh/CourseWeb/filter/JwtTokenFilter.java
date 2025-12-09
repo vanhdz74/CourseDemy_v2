@@ -91,7 +91,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of("/cart/add", "POST"),
                 Pair.of("/course-detail", "GET"),
                 Pair.of("/api/payment/", "POST"),
-                Pair.of("/api/payment/", "GET")
+                Pair.of("/api/payment/", "GET"),
+                Pair.of("/public", "GET"),
+                Pair.of("/reviews", "GET"),
+                Pair.of("/revenue/top-courses", "GET"),
+                Pair.of("/revenue-categories", "GET")
         );
 
         // first: đường dẫn API

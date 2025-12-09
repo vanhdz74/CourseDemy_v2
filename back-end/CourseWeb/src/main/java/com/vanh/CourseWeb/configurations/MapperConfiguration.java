@@ -94,4 +94,12 @@ public class MapperConfiguration {
     public OrderDetailDTO toOrderDetailDTO(OrderDetailEntity orderDetailEntity) {
         return modelMapper().map(orderDetailEntity, OrderDetailDTO.class);
     }
+
+    public CommentDTO toCommentDTO(CommentEntity commentEntity) {
+        return modelMapper().map(commentEntity, CommentDTO.class);
+    }
+
+    public ReviewDTO toReviewDTO(ReviewEntity reviewEntity) {
+        return modelMapper().map(reviewEntity, ReviewDTO.class);
+    }
 }

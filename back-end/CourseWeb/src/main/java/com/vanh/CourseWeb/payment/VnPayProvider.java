@@ -1,12 +1,11 @@
 package com.vanh.CourseWeb.payment;
 
 import com.vanh.CourseWeb.configurations.payment.VnPayConfig;
+import com.vanh.CourseWeb.entity.CourseEntity;
 import com.vanh.CourseWeb.entity.OrderDetailEntity;
 import com.vanh.CourseWeb.entity.OrderEntity;
 import com.vanh.CourseWeb.entity.UserCourseEntity;
-import com.vanh.CourseWeb.repository.OrderDetailRepository;
-import com.vanh.CourseWeb.repository.OrderRepository;
-import com.vanh.CourseWeb.repository.UserCourseRepository;
+import com.vanh.CourseWeb.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -20,6 +19,7 @@ public class VnPayProvider implements PaymentProvider {
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final UserCourseRepository userCourseRepository;
+    private final CourseRepository courseRepository;
 
     @Override
     public String createPaymentUrl(OrderEntity order, Map<String, String> extraParams) throws Exception {
@@ -93,6 +93,13 @@ public class VnPayProvider implements PaymentProvider {
             UserCourseEntity userCourseEntity = new UserCourseEntity();
             userCourseEntity.setUserEntity(order.getUserEntity());
             userCourseEntity.setCourseEntity(orderDetailEntity.getCourseEntity());
+
+            // Cập nhật số lượng học viên sau khi đăng ký thành công
+            CourseEntity courseEntity = courseRepository.findById(orderDetailEntity.getCourseEntity().getId()).orElse(null);
+            if (courseEntity != null) {
+                courseEntity.setQuantity(courseEntity.getQuantity() + 1);
+            }
+
             userCourseRepository.save(userCourseEntity);
         }
 

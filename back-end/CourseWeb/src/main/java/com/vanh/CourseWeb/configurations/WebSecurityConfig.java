@@ -52,7 +52,12 @@ public class WebSecurityConfig {
                                 ("/course-detail/{id}"),
                                 ("/cart/add"),
                                 ("/api/payment/{provider}/ipn**"),
-                                ("/api/payment/{provider}/return**")
+                                ("/api/payment/{provider}/return**"),
+                                ("/public/lessons/course/{id}"),
+                                ("/public/sublessons/lesson/{id}"),
+                                ("/reviews/**"),
+                                ("/revenue/top-courses"),
+                                ("/revenue-categories")
                         ).permitAll()
 
                         // user
@@ -95,6 +100,15 @@ public class WebSecurityConfig {
 
                         // transaction
                         .requestMatchers(GET, "/transaction/**").hasRole(RoleEntity.ADMIN)
+
+                        // thread & reply
+                        .requestMatchers(GET, "/comments/**").authenticated()
+                        .requestMatchers(POST, "/comment").authenticated()
+                        .requestMatchers(DELETE, "/comment/{id}").authenticated()
+                        .requestMatchers(POST, "/review").authenticated()
+
+                        // reveune
+                        .requestMatchers(GET, "/revenue-by-month").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
 
                         .anyRequest().authenticated()
                 );
