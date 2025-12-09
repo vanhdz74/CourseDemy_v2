@@ -2,6 +2,7 @@ package com.vanh.CourseWeb.controller;
 
 import com.vanh.CourseWeb.dto.CourseDTO;
 import com.vanh.CourseWeb.dto.CourseDetailDTO;
+import com.vanh.CourseWeb.dto.RevenueDTO;
 import com.vanh.CourseWeb.dto.SubLessonDTO;
 import com.vanh.CourseWeb.entity.CourseEntity;
 import com.vanh.CourseWeb.entity.UserEntity;
@@ -132,6 +133,14 @@ public class CourseController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Upload thất bại: " + e.getMessage());
         }
+    }
+
+    // GET: Lấy top 5 khoá học có doanh thu cao nhất
+    @GetMapping("/revenue/top-courses")
+    public ResponseEntity<List<RevenueDTO.TopCourseDTO>> getTopCoursesRevenue() {
+        return ResponseEntity.ok(
+                courseService.getTopCoursesRevenue()
+        );
     }
 
 }

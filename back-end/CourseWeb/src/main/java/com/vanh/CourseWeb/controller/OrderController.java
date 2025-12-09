@@ -1,11 +1,14 @@
 package com.vanh.CourseWeb.controller;
 
 import com.vanh.CourseWeb.dto.OrderDTO;
+import com.vanh.CourseWeb.dto.RevenueDTO;
 import com.vanh.CourseWeb.entity.OrderEntity;
+import com.vanh.CourseWeb.entity.UserEntity;
 import com.vanh.CourseWeb.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,6 +50,16 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Lỗi hệ thống: " + e.getMessage()));
         }
+    }
+
+    // GET: Lấy doanh thu theo tháng trong năm hiện tại
+    @GetMapping("/revenue-by-month")
+    public List<RevenueDTO.RevenueByMonthDTO> getRevenueByMonth(
+            @RequestParam(required = false) Long courseId,
+            Authentication authentication
+    ) {
+        UserEntity user = (UserEntity) authentication.getPrincipal();
+        return orderService.getRevenueByMonth(user.getId(), courseId, user.getRoleEntity().getRoleName());
     }
 
 }

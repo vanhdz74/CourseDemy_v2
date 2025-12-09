@@ -200,4 +200,18 @@ public class LessonController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+    // GET: Lấy nội dung khoá học (bài học lesson, sub lesson) public
+    @GetMapping("/public/lessons/course/{id}")
+    public List<LessonDTO> getPublicLessons(@PathVariable Long id) {
+        List<LessonDTO> result = lessonService.getLessonsByCourseId(id);
+        return result;
+    }
+
+    // GET: lấy sublesson theo lesson_id
+    @GetMapping("/public/sublessons/lesson/{id}")
+    public List<SubLessonDTO> getPublicSubLessons(@PathVariable Long id) {
+        List<SubLessonDTO> result = lessonService.getPublicSubLessons(id);
+        return result;
+    }
 }

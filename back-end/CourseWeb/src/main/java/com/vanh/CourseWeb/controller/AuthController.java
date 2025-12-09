@@ -57,7 +57,7 @@ public class AuthController {
             }
 
             UserEntity userEntity = authService.createUser(userDTO); // return ResponseEntity.ok("Register successfully");
-            return ResponseEntity.ok("");
+            return ResponseEntity.ok("Đăng ký thành công");
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage()); // rule 5
         }
