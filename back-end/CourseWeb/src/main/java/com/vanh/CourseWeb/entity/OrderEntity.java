@@ -30,6 +30,9 @@ public class OrderEntity {
     @Column(name = "payment_method")
     private String paymentMethod;
 
+    @Column(name = "payment_time")
+    private LocalDateTime paymentTime;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private UserEntity userEntity;
