@@ -237,4 +237,39 @@ public class LessonServiceImpl implements LessonService {
             });
         }
     }
+
+    @Override
+    public List<LessonDTO> getPublicLessons(Long courseId) {
+        List<LessonEntity> lessonEntities = lessonRepository.findByCourseEntity_IdOrderByOrderIndexAsc(courseId);
+
+        List<LessonDTO> result = new ArrayList<>();
+        for (LessonEntity item : lessonEntities) {
+            LessonDTO lessonDTO = new LessonDTO();
+            lessonDTO.setTitle(item.getTitle());
+            lessonDTO.setOrderIndex(item.getOrderIndex());
+            result.add(lessonDTO);
+        }
+        return result;
+    }
+
+    @Override
+    public List<SubLessonDTO> getPublicSubLessons(Long lessonId) {
+        List<SubLessonEntity> subLessonEntities = subLessonRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+
+        List<SubLessonDTO> result = new ArrayList<>();
+        for (SubLessonEntity item : subLessonEntities) {
+            SubLessonDTO subLessonDTO = new SubLessonDTO();
+            subLessonDTO.setId(item.getId());
+            subLessonDTO.setTitle(item.getTitle());
+            subLessonDTO.setDuration(item.getDuration());
+            subLessonDTO.setOrderIndex(item.getOrderIndex());
+            if (item.getOrderIndex() == 1) {
+                subLessonDTO.setVideoUrl(item.getVideoUrl());
+            } else {
+                subLessonDTO.setVideoUrl(null);
+            }
+            result.add(subLessonDTO);
+        }
+        return result;
+    }
 }

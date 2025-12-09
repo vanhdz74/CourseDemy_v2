@@ -2,19 +2,23 @@ package com.vanh.CourseWeb.service.impl;
 
 import com.vanh.CourseWeb.configurations.MapperConfiguration;
 import com.vanh.CourseWeb.dto.CategoryDTO;
+import com.vanh.CourseWeb.dto.RevenueDTO;
 import com.vanh.CourseWeb.entity.CategoryEntity;
 import com.vanh.CourseWeb.repository.CategoryRepository;
+import com.vanh.CourseWeb.repository.OrderRepository;
 import com.vanh.CourseWeb.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+
 @RequiredArgsConstructor // thay authrided
 @Service
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
-    private final MapperConfiguration  mapperConfiguration;
+    private final MapperConfiguration mapperConfiguration;
+    private final OrderRepository orderRepository;
 
     @Override
     public List<CategoryDTO> getAllCategories() {
@@ -27,5 +31,23 @@ public class CategoryServiceImpl implements CategoryService {
             result.add(category);
         }
         return result;
+    }
+
+    @Override
+    public List<RevenueDTO.RevenueByCategoryDTO> getRevenueByCategory() {
+        List<RevenueDTO.RevenueByCategoryDTO> data =
+                orderRepository.getRevenueByCategory();
+
+        double totalRevenue = data.stream()
+                .mapToDouble(RevenueDTO.RevenueByCategoryDTO::getRevenue)
+                .sum();
+
+        return data.stream()
+                .map(d -> new RevenueDTO.RevenueByCategoryDTO(
+                        d.getCategory(),
+                        d.getRevenue(),
+                        new Double(Math.round(d.getRevenue() * 100 / totalRevenue))
+                ))
+                .toList();
     }
 }

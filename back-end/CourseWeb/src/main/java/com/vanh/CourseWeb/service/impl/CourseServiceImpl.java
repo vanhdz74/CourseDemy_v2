@@ -3,6 +3,7 @@ package com.vanh.CourseWeb.service.impl;
 import com.vanh.CourseWeb.configurations.MapperConfiguration;
 import com.vanh.CourseWeb.dto.CourseDTO;
 import com.vanh.CourseWeb.dto.CourseDetailDTO;
+import com.vanh.CourseWeb.dto.RevenueDTO;
 import com.vanh.CourseWeb.entity.*;
 import com.vanh.CourseWeb.repository.*;
 import com.vanh.CourseWeb.service.CloudinaryService;
@@ -35,6 +36,7 @@ public class CourseServiceImpl implements CourseService {
     private final UserCourseRepository userCourseRepository;
     private final CourseDetailRepository courseDetailRepository;
     private final CourseImageRepository courseImageRepository;
+    private final OrderRepository orderRepository;
 
 
     @Value("${course.limit}")
@@ -325,5 +327,18 @@ public class CourseServiceImpl implements CourseService {
         String newUrl = uploadResult.get("url");
 
         return newUrl;
+    }
+
+    @Override
+    public Double getAverageRatingByCourseId(Long courseId) {
+        CourseEntity course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
+
+        return 5.0;
+    }
+
+    @Override
+    public List<RevenueDTO.TopCourseDTO> getTopCoursesRevenue() {
+        return orderRepository.getTopCoursesRevenue();
     }
 }

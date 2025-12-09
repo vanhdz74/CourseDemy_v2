@@ -2,6 +2,7 @@ package com.vanh.CourseWeb.service;
 
 import com.vanh.CourseWeb.dto.CourseDTO;
 import com.vanh.CourseWeb.dto.CourseDetailDTO;
+import com.vanh.CourseWeb.dto.RevenueDTO;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,4 +31,8 @@ public interface CourseService {
     void updateFullCourse(long id, CourseDetailDTO courseDetailDTO);
 
     String uploadImg(Long id, MultipartFile file) throws IOException;
+
+    Double getAverageRatingByCourseId(Long courseId);
+
+    List<RevenueDTO.TopCourseDTO> getTopCoursesRevenue();
 }

@@ -15,4 +15,6 @@ public interface LessonRepository extends JpaRepository<LessonEntity, Long>, Les
     Long findMaxOrderIndexByCourseId(Long courseId);
 
     List<LessonEntity> findByCourseEntityIdAndOrderIndexGreaterThan(Long courseId, Long orderIndex);
+
+    List<LessonEntity> findAllByCourseEntity_Id(Long id);
 }

@@ -176,6 +176,9 @@ public class UserServiceImpl implements UserService {
         userCourseEntity.setCourseEntity(course);
         userCourseEntity.setUserEntity(user);
 
+        // Cập nhật số lượng
+        course.setQuantity(course.getQuantity() + 1);
+
         userCourseRepository.save(userCourseEntity);
     }
 

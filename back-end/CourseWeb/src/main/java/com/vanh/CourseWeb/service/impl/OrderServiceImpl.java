@@ -3,6 +3,7 @@ package com.vanh.CourseWeb.service.impl;
 import com.vanh.CourseWeb.configurations.MapperConfiguration;
 import com.vanh.CourseWeb.dto.OrderDTO;
 import com.vanh.CourseWeb.dto.OrderDetailDTO;
+import com.vanh.CourseWeb.dto.RevenueDTO;
 import com.vanh.CourseWeb.entity.*;
 import com.vanh.CourseWeb.repository.*;
 import com.vanh.CourseWeb.service.OrderService;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @RequiredArgsConstructor // thay authrided
 @Service
@@ -111,5 +113,19 @@ public class OrderServiceImpl implements OrderService {
         return transactions;
     }
 
+    @Override
+    public List<RevenueDTO.RevenueByMonthDTO> getRevenueByMonth(
+            Long teacherId,
+            Long courseId,
+            String role
+    ) {
+        boolean isTeacher = "TEACHER".equals(role);
+
+        return orderRepository.getRevenueByMonth(
+                isTeacher ? teacherId : null,
+                courseId,
+                isTeacher
+        );
+    }
 
 }

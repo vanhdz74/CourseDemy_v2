@@ -16,4 +16,6 @@ public interface SubLessonRepository extends JpaRepository<SubLessonEntity, Long
     Optional<SubLessonEntity> findById(Long id);
 
     void deleteAllByLesson_Id(Long id);
+
+    List<SubLessonEntity> findByLesson_IdIn(List<Long> lessonIds);
 }

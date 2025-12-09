@@ -35,5 +35,7 @@ public interface LessonService {
 
     void updateLessonReorder(List<Map<String, Object>> lessonReorder, Long teacherId);
 
+    List<LessonDTO> getPublicLessons(Long courseId);
 
+    List<SubLessonDTO> getPublicSubLessons(Long lessonId);
 }
