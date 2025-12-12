@@ -174,10 +174,14 @@ const MainHeader = () => {
                   <Link href={`/edit-information`}>Sửa thông tin cá nhân</Link>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem asChild>
+                {/* <DropdownMenuItem asChild>
                   <Link href="/student/transaction-history">
                     Lịch sử giao dịch
                   </Link>
+                </DropdownMenuItem> */}
+
+                <DropdownMenuItem asChild>
+                  <Link href="/setting">Cài đặt</Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />

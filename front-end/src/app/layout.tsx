@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ReduxProvider } from "@/redux/provider";
-
+import { Chatbot } from "@/chatbot/components/Chatbot";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
@@ -27,6 +27,7 @@ export default function RootLayout({
         >
           <ReduxProvider>
             {children}
+            <Chatbot />
             <Toaster richColors position="top-right" style={{ top: "70px" }} />
           </ReduxProvider>
         </ThemeProvider>

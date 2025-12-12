@@ -2,7 +2,6 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { loginUserThunk, logoutThunk } from "./authThunks";
 import { jwtDecode } from "jwt-decode";
 
-
 // Interface định nghĩa user lấy từ payload token
 import { User } from "@/types/userType";
 

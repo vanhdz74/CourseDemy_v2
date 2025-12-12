@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// 🔹 Schema validation
+// Schema validation
 const formSchema = z.object({
   name: z
     .string()

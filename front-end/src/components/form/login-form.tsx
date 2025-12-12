@@ -59,7 +59,7 @@ export function LoginForm({ className, onSubmit, ...props }: LoginFormProps) {
           <div className="flex items-center">
             <FieldLabel htmlFor="password">Mật khẩu</FieldLabel>
             <a
-              href="#"
+              href="/get-password"
               className="ml-auto text-sm underline-offset-4 hover:underline"
             >
               Bạn quên mật khẩu?
