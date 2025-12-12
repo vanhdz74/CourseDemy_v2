@@ -84,6 +84,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
                   checked={paymentMethod === "momo"}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="mr-3"
+                  disabled
                 />
                 MoMo
               </label>
@@ -95,6 +96,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
                   checked={paymentMethod === "credit-card"}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="mr-3"
+                  disabled
                 />
                 Credit Card
               </label>

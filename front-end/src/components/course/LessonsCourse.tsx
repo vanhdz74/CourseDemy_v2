@@ -181,7 +181,7 @@ const LessonsCourse = ({
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ title: data.title, video_url: data.video_url }),
       });
