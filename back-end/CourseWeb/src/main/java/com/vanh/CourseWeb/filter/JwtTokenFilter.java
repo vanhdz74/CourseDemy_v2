@@ -92,7 +92,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of("/courses", "GET"),
                 Pair.of("/cart/add", "POST"),
                 Pair.of("/course-detail", "GET"),
-                Pair.of("/api/payment/", "POST"),
+                Pair.of("/api/payment/{provider}/ipn", "POST"),
                 Pair.of("/api/payment/", "GET"),
                 Pair.of("/public", "GET"),
                 Pair.of("/reviews", "GET"),
