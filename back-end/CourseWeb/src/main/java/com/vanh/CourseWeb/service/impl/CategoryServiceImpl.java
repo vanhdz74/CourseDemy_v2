@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RequiredArgsConstructor // thay authrided
 @Service
@@ -49,5 +50,22 @@ public class CategoryServiceImpl implements CategoryService {
                         new Double(Math.round(d.getRevenue() * 100 / totalRevenue))
                 ))
                 .toList();
+    }
+
+    @Override
+    public void createCategory(CategoryDTO categoryDTO) {
+        Optional<CategoryEntity> categoryEntity = categoryRepository.findByName(categoryDTO.getName());
+        if (categoryEntity.isPresent()) {
+            throw new IllegalStateException("Danh mục đã tồn tại");
+        }
+        CategoryEntity newCategory = new CategoryEntity();
+        newCategory.setName(categoryDTO.getName());
+        categoryRepository.save(newCategory);
+    }
+
+    @Override
+    public void deleteCategory(Long id) {
+        CategoryEntity categoryEntity = categoryRepository.findById(id).orElse(null);
+        categoryRepository.delete(categoryEntity);
     }
 }

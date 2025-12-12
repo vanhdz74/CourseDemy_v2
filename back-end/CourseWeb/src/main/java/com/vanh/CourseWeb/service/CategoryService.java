@@ -9,5 +9,9 @@ public interface CategoryService {
     List<CategoryDTO> getAllCategories();
 
     List<RevenueDTO.RevenueByCategoryDTO> getRevenueByCategory();
+
+    void createCategory(CategoryDTO categoryDTO);
+
+    void deleteCategory(Long id);
 }
 
