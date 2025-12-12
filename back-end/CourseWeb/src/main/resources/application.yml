@@ -11,6 +11,24 @@ spring:
       max-request-size: 10MB
   profiles:
     active: uat
+
+  # cấu hinhf email
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: vanhnekdungso74@gmail.com
+    password: odbv zeup ignq lagi
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  redis:
+    host: localhost
+    port: 8001
+    password:
+    timeout: 6000
 #value config dùng nhiều nơi
 api:
   prefix:
@@ -19,6 +37,8 @@ course:
 jwt:
   expiration: 2592000 #30 days = 30 * 24 * 60 * 60
   secretKey: tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=
+  access-expiration-ms: 3600000        # 1 giờ
+  refresh-expiration-ms: 2592000000    # 30 ngày
 
 
 

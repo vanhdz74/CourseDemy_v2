@@ -57,7 +57,10 @@ public class WebSecurityConfig {
                                 ("/public/sublessons/lesson/{id}"),
                                 ("/reviews/**"),
                                 ("/revenue/top-courses"),
-                                ("/revenue-categories")
+                                ("/revenue-categories"),
+                                ("/public-key"),
+                                ("/send-otp"),
+                                ("/verify-otp")
                         ).permitAll()
 
                         // user
@@ -87,7 +90,7 @@ public class WebSecurityConfig {
                         // payment
                         .requestMatchers(POST, "/checkout").authenticated()
                         .requestMatchers(POST, "/payment/success/**").hasRole(RoleEntity.ADMIN)
-                        .requestMatchers(POST, "/api/payment/create").authenticated()
+                        .requestMatchers(POST, "/api/payment/create**").authenticated()
 
                         // lesson, sublesson
                         .requestMatchers(GET, "/lessons/course/{id}").authenticated()
@@ -109,6 +112,9 @@ public class WebSecurityConfig {
 
                         // reveune
                         .requestMatchers(GET, "/revenue-by-month").hasAnyRole(RoleEntity.TEACHER, RoleEntity.ADMIN)
+
+                        // category
+                        .requestMatchers(POST, "/category").hasAnyRole(RoleEntity.ADMIN)
 
                         .anyRequest().authenticated()
                 );
