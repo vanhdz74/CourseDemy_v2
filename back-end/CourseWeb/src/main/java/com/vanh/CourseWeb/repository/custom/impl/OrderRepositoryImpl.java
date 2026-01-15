@@ -10,10 +10,9 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Repository
 public class OrderRepositoryImpl implements OrderRepositoryCustom {
@@ -196,5 +195,68 @@ public class OrderRepositoryImpl implements OrderRepositoryCustom {
 
         return result;
     }
+
+    @Override
+    public List<RevenueDTO.DailyRevenueDTO> getDailyRevenue(
+            LocalDateTime fromDate,
+            LocalDateTime toDate
+    ) {
+
+        StringBuilder jpql = new StringBuilder("""
+                    SELECT 
+                        FUNCTION('DATE_FORMAT', o.paymentTime, '%Y-%m-%d'),
+                        SUM(o.totalPrice)
+                    FROM OrderEntity o
+                    WHERE o.status = 'SUCCESS'
+                      AND o.paymentTime IS NOT NULL
+                """);
+
+        if (fromDate != null) {
+            jpql.append(" AND o.paymentTime >= :fromDate ");
+        }
+        if (toDate != null) {
+            jpql.append(" AND o.paymentTime <= :toDate ");
+        }
+
+        jpql.append("""
+                    GROUP BY FUNCTION('DATE_FORMAT', o.paymentTime, '%Y-%m-%d')
+                    ORDER BY FUNCTION('DATE_FORMAT', o.paymentTime, '%Y-%m-%d')
+                """);
+
+        TypedQuery<Object[]> query =
+                entityManager.createQuery(jpql.toString(), Object[].class);
+
+        if (fromDate != null) query.setParameter("fromDate", fromDate);
+        if (toDate != null) query.setParameter("toDate", toDate);
+
+        List<Object[]> rawResult = query.getResultList();
+
+        // Map kết quả DB
+        Map<LocalDate, Double> revenueMap = new HashMap<>();
+        for (Object[] row : rawResult) {
+            LocalDate day = LocalDate.parse((String) row[0]);
+            double revenue = row[1] != null
+                    ? ((Number) row[1]).doubleValue()
+                    : 0d;
+            revenueMap.put(day, revenue);
+        }
+
+        // Duyệt từ from → to, ngày thiếu = 0
+        List<RevenueDTO.DailyRevenueDTO> result = new ArrayList<>();
+
+        LocalDate start = fromDate.toLocalDate();
+        LocalDate end = toDate.toLocalDate();
+
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            double revenue = revenueMap.getOrDefault(date, 0d);
+            result.add(new RevenueDTO.DailyRevenueDTO(
+                    date.toString(),
+                    revenue
+            ));
+        }
+
+        return result;
+    }
+
 
 }

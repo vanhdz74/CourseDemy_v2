@@ -91,12 +91,12 @@ public class AuthServiceImpl implements AuthService {
 
         // Kiểm tra xem email đã tồn tại hay chưa
         if (authRepository.existsByEmail(email)) {
-            throw new DataIntegrityViolationException("Phone number already exists");
+            throw new DataIntegrityViolationException("Email đã tồn tại");
         }
 
         // Chọn vai trò
         RoleEntity roleEntity = roleRepository.findByRoleName(userDTO.getRole().toUpperCase())
-                .orElseThrow(() -> new DataNotFoundException("Role not found"));
+                .orElseThrow(() -> new DataNotFoundException("Role không tồn tại"));
 
         if (roleEntity.getRoleName().toUpperCase().equals(RoleEntity.ADMIN)) {
             throw new PermissionDenyException("You cannot register an admin account");
@@ -185,17 +185,59 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void resetPassword(String email, String password, String retypePw) throws Exception {
+    public void resetPassword(
+            String email,
+            String curPassword,
+            String password,
+            String retypePw
+    ) throws Exception {
+
         UserEntity user = userRepository.findByEmail(email);
-        if (!Objects.equals(password, retypePw)) {
+        if (user == null) {
+            throw new Exception("Người dùng không tồn tại");
+        }
+
+        // Giải mã mật khẩu hiện tại từ FE
+        String rawCurrentPassword = new String(
+                rsa.decrypt(
+                        Base64.getDecoder().decode(curPassword),
+                        rsa.getPrivateKey()
+                )
+        );
+
+        // Check mật khẩu hiện tại
+        if (!passwordEncoder.matches(rawCurrentPassword, user.getPassword())) {
+            throw new Exception("Mật khẩu hiện tại nhập vào sai");
+        }
+
+        // Giải mã mật khẩu mới
+        String rawNewPassword = new String(
+                rsa.decrypt(
+                        Base64.getDecoder().decode(password),
+                        rsa.getPrivateKey()
+                )
+        );
+
+        String rawRetypePassword = new String(
+                rsa.decrypt(
+                        Base64.getDecoder().decode(retypePw),
+                        rsa.getPrivateKey()
+                )
+        );
+
+        // Check nhập lại
+        if (!rawNewPassword.equals(rawRetypePassword)) {
             throw new BadCredentialsException("Mật khẩu không trùng nhau");
         }
 
-        if (user.getPassword().equals(passwordEncoder.encode(user.getPassword()))) {
-            throw new RuntimeException("Mật khâủ mới trùng với mật khẩu cũ");
+        // Không cho trùng mật khẩu cũ
+        if (passwordEncoder.matches(rawNewPassword, user.getPassword())) {
+            throw new Exception("Mật khẩu mới không được trùng với mật khẩu cũ");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        // Encode & lưu mật khẩu mới
+        user.setPassword(passwordEncoder.encode(rawNewPassword));
         authRepository.save(user);
     }
+
 }

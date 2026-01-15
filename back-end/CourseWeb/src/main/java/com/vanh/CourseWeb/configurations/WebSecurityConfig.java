@@ -116,6 +116,9 @@ public class WebSecurityConfig {
                         // category
                         .requestMatchers(POST, "/category").hasAnyRole(RoleEntity.ADMIN)
 
+                        // auth
+                        .requestMatchers(POST, "/reset-password").authenticated()
+
                         .anyRequest().authenticated()
                 );
 

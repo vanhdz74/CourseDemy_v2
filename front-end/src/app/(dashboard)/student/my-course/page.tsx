@@ -43,6 +43,7 @@ const MyCourse = () => {
             quantity={item.quantity}
             teacher_name={item.teacher_name}
             beginLessonId={item.id}
+            img=""
           />
         ))}
       </div>

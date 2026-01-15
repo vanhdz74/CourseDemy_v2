@@ -12,7 +12,7 @@ export const fetchRegisteredCourses = createAsyncThunk(
 
     if (!res.ok) throw new Error("Failed to fetch registered courses");
     const data = await res.json(); // trả về danh sách khoá học
-    console.log(data);
+    // console.log(data);
     return data;
   }
 );

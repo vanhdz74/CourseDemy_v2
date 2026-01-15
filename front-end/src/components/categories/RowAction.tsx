@@ -42,7 +42,7 @@ export default function RowActions({ category, reload }: any) {
         defaultValues={category} // <-- Gán dữ liệu mặc định
         onClose={() => setOpenForm(false)}
         onSubmit={async (data) => {
-          console.log(data);
+          // console.log(data);
           try {
             const res = await put(`/category`, data);
             toast.success(data.message || "Cập nhật thành công");

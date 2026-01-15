@@ -1,7 +1,19 @@
 "use client";
 
 import { SignupForm } from "@/components/form/signup-form";
+import AnimatedRectangles from "../login/AnimatedRectangles";
+import { JSEncrypt } from "jsencrypt";
 
+export async function encryptPassword(password: string) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public-key`);
+  const { publicKey } = await res.json();
+
+  const encrypt = new JSEncrypt();
+  encrypt.setPublicKey(publicKey);
+
+  const encrypted = encrypt.encrypt(password);
+  return encrypted;
+}
 export default function RegisterPage() {
   const handleRegister = async (data: {
     username: string;
@@ -16,10 +28,17 @@ export default function RegisterPage() {
     };
 
     try {
+      // Mã hóa password bằng RSA
+      const encryptedPassword = await encryptPassword(data.password);
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          password: encryptedPassword,
+          retype_password: encryptedPassword,
+        }),
       });
 
       if (!res.ok) throw new Error("Đăng ký thất bại");
@@ -42,11 +61,7 @@ export default function RegisterPage() {
         </div>
       </div>
       <div className="bg-muted relative hidden lg:block">
-        <img
-          src="/placeholder.svg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
+        <AnimatedRectangles />
       </div>
     </div>
   );

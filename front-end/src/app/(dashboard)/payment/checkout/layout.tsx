@@ -9,7 +9,7 @@ import {
   clearCheckoutCourses,
   setCheckoutCourses,
 } from "@/features/checkout/checkoutSlice";
-import { number } from "zod";
+import Image from "next/image";
 
 const CheckoutPage = ({ children }: { children: ReactNode }) => {
   const dispatch = useAppDispatch();
@@ -24,7 +24,7 @@ const CheckoutPage = ({ children }: { children: ReactNode }) => {
         {/* Logo */}
         <div>
           <Link href="/" className="font-bold text-xl text-gray-800">
-            LOGO
+            <Image src="/logo/logo.png" alt="Logo" width={100} height={100} />
           </Link>
         </div>
 

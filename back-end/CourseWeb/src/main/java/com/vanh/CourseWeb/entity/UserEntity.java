@@ -37,8 +37,8 @@ public class UserEntity implements UserDetails {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-//    @Column(name = "description")
-//    private String description;
+    @Column(name = "description")
+    private String description;
 
     @Column(name = "facebook_link")
     private String facebookLink;

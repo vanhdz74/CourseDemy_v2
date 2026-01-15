@@ -20,12 +20,14 @@ export default function OrderDetailDialog({ order }: any) {
   const [courses, setCourses] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
 
+  // console.log(order.order_details);
+
   const fetchCourses = async () => {
     setLoading(true);
 
     try {
       const result = await Promise.all(
-        order.order_details.map((item: any) => get(`/course/${item.id}`))
+        order.order_details.map((item: any) => get(`/course/${item.course_id}`))
       );
       setCourses(result);
     } catch (e) {
@@ -85,8 +87,8 @@ export default function OrderDetailDialog({ order }: any) {
                       {/* Ảnh khóa học */}
                       <div className="relative w-20 h-20 rounded-md overflow-hidden flex-shrink-0 bg-gray-200">
                         <Image
-                          src={course?.course_img}
-                          alt={course?.title}
+                          src={course?.course_img || "/images/no-image.png"}
+                          alt={course?.title || "Ảnh khóa học"}
                           fill
                           className="object-cover"
                         />
@@ -104,7 +106,7 @@ export default function OrderDetailDialog({ order }: any) {
                         </div>
 
                         <p className="text-blue-600 font-semibold text-sm">
-                          {item.price.toLocaleString("vi-VN")} đ
+                          {item?.price?.toLocaleString("vi-VN")} đ
                         </p>
                       </div>
                     </div>

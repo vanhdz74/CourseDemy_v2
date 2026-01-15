@@ -2,6 +2,7 @@ package com.vanh.CourseWeb.repository.custom;
 
 import com.vanh.CourseWeb.dto.RevenueDTO;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderRepositoryCustom {
@@ -10,4 +11,6 @@ public interface OrderRepositoryCustom {
     List<RevenueDTO.TopCourseDTO> getTopCoursesRevenue();
 
     List<RevenueDTO.RevenueByCategoryDTO> getRevenueByCategory();
+
+    List<RevenueDTO.DailyRevenueDTO> getDailyRevenue(LocalDateTime fromdate, LocalDateTime todate);
 }

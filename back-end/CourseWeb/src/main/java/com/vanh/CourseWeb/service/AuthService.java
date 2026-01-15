@@ -12,10 +12,9 @@ public interface AuthService {
 
     UserEntity createUser(UserDTO userDTO) throws Exception;
 
-
     void sendOtpEmail(String email);
 
     void verifyOtpAndSendNewPassword(String email, String otp);
 
-    void resetPassword(String email, String password, String retypepassword) throws Exception;
+    void resetPassword(String email, String curPassword, String password, String retypepassword) throws Exception;
 }

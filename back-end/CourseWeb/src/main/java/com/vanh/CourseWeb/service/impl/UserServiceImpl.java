@@ -104,7 +104,10 @@ public class UserServiceImpl implements UserService {
         user.setAvatarUrl(dto.getAvatarUrl());
         user.setFacebookLink(dto.getFacebookLink());
         user.setYoutubeLink(dto.getYoutubeLink());
-        user.setIsActive(Integer.parseInt(dto.getIsActive()));
+        if (Boolean.parseBoolean(dto.getIsActive())) {
+            user.setIsActive(1);
+        }
+        user.setDescription(dto.getDescription());
         user.setRoleEntity(role);
 
         userRepository.save(user);

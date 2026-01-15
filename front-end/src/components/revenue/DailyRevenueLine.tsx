@@ -43,7 +43,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const DailyRevenueLine: React.FC<Props> = ({ data }) => {
   return (
-    <div className="bg-white rounded-2xl shadow p-4">
+    <div className="bg-white rounded-2xl shadow p-6">
       <h2 className="text-xl font-bold mb-4">
         4. Xu hướng doanh thu hàng ngày
       </h2>

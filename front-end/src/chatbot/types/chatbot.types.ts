@@ -4,6 +4,49 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   courseResults?: CourseResult[];
+  weatherData?: WeatherInfo;
+  roadmapData?: RoadmapInfo;
+  statisticsData?: StatisticsInfo;
+  isStreaming?: boolean; // Đang streaming response
+}
+
+export interface StatisticsInfo {
+  totalStudents: number;
+  totalTeachers: number;
+  totalCourses: number;
+  totalCategories: number;
+  categories?: { id: number; name: string }[];
+  teachers?: { id: number; username: string; email: string; avatar_url?: string }[];
+  students?: { id: number; username: string; email: string; avatar_url?: string }[];
+}
+
+export interface RoadmapInfo {
+  skill: string;
+  overview: string;
+  totalDuration: string;
+  steps: {
+    step: number;
+    title: string;
+    description: string;
+    duration: string;
+    skills: string[];
+  }[];
+  tips: string[];
+}
+
+export interface WeatherInfo {
+  city: string;
+  country: string;
+  temperature: number;
+  feelsLike: number;
+  humidity: number;
+  description: string;
+  icon: string;
+  windSpeed: number;
+  visibility: number;
+  pressure: number;
+  sunrise: string;
+  sunset: string;
 }
 
 export interface CourseResult {

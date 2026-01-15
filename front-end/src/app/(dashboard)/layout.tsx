@@ -27,13 +27,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "15rem",
-        } as React.CSSProperties
-      }
-    >
+    <SidebarProvider>
       {pathname.includes("teacher") ||
       pathname.includes("admin") ||
       pathname.includes("statistics") ||
@@ -41,14 +35,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <>
           <AppSidebar />
           <SidebarInset>
-            <header className="flex h-14 items-center border-b px-3">
-              <SidebarTrigger className="mr-2" />
-              <div className="flex justify-between w-full">
-                <h1 className="font-semibold text-lg">
-                  {localStorage.getItem("select")}
+            <header className="ml-5 flex h-14 items-center border-b px-4">
+              <SidebarTrigger className="mr-3" />
+
+              <div className="flex items-center justify-between w-full">
+                <h1 className="text-lg font-semibold truncate">
+                  {typeof window !== "undefined"
+                    ? localStorage.getItem("select")
+                    : ""}
                 </h1>
 
-                <Button onClick={() => router.push("/home")}>Logo</Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push("/home")}
+                >
+                  Trang chủ
+                </Button>
               </div>
             </header>
 

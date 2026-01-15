@@ -8,6 +8,7 @@ import { Star } from "lucide-react";
 
 import ReviewModal from "@/components/course/ReviewModal";
 import { useApi } from "@/hooks/useApi";
+import Image from "next/image";
 
 export default function CourseLayout({ children }: { children: ReactNode }) {
   const { courseId, courseTitle } = useAppSelector((state) => state.course);
@@ -22,7 +23,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
       comment,
     });
 
-    console.log("Đánh giá đã gửi:", rating, comment);
+    // console.log("Đánh giá đã gửi:", rating, comment);
   };
 
   return (
@@ -30,7 +31,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
       <div className="flex justify-between items-center h-[var(--navHeight)] bg-black text-[#fff]">
         <div className="flex gap-[20px]">
           <Link href="/home" className="px-[20px] border-r-[1px]">
-            LOGO
+            <Image src={"/logo/logo.png"} width={100} height={100} alt="Logo" />
           </Link>
           <Link href={`/course/${slugify(courseTitle)}`} className="text-xl">
             {courseTitle}

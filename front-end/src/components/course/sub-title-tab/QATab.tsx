@@ -91,7 +91,7 @@ const QATab = ({ sublessonId }: { sublessonId: number }) => {
 
     const newReply = await post(`/comment`, body);
 
-    console.log(newReply);
+    // console.log(newReply);
 
     setQaList([...qaList, newReply]);
     setReplyTarget(null);
@@ -137,7 +137,7 @@ const QATab = ({ sublessonId }: { sublessonId: number }) => {
                   <button
                     onClick={() => {
                       setIsDelete(true);
-                      console.log(comment.id);
+                      // console.log(comment.id);
                     }}
                     className="font-semibold hover:text-blue-600"
                   >

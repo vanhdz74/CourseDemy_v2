@@ -22,7 +22,7 @@ const TeacherCourseManagement = () => {
       category_name: "Lập trình Web",
     };
 
-    console.log(payload);
+    // console.log(payload);
     try {
       const data = await post(`/course`, payload);
       toast.success("Tạo khoá học thành công!");

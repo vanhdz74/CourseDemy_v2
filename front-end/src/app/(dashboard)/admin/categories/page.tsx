@@ -11,7 +11,7 @@ const UserManagerment = () => {
 
   const getCategories = async () => {
     const data = await get("/categories");
-    console.log(data);
+    // console.log(data);
     setCategoies(data);
   };
 

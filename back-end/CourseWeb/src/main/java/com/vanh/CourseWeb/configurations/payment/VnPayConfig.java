@@ -11,7 +11,7 @@ public class VnPayConfig {
     public static String vnp_TmnCode = "MLJTH4YU";
     public static String vnp_HashSecret = "YNKU79AG9B05Q3CXQ00D43K9CR8A5J9P";
     public static String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-    public static String vnp_Returnurl = "http://localhost:8081/api/payment/vnpay/return";
+    public static String vnp_Returnurl = "http://localhost:8080/api/payment/vnpay/return";
 
     // HMAC SHA512
     public static String hmacSHA512(String key, String data) throws Exception {

@@ -18,7 +18,12 @@ const CarouselPage = () => {
     "/images/banner/banner5.png",
   ];
 
-  const logos = ["/logo1.png", "/logo2.png", "/logo3.png", "/logo4.png"];
+  const logos = [
+    "/logo_ct/Logo-DH-Cong-nghiep-Ha-Noi.webp",
+    "/logo_ct/adidas.avif",
+    "/logo_ct/images.png",
+    "/logo_ct/vecteur-conception-degrade-colore-oiseau_343694-2506.avif",
+  ];
 
   return (
     <div>
@@ -74,7 +79,7 @@ const CarouselPage = () => {
           {logos.map((logo, i) => (
             <div
               key={i}
-              className="w-28 h-12 relative grayscale opacity-70 hover:opacity-100 hover:grayscale-0 transition"
+              className="w-28 h-12 relative hover:opacity-100 hover:grayscale-0 transition"
             >
               <Image src={logo} alt="Logo" fill className="object-contain" />
             </div>

@@ -2,6 +2,14 @@ import { Course, CourseDetail } from "@/types/courseType";
 import Image from "next/image";
 import ImageUploader from "@/components/common/ImageUploader";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { usePathname, useRouter } from "next/navigation";
+import { useApi } from "@/hooks/useApi";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setCart } from "@/features/cart/cartSlice";
+import { slugify } from "@/lib/utils";
+import { formatVND } from "@/utils/formatVND";
+import { setCheckoutCourses } from "@/features/checkout/checkoutSlice"; // slice mới
 
 // -------------------- SidebarSection --------------------
 export const SidebarSection: React.FC<{
@@ -29,7 +37,59 @@ export const SidebarSection: React.FC<{
   onToggleEdit,
   onSave,
 }) => {
-  const [sticky, setSticky] = useState(false);
+  const [sticky, setSticky] = useState(false); // xử lý sticky sidebar
+
+  const pathname = usePathname();
+  const router = useRouter();
+  const { get, post } = useApi();
+  const cartItems = useAppSelector((state) => state.cart.items);
+  const myItems = useAppSelector((state) => state.my_course.courses);
+  console.log(myItems);
+
+  // const { user } = useAppSelector((state) => state.auth);
+
+  const dispatch = useAppDispatch();
+  const [cartCourses, setCartCourses] = useState<number[]>(cartItems);
+
+  const isInCart = cartCourses.includes(course.id);
+  const isInMyCourse = myItems.some(
+    (courseItem) => courseItem.id === course.id
+  );
+
+  const handleAddToCart = async (course_id: number, e: any) => {
+    e.stopPropagation(); // Dừng sự kiện nổi lên Card
+
+    if (!user?.id) {
+      toast.error("Bạn chưa đăng nhập!");
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const data = await post(
+        `/cart/add?userId=${user.id}&courseId=${course_id}`
+      );
+      toast.success(data?.message || data || "Đã thêm vào giỏ hàng!");
+      setCartCourses((prev) => [...prev, course_id]);
+
+      // Dispatch redux để cập nhật giỏ hàng
+      dispatch(setCart([...cartItems, course_id]));
+    } catch (err: any) {
+      user.role === "STUDENT" &&
+        toast.error(
+          err?.response?.data?.message || "Khóa học đã có trong giỏ hàng!"
+        );
+    }
+  };
+
+  const handleGoToCourse = () => {
+    router.push(`/course/${slugify(course.title)}/${1}/edit/0`);
+  };
+
+  const goToPayment = () => {
+    dispatch(setCheckoutCourses([course.id]));
+    router.push("/payment/checkout");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,18 +119,44 @@ export const SidebarSection: React.FC<{
             />
           </div>
 
-          <p className="text-2xl font-bold">₫{course.price}</p>
+          <p className="text-2xl font-bold">{formatVND(course.price)}</p>
 
           {user?.role === "TEACHER" || user?.role === "ADMIN" ? (
             <div className="min-w-[300px]"></div>
           ) : (
             <>
-              <button className="w-full bg-[#ec5252] hover:bg-red-600 text-white py-3 px-4 rounded font-semibold transition-all duration-200">
-                Thêm vào giỏ hàng
-              </button>
-              <button className="w-full border border-gray-300 hover:bg-gray-100 text-gray-800 py-3 px-4 rounded font-semibold transition-all duration-200">
-                Mua ngay
-              </button>
+              {!isInCart ? (
+                <button
+                  onClick={(e) => handleAddToCart(course.id, e)}
+                  className="w-full bg-[#ec5252] hover:bg-red-600 text-white py-3 px-4 rounded font-semibold transition-all duration-200"
+                >
+                  Thêm vào giỏ hàng
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push("/cart")}
+                  className="w-full bg-[#5295ec] hover:bg-red-600 text-white py-3 px-4 rounded font-semibold transition-all duration-200"
+                >
+                  Đã có trong giỏ hàng
+                </button>
+              )}
+
+              {!isInMyCourse ? (
+                <button
+                  onClick={goToPayment}
+                  className="w-full border border-gray-300 hover:bg-gray-100 text-gray-800 py-3 px-4 rounded font-semibold transition-all duration-200 cursor-pointer"
+                >
+                  Mua ngay
+                </button>
+              ) : (
+                <button
+                  onClick={handleGoToCourse}
+                  className="w-full border border-gray-300 hover:bg-gray-100 text-gray-800 py-3 px-4 rounded font-semibold transition-all duration-200 cursor-pointer"
+                >
+                  Đi đến khóa học - {">"}
+                </button>
+              )}
+
               <p className="text-sm text-center">
                 Đảm bảo hoàn tiền trong 30 ngày
               </p>

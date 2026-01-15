@@ -14,7 +14,7 @@ export default function ProfileSetting() {
   const [loading, setLoading] = useState(true);
 
   const [data, setData] = useState({
-    profileName: "",
+    username: "",
     email: "",
     phone_number: "",
     avatar_url: "",
@@ -38,7 +38,7 @@ export default function ProfileSetting() {
       try {
         const res = await get(`/user/${id}`);
         setData({
-          profileName: res.username,
+          username: res.username,
           email: res.email,
           avatar_url: res.avatar_url,
           phone_number: res.phone_number,
@@ -84,13 +84,14 @@ export default function ProfileSetting() {
           avatarUrl = uploadRes.url;
         }
 
-        console.log(data);
+        // console.log(data);
 
         await put(`/user/update/${id}`, {
-          username: data.profileName,
+          username: data.username,
           phone_number: data.phone_number,
           email: data.email,
           avatar_url: avatarUrl,
+          role: data.role,
           description: data.description,
         });
 
@@ -160,8 +161,8 @@ export default function ProfileSetting() {
         <div>
           <Label className="mb-2">Họ và tên</Label>
           <Input
-            value={data.profileName}
-            onChange={(e) => setData({ ...data, profileName: e.target.value })}
+            value={data.username}
+            onChange={(e) => setData({ ...data, username: e.target.value })}
           />
         </div>
 
@@ -189,6 +190,7 @@ export default function ProfileSetting() {
             type="email"
             value={data.role}
             onChange={(e) => setData({ ...data, role: e.target.value })}
+            disabled
           />
         </div>
 

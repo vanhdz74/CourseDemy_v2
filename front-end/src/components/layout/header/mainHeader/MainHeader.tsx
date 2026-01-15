@@ -20,6 +20,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useState, ChangeEvent, useEffect } from "react";
+import Image from "next/image";
 
 const MainHeader = () => {
   const { user } = useAppSelector((state) => state.auth);
@@ -65,13 +66,18 @@ const MainHeader = () => {
     >
       {/* Logo */}
       <div>
-        <Link href="/" className="font-bold text-xl text-gray-800">
-          LOGO
+        <Link href="/">
+          <Image
+            src={"/logo/logo.png"}
+            width={150}
+            height={100}
+            alt="Logo"
+            className="object-contain cursor-pointer"
+          />
         </Link>
       </div>
 
       {/* Input Search */}
-
       <form
         action=""
         onSubmit={handleSubmit}
@@ -89,7 +95,7 @@ const MainHeader = () => {
 
       {/* Actions */}
       <div className="flex items-center gap-4">
-        <ModeToggle />
+        {/* <ModeToggle /> */}
 
         {/* Nếu là học viên */}
         {user?.role === "STUDENT" ? (
@@ -120,11 +126,11 @@ const MainHeader = () => {
               </DropdownMenu>
             </div>
           </>
-        ) : (
+        ) : user?.role === "TEACHER" || user?.role === "ADMIN" ? (
           <Button>
             <Link href={`/user-class`}>Về trang điều khiển</Link>
           </Button>
-        )}
+        ) : null}
 
         {/* Auth */}
         {!user ? (
@@ -166,12 +172,14 @@ const MainHeader = () => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem asChild>
-                  <Link href="/student/my-course">Khoá học của tôi</Link>
-                </DropdownMenuItem>
+                {user?.role === "STUDENT" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/student/my-course">Khoá học của tôi</Link>
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuItem asChild>
-                  <Link href={`/edit-information`}>Sửa thông tin cá nhân</Link>
+                  <Link href={`/setting`}>Sửa thông tin cá nhân</Link>
                 </DropdownMenuItem>
 
                 {/* <DropdownMenuItem asChild>

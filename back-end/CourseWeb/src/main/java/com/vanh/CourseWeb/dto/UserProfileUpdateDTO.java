@@ -21,6 +21,9 @@ public class UserProfileUpdateDTO {
     @JsonProperty("youtube_link")
     private String youtubeLink;
 
+    @JsonProperty("description")
+    private String description;
+
     @JsonProperty("is_active")
     private String isActive;
 

@@ -36,21 +36,25 @@ export default function AdvancedSetting() {
 
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <div>
-          <Label>Language</Label>
+          <Label className="mb-2">Language</Label>
           <Select value={language} onValueChange={setLanguage}>
             <SelectTrigger>
               <SelectValue placeholder="Select a language" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="vi">Tiếng Việt</SelectItem>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="jp">日本語</SelectItem>
+              <SelectItem value="en" disabled>
+                English
+              </SelectItem>
+              <SelectItem value="jp" disabled>
+                日本語
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div>
-          <Label>Items per page</Label>
+          <Label className="mb-2">Items per page</Label>
           <input
             type="range"
             min={5}

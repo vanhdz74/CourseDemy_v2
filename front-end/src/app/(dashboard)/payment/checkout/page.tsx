@@ -31,7 +31,7 @@ export default function CheckoutPage() {
 
     if (courseIds.length > 0) {
       fetchCourses();
-      console.log(courseItems);
+      // console.log(courseItems);
     }
   }, []);
 

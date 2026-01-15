@@ -1,4 +1,4 @@
-package com.vanh.CourseWeb.controller;
+package com.vanh.CourseWeb.dto;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;

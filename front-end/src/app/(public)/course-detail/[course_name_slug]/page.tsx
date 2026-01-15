@@ -9,8 +9,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
-import dayjs from "dayjs";
+
 import { useApi } from "@/hooks/useApi";
 import { useAppSelector } from "@/redux/hooks";
 import publicClient from "@/api/publicClient";

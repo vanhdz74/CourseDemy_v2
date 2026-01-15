@@ -16,7 +16,7 @@ const Footer = () => {
       <div className="max-w-6xl mx-auto py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Logo & About */}
         <div className="flex flex-col items-start">
-          <Image src="/logo-white.png" alt="Logo" width={120} height={40} />
+          <Image src="/logo/logo.png" alt="Logo" width={120} height={40} />
           <p className="mt-4 text-gray-300">
             Nền tảng học trực tuyến hàng đầu giúp bạn nâng cao kỹ năng và đạt
             mục tiêu nhanh hơn.
@@ -62,17 +62,22 @@ const Footer = () => {
         <div>
           <h3 className="font-semibold mb-4">Kết nối với chúng tôi</h3>
           <div className="flex space-x-4">
-            <a href="#" className="text-gray-300 hover:text-white">
+            <a
+              href="https://www.facebook.com/vietanh.hoang.96199"
+              className="text-gray-300 hover:text-white"
+            >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22 12c0-5.522-4.477-10-10-10S2 6.478 2 12c0 4.991 3.657 9.128 8.438 9.877v-6.987H7.898v-2.89h2.54V9.845c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.462h-1.26c-1.242 0-1.63.772-1.63 1.562v1.875h2.773l-.443 2.89h-2.33v6.987C18.343 21.128 22 16.991 22 12z" />
               </svg>
             </a>
-            <a href="#" className="text-gray-300 hover:text-white">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2.04c-5.523 0-10 4.477-10 10 0 4.991 3.657 9.128 8.438 9.877v-6.987H7.898v-2.89h2.54V9.845c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.462h-1.26c-1.242 0-1.63.772-1.63 1.562v1.875h2.773l-.443 2.89h-2.33v6.987C18.343 21.128 22 16.991 22 12 22 6.518 17.523 2.04 12 2.04z" />
-              </svg>
-            </a>
           </div>
+          <h3 className="font-semibold mb-4 mt-5">
+            Đăng ký làm giảng viên của CourseDemy
+          </h3>
+          Liên hệ qua email:{" "}
+          <a href="" className="text-blue-400 hover:underline">
+            vanhnekdungso74@gmail.com
+          </a>
         </div>
       </div>
 

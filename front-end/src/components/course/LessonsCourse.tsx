@@ -181,7 +181,7 @@ const LessonsCourse = ({
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ title: data.title, video_url: data.video_url }),
       });
@@ -233,7 +233,7 @@ const LessonsCourse = ({
           const newIndex = lessonList.findIndex((l) => l.id === over.id);
           const newLessons = arrayMove(lessonList, oldIndex, newIndex);
 
-          console.log(newLessons);
+          // console.log(newLessons);
           setLessonList(newLessons);
           updateLessonOrder(newLessons);
         }}
@@ -300,7 +300,7 @@ const LessonsCourse = ({
                     <ContextMenuContent>
                       <ContextMenuItem
                         onClick={async () => {
-                          console.log(lesson.id);
+                          // console.log(lesson.id);
                           await remove(`/lesson/${lesson.id}`);
                           onReload();
                         }}
@@ -410,7 +410,7 @@ const LessonsCourse = ({
                                 title: "Bài học mới",
                                 order_index: 1,
                               });
-                              console.log("1");
+                              // console.log("1");
                               await onReload();
                             }}
                           >

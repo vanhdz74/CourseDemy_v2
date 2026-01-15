@@ -140,7 +140,7 @@ export function DataTable<TData, TValue>({
           onClose={() => setOpenForm(false)}
           onSubmit={async (data) => {
             try {
-              console.log(data);
+              // console.log(data);
               await post(`/course`, data);
               toast.success(data.message);
               reload();

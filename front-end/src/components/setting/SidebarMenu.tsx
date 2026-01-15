@@ -1,16 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { use, useState } from "react";
 import { User, Bell, Lock, Sun, Globe, Zap } from "lucide-react";
+import { useAppSelector } from "@/redux/hooks";
 
 export default function SidebarNav({ active, onChange }: any) {
+  const user = useAppSelector((state) => state.auth.user);
+
   const menu = [
     { key: "profile", label: "Hồ sơ", icon: User },
     { key: "notification", label: "Thông báo", icon: Bell },
     { key: "security", label: "Bảo mật", icon: Lock },
     { key: "appearance", label: "Giao diện", icon: Sun },
-    { key: "language", label: "Ngôn ngữ", icon: Globe },
-    { key: "advanced", label: "Advanced", icon: Zap },
+    { key: "advanced", label: "Nâng cao", icon: Zap },
   ];
 
   return (
@@ -20,8 +22,10 @@ export default function SidebarNav({ active, onChange }: any) {
           VA
         </div>
         <div>
-          <div className="font-medium">Nguyễn Văn A</div>
-          <div className="text-sm text-muted-foreground">Vai trò: Học viên</div>
+          <div className="font-medium">{user?.username}</div>
+          <div className="text-sm text-muted-foreground">
+            Vai trò: {user?.role}
+          </div>
         </div>
       </div>
 

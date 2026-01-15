@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @RequiredArgsConstructor
@@ -83,7 +84,8 @@ public class VnPayProvider implements PaymentProvider {
             return Map.of("RspCode", "04", "Message", "Invalid amount");
         }
 
-        order.setStatus("00".equals(params.get("vnp_ResponseCode")) ? "PAID" : "FAILED");
+        order.setStatus("00".equals(params.get("vnp_ResponseCode")) ? "SUCCESS" : "FAILED");
+        order.setPaymentTime(LocalDateTime.now());
         orderRepository.save(order);
 
         // Cập nhật vào user_course nếu thành công
@@ -99,6 +101,10 @@ public class VnPayProvider implements PaymentProvider {
                 courseEntity.setQuantity(courseEntity.getQuantity() + 1);
                 courseRepository.save(courseEntity);
             }
+
+            // Cập nhật giá vào order deatail
+            assert courseEntity != null;
+            orderDetailEntity.setPrice(courseEntity.getPrice());
 
             // Xoá item trong giỏ hàng (chỉ xoá khoá học đã mua)
             CartEntity cartEntity = cartRepository.findByUserEntity_Id(order.getUserEntity().getId());
@@ -137,17 +143,64 @@ public class VnPayProvider implements PaymentProvider {
         if ("00".equals(params.get("vnp_ResponseCode"))) {
             Map<String, String> callbackResponse = processCallback(params);
             return """
-                    <html>
-                        <body>
-                            <h2>Giao dịch thành công! Đang chuyển hướng...</h2>
-                            <script>
-                                setTimeout(function() {
-                                    window.location.href = "localhost:3000/home";
-                                }, 5000);
-                            </script>
-                        </body>
+                    <!DOCTYPE html>
+                    <html lang="vi">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Thanh toán thành công</title>
+                        <style>
+                            body {
+                                margin: 0;
+                                height: 100vh;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: linear-gradient(135deg, #4ade80, #22c55e);
+                                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                            }
+                    
+                            .card {
+                                background: #ffffff;
+                                padding: 32px 40px;
+                                border-radius: 16px;
+                                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+                                text-align: center;
+                                max-width: 420px;
+                            }
+                    
+                            .icon {
+                                font-size: 64px;
+                                margin-bottom: 16px;
+                            }
+                    
+                            h2 {
+                                margin: 0 0 12px;
+                                color: #16a34a;
+                            }
+                    
+                            p {
+                                margin: 0;
+                                color: #555;
+                                font-size: 15px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="card">
+                            <div class="icon">✅</div>
+                            <h2>Giao dịch thành công</h2>
+                            <p>Bạn sẽ được chuyển về trang chủ sau 5 giây...</p>
+                        </div>
+                    
+                        <script>
+                            setTimeout(function () {
+                                window.location.href = "http://localhost:3000/home";
+                            }, 5000);
+                        </script>
+                    </body>
                     </html>
                     """;
+
         } else {
             return "GD Khong thanh cong";
         }

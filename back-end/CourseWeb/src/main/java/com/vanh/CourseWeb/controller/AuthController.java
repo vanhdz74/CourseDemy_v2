@@ -1,5 +1,7 @@
 package com.vanh.CourseWeb.controller;
 
+import com.vanh.CourseWeb.dto.OtpDTO;
+import com.vanh.CourseWeb.dto.ResetPasswordDTO;
 import com.vanh.CourseWeb.dto.UserDTO;
 import com.vanh.CourseWeb.dto.UserLoginDTO;
 import com.vanh.CourseWeb.entity.UserEntity;
@@ -58,7 +60,7 @@ public class AuthController {
 
             // Xem nó có trùng 2 mk
             if (!userDTO.getPassword().equals(userDTO.getRetypePassword())) {
-                return ResponseEntity.badRequest().body("Password not match");
+                return ResponseEntity.badRequest().body("Mật khẩu nhập lại không khớp");
             }
 
             UserEntity userEntity = authService.createUser(userDTO); // return ResponseEntity.ok("Register successfully");
@@ -93,11 +95,15 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(
-            @RequestBody UserDTO userDTO,
+            @RequestBody ResetPasswordDTO resetPasswordDTO,
             Authentication authentication) {
         try {
             UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-            authService.resetPassword(userEntity.getEmail(), userDTO.getPassword(), userDTO.getRetypePassword());
+            authService.resetPassword(
+                    userEntity.getEmail(),
+                    resetPasswordDTO.getCurrentPassword(),
+                    resetPasswordDTO.getNewPassword(),
+                    resetPasswordDTO.getConfirmPassword());
             return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

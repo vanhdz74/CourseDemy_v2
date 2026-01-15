@@ -39,8 +39,8 @@ export default function RowActions({ user, reload, courseId }: any) {
             toast.success(data.message);
             reload();
           } catch (error: any) {
-            console.log(error.response?.data.error);
-            console.log(`/courses/${courseId}/students/${user.id}`);
+            // console.log(error.response?.data.error);
+            // console.log(`/courses/${courseId}/students/${user.id}`);
             toast.error(error.response?.data.error);
           }
         }}
