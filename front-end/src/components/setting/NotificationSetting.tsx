@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Bell } from "lucide-react";
+import { getNotificationSettings } from "@/services/settings";
 
 export default function NotificationsSetting() {
   const [data, setData] = useState({
@@ -14,8 +15,7 @@ export default function NotificationsSetting() {
 
   useEffect(() => {
     async function fetchNotifications() {
-      const res = await fetch("/api/settings/notifications");
-      const json = await res.json();
+      const json = await getNotificationSettings();
       setData(json);
     }
     fetchNotifications();

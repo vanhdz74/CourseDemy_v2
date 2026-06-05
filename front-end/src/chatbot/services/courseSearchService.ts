@@ -1,5 +1,7 @@
 import { CourseResult } from "../types/chatbot.types";
 import { getNoCoursesFoundMessage, getNoTeacherCoursesMessage } from "./randomMessages";
+import { unwrapApiResponse } from "@/api/response";
+import type { PageResponse } from "@/types/apiType";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
 
@@ -13,8 +15,10 @@ export async function searchCourses(keyword: string): Promise<CourseResult[]> {
       throw new Error("Không thể tìm kiếm khóa học");
     }
 
-    const data = await response.json();
-    const courses = data.courses || [];
+    const data = unwrapApiResponse<PageResponse<Record<string, unknown>> | { courses?: Record<string, unknown>[] }>(
+      await response.json()
+    );
+    const courses = "items" in data ? data.items : data.courses || [];
 
     return courses.map((course: Record<string, unknown>) => ({
       id: course.id as number,
@@ -42,8 +46,10 @@ export async function searchCoursesByTeacher(teacherName: string): Promise<Cours
       throw new Error("Không thể tìm kiếm khóa học");
     }
 
-    const data = await response.json();
-    const courses = data.courses || data.content || [];
+    const data = unwrapApiResponse<
+      PageResponse<Record<string, unknown>> | { courses?: Record<string, unknown>[]; content?: Record<string, unknown>[] }
+    >(await response.json());
+    const courses = "items" in data ? data.items : data.courses || data.content || [];
 
     // Lọc các khóa học có tên giáo viên khớp (case-insensitive)
     const normalizedTeacherName = teacherName.toLowerCase().trim();
@@ -116,4 +122,3 @@ export function formatTeacherCourseResultsMessage(
 
   return message;
 }
-

@@ -5,6 +5,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Sun } from "lucide-react";
+import { getAppearanceSettings } from "@/services/settings";
 
 export default function AppearanceSetting() {
   const [appearance, setAppearance] = useState("system");
@@ -12,8 +13,7 @@ export default function AppearanceSetting() {
 
   useEffect(() => {
     async function fetchAppearance() {
-      const res = await fetch("/api/settings/appearance");
-      const json = await res.json();
+      const json = await getAppearanceSettings();
       setAppearance(json.appearance);
       setAutoPlay(json.autoPlay);
     }

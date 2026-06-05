@@ -1,4 +1,6 @@
 // Service để lấy thống kê website
+import { unwrapApiResponse } from "@/api/response";
+import type { PageResponse } from "@/types/apiType";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
 
@@ -74,7 +76,7 @@ export async function getWebsiteStatistics(): Promise<WebsiteStatistics | null> 
 
     // Xử lý users - đếm theo role và lấy danh sách chi tiết
     if (usersResponse && usersResponse.ok) {
-      const users = await usersResponse.json();
+      const users = unwrapApiResponse<Record<string, unknown>[]>(await usersResponse.json());
       if (Array.isArray(users)) {
         // Lọc học viên (role = STUDENT hoặc role_id = 3)
         const studentsList = users.filter(
@@ -110,10 +112,14 @@ export async function getWebsiteStatistics(): Promise<WebsiteStatistics | null> 
 
     // Xử lý courses
     if (coursesResponse && coursesResponse.ok) {
-      const data = await coursesResponse.json();
-      if (data.totalElements) {
+      const data = unwrapApiResponse<
+        PageResponse<Record<string, unknown>> | { totalElements?: number; courses?: Record<string, unknown>[] } | Record<string, unknown>[]
+      >(await coursesResponse.json());
+      if (!Array.isArray(data) && "totalItems" in data) {
+        totalCourses = data.totalItems;
+      } else if (!Array.isArray(data) && data.totalElements) {
         totalCourses = data.totalElements;
-      } else if (data.courses && Array.isArray(data.courses)) {
+      } else if (!Array.isArray(data) && data.courses && Array.isArray(data.courses)) {
         totalCourses = data.courses.length;
       } else if (Array.isArray(data)) {
         totalCourses = data.length;
@@ -122,7 +128,7 @@ export async function getWebsiteStatistics(): Promise<WebsiteStatistics | null> 
 
     // Xử lý categories
     if (categoriesResponse && categoriesResponse.ok) {
-      const data = await categoriesResponse.json();
+      const data = unwrapApiResponse<Record<string, unknown>[]>(await categoriesResponse.json());
       if (Array.isArray(data)) {
         totalCategories = data.length;
         categories = data.map((cat: Record<string, unknown>) => ({

@@ -1,23 +1,14 @@
-"use client";
+import CourseSearchClient from "./CourseSearchClient";
+import { notFound } from "next/navigation";
 
-import { useParams, usePathname, useSearchParams } from "next/navigation";
+export function generateStaticParams() {
+  return [{ id: "placeholder" }];
+}
 
-import CourseDisplay from "@/components/common/CourseDisplay";
+export default function Page({ params }: any) {
+  if (params.id === "placeholder") {
+    notFound();
+  }
 
-const CourseSearchPage = () => {
-  const params = useParams();
-  return (
-    <div>
-      <h1 className="text-2xl mb-[20px]">
-        Danh mục
-        <p className="text-[red]">{`${localStorage.getItem("select")}`}</p>
-      </h1>
-
-      <CourseDisplay
-        apiUrl={`${process.env.NEXT_PUBLIC_API_URL}/courses/search?category_id=${params.id}`}
-      />
-    </div>
-  );
-};
-
-export default CourseSearchPage;
+  return <CourseSearchClient />;
+}

@@ -2,22 +2,26 @@
 
 import dayjs from "dayjs";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import CourseCard from "@/components/common/card-course";
 import PaginationCustom from "./Panigation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { Course } from "@/types/courseType";
-
-interface ApiResponse {
-  courses: Course[];
-  totalPages: number;
-  totalElements: number;
-}
+import { api } from "@/services/api";
+import { queryKeys } from "@/services/queryKeys";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { AlertCircle, SearchX } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CourseDisplayProps {
   apiUrl: string;
+}
+
+function getSearchParams(apiUrl: string, page: number) {
+  const url = new URL(apiUrl, process.env.NEXT_PUBLIC_API_URL);
+  url.searchParams.set("p", String(page));
+  return Object.fromEntries(url.searchParams.entries());
 }
 
 const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
@@ -25,79 +29,105 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
   const router = useRouter();
 
   const initialPage = Number(searchParams.get("p")) || 1;
-  const keywordParams = Number(searchParams.get("keyword"));
+  const filterParams = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("p");
+    return params.toString();
+  }, [searchParams]);
 
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [totalPages, setTotalPages] = useState<number>(1);
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const courseSearchParams = useMemo(
+    () => getSearchParams(apiUrl, currentPage),
+    [apiUrl, currentPage]
+  );
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.courses.search(courseSearchParams),
+    queryFn: () => api.courses.searchCourses(courseSearchParams),
+    placeholderData: keepPreviousData,
+  });
+
+  const courses = data?.courses ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
   //  khi keyword thay đổi thì page = 1, quay lại trang đầu
   useEffect(() => {
-    setCurrentPage(1);
-  }, [keywordParams]);
+    setCurrentPage((page) => (page === 1 ? page : 1));
+  }, [filterParams]);
 
-  // Lấy danh sách khoá học
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        // console.log(`${apiUrl}&p=${currentPage}`);
-        const res = await fetch(`${apiUrl}&p=${currentPage}`, {
-          cache: "no-store",
-        });
-
-        if (!res.ok) throw new Error("Lỗi khi tải dữ liệu");
-
-        const data: ApiResponse = await res.json();
-        setCourses(data.courses);
-        setTotalPages(data.totalPages);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCourses();
-
     // Cập nhật URL nhưng không reload router
     const params = new URLSearchParams(searchParams.toString());
     params.set("p", currentPage.toString());
-    router.replace(`?${params.toString()}`, { scroll: false });
+    const nextQuery = params.toString();
+
+    if (nextQuery !== searchParams.toString()) {
+      router.replace(`?${nextQuery}`, { scroll: false });
+    }
 
     // Cuộn mượt lên đầu trang
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentPage, apiUrl]);
+    if (Number(searchParams.get("p")) !== currentPage) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [currentPage, router, searchParams]);
 
-  if (error) return <p className="text-red-500">Lỗi: {error}</p>;
+  if (isError) {
+    return (
+      <div className="rounded-xl border border-red-100 bg-red-50 p-5 text-red-700">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-semibold">Không thể tải danh sách khóa học</p>
+            <p className="mt-1 text-sm text-red-600">
+              {error instanceof Error ? error.message : "Vui lòng thử lại sau."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
       {/* Loading skeleton */}
-      {loading ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-3 animate-pulse">
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="h-48 bg-gray-200 rounded-lg dark:bg-gray-700"
-            ></div>
+              className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+            >
+              <Skeleton className="aspect-[16/10] w-full rounded-none" />
+              <div className="space-y-3 p-4">
+                <Skeleton className="h-5 w-4/5" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <div className="flex items-center justify-between pt-3">
+                  <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-9 w-32 rounded-full" />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : (
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentPage}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25 }}
-            className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-3"
-          >
-            {courses.length > 0 ? (
-              courses.map((course) => (
+          {courses.length > 0 ? (
+            <motion.div
+              key={currentPage}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {courses.map((course) => (
                 <CourseCard
                   img=""
                   key={course.id}
@@ -112,21 +142,38 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
                   )}
                   beginLessonId={1} // tìm id đầu tiên xh của khoá học -> là bài đầu tiên
                 />
-              ))
-            ) : (
-              <h1>Không tìm thấy khoá học nào liên quan</h1>
-            )}
-          </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center"
+            >
+              <SearchX className="h-10 w-10 text-slate-400" />
+              <h2 className="mt-4 text-lg font-semibold text-slate-950">
+                Không tìm thấy khóa học phù hợp
+              </h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
+                Thử thay đổi từ khóa tìm kiếm hoặc chọn một danh mục khác để
+                xem thêm khóa học.
+              </p>
+            </motion.div>
+          )}
         </AnimatePresence>
       )}
 
-      <PaginationCustom
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={(page) => {
-          if (page !== currentPage) setCurrentPage(page);
-        }}
-      />
+      {!isLoading && courses.length > 0 && (
+        <PaginationCustom
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => {
+            if (page !== currentPage) setCurrentPage(page);
+          }}
+        />
+      )}
     </div>
   );
 };

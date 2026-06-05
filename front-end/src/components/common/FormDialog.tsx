@@ -17,17 +17,21 @@ export interface FieldConfig {
   type?: "text" | "select" | "number"; // Thêm select nếu có
   placeholder?: string;
   required?: boolean;
-  options?: { label: string; value: any }[]; // Chỉ dùng cho select
+  options?: { label: string; value: string | number }[]; // Chỉ dùng cho select
 }
+
+export type FormValue = string | number;
+export type FormValues = Record<string, FormValue>;
 
 interface FormDialogProps {
   open: boolean;
   title?: string;
   fields: FieldConfig[];
   submitText?: string;
-  defaultValues?: Record<string, any>; // <-- thêm dòng này
+  defaultValues?: FormValues; // <-- thêm dòng này
+  isSubmitting?: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: FormValues) => void | Promise<void>;
 }
 
 export default function FormDialog({
@@ -36,10 +40,11 @@ export default function FormDialog({
   fields,
   submitText = "Xác nhận",
   defaultValues = {}, // <-- thêm
+  isSubmitting = false,
   onClose,
   onSubmit,
 }: FormDialogProps) {
-  const [form, setForm] = useState<Record<string, any>>({});
+  const [form, setForm] = useState<FormValues>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Set giá trị form mỗi khi mở dialog hoặc defaultValues thay đổi
@@ -67,29 +72,32 @@ export default function FormDialog({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
-    onSubmit(form);
-    onClose();
+    await onSubmit(form);
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md rounded-2xl border-border bg-card">
         <DialogHeader>
-          <DialogTitle className="text-center">{title}</DialogTitle>
+          <DialogTitle className="text-left text-xl font-semibold tracking-tight">
+            {title}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {fields.map((field) => (
-            <div key={field.name} className="space-y-1">
-              <label className="text-sm font-medium">{field.label}</label>
+            <div key={field.name} className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                {field.label}
+              </label>
 
               {field.type === "select" && field.options ? (
                 <select
                   value={form[field.name] ?? ""}
                   onChange={(e) => handleChange(field.name, e.target.value)}
-                  className="w-full border rounded px-2 py-1"
+                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
                 >
                   <option value="">-- Chọn {field.label} --</option>
                   {field.options.map((opt) => (
@@ -108,17 +116,21 @@ export default function FormDialog({
               )}
 
               {errors[field.name] && (
-                <p className="text-xs text-red-500">{errors[field.name]}</p>
+                <p className="text-xs text-destructive">
+                  {errors[field.name]}
+                </p>
               )}
             </div>
           ))}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>
             Hủy
           </Button>
-          <Button onClick={handleSubmit}>{submitText}</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Đang xử lý..." : submitText}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

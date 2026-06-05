@@ -1,23 +1,16 @@
 "use client";
 
-import { useApi } from "@/hooks/useApi";
-import { useEffect, useState } from "react";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { queryKeys } from "@/services/queryKeys";
 
 const UserManagerment = () => {
-  const { get } = useApi();
-  const [categories, setCategoies] = useState([]);
-
-  const getCategories = async () => {
-    const data = await get("/categories");
-    // console.log(data);
-    setCategoies(data);
-  };
-
-  useEffect(() => {
-    getCategories();
-  }, []);
+  const { data: categories = [], refetch } = useQuery({
+    queryKey: queryKeys.categories.all,
+    queryFn: api.courses.getCategories,
+  });
 
   return (
     <div>
@@ -27,7 +20,7 @@ const UserManagerment = () => {
       <div>
         <DataTable
           data={categories}
-          reload={getCategories} // reload khi thực hiện các thao tác trên bảng
+          reload={() => refetch()} // reload khi thực hiện các thao tác trên bảng
           columns={(reload) => columns(reload)}
         />
       </div>

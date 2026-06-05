@@ -1,5 +1,41 @@
 // src/api/axiosClient.ts
-import axios from "axios";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { normalizeErrorResponse, normalizeSuccessResponse } from "@/api/response";
+import { getSession, signOut } from "next-auth/react";
+
+type RetryRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+};
+
+const SESSION_CACHE_MS = 30_000;
+
+let cachedAccessToken: string | undefined;
+let cachedAccessTokenExpiresAt = 0;
+let pendingAccessToken: Promise<string | undefined> | null = null;
+
+async function getAccessToken(forceRefresh = false) {
+  const now = Date.now();
+
+  if (!forceRefresh && cachedAccessToken && cachedAccessTokenExpiresAt > now) {
+    return cachedAccessToken;
+  }
+
+  if (!forceRefresh && pendingAccessToken) {
+    return pendingAccessToken;
+  }
+
+  pendingAccessToken = getSession()
+    .then((session) => {
+      cachedAccessToken = session?.accessToken;
+      cachedAccessTokenExpiresAt = Date.now() + SESSION_CACHE_MS;
+      return cachedAccessToken;
+    })
+    .finally(() => {
+      pendingAccessToken = null;
+    });
+
+  return pendingAccessToken;
+}
 
 const axiosClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -8,12 +44,10 @@ const axiosClient = axios.create({
 
 // Interceptor request
 axiosClient.interceptors.request.use(
-  (config) => {
-    // Gắn token nếu có
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  async (config) => {
+    const token = await getAccessToken();
+
     if (token) {
-      // console.log(token);
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -33,13 +67,28 @@ axiosClient.interceptors.request.use(
 
 // Interceptor response
 axiosClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  normalizeSuccessResponse,
+  async (error: AxiosError) => {
     const status = error.response?.status;
-    if (status === 401) {
-      console.warn("Unauthorized - Có thể token hết hạn");
+    const originalRequest = error.config as RetryRequestConfig | undefined;
+
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const token = await getAccessToken(true);
+        if (token) {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return axiosClient(originalRequest);
+        }
+      } catch {
+        // Fall through to sign out below.
+      }
+
+      await signOut({ redirect: false });
     }
-    return Promise.reject(error);
+
+    return normalizeErrorResponse(error);
   }
 );
 

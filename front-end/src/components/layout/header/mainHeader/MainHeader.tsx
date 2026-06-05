@@ -1,6 +1,5 @@
 "use client";
 
-import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,19 +12,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+import { fetchCartThunk } from "@/features/cart/cartThunk";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { logoutThunk } from "@/features/auth/authThunks";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, ShoppingCart } from "lucide-react";
+import {
+  BookOpen,
+  LayoutDashboard,
+  LogOut,
+  Search,
+  Settings,
+  ShoppingCart,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 import { useState, ChangeEvent, useEffect } from "react";
 import Image from "next/image";
+import { signOut, useSession } from "next-auth/react";
 
 const MainHeader = () => {
-  const { user } = useAppSelector((state) => state.auth);
-  const cartItem = useAppSelector((state) => state.cart.items);
+  const { data: session } = useSession();
+  const user = session?.user;
   const dispatch = useAppDispatch();
+  const cartItem = useAppSelector((state) => state.cart.items);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -42,6 +51,15 @@ const MainHeader = () => {
     setKeyword(keywordFromUrl);
   }, [keywordFromUrl]);
 
+  useEffect(() => {
+    const userId = Number(user?.id);
+    if (user?.role !== "STUDENT" || !Number.isFinite(userId) || userId <= 0) {
+      return;
+    }
+
+    dispatch(fetchCartThunk({ userId }));
+  }, [dispatch, user?.id, user?.role]);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setKeyword(e.target.value);
   };
@@ -52,7 +70,7 @@ const MainHeader = () => {
   };
 
   const handleLogout = async () => {
-    await dispatch(logoutThunk());
+    await signOut({ redirect: false });
     router.push("/login");
   };
 
@@ -61,18 +79,18 @@ const MainHeader = () => {
 
   return (
     <header
-      className="flex z-10 bg-white justify-between items-center px-6 border-b border-gray-200 fixed top-0 right-0 left-0 shadow-sm"
+      className="fixed top-0 right-0 left-0 z-50 flex items-center justify-between border-b border-border bg-background/95 px-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85 sm:px-6"
       style={{ height: "var(--navHeight)" }}
     >
       {/* Logo */}
-      <div>
-        <Link href="/">
+      <div className="flex min-w-0 items-center">
+        <Link href="/" className="flex items-center">
           <Image
             src={"/logo/logo.png"}
-            width={150}
-            height={100}
+            width={142}
+            height={48}
             alt="Logo"
-            className="object-contain cursor-pointer"
+            className="h-10 w-auto object-contain"
           />
         </Link>
       </div>
@@ -81,30 +99,34 @@ const MainHeader = () => {
       <form
         action=""
         onSubmit={handleSubmit}
-        className="flex w-[40%] items-center relative sm:w-[80%] md:w-[60%] lg:w-[40%] mx-8"
+        className="relative mx-3 hidden min-w-[220px] max-w-2xl flex-1 items-center sm:flex lg:mx-8 lg:flex-none lg:basis-[42%]"
       >
         <Input
           type="text"
-          placeholder="Nhập từ khoá..."
-          className="pl-10 pr-4 py-2 border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md w-full"
+          placeholder="Tìm khóa học, kỹ năng, giảng viên..."
+          className="h-10 w-full rounded-full border-border bg-muted/60 pl-10 pr-4 text-sm shadow-none transition focus-visible:border-ring focus-visible:bg-background focus-visible:ring-ring/30"
           value={keyword}
           onChange={handleChange}
         />
-        <Search className="absolute left-3 text-gray-400 pointer-events-none" />
+        <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
       </form>
 
       {/* Actions */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* <ModeToggle /> */}
 
         {/* Nếu là học viên */}
         {user?.role === "STUDENT" ? (
           <>
-            <Link href="/cart" className="relative">
-              <ShoppingCart className="cursor-pointer" />
+            <Link
+              href="/cart"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-primary/25 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              aria-label="Giỏ hàng"
+            >
+              <ShoppingCart className="h-4 w-4" />
 
               {/* Badge */}
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
                 {cartItem.length}
               </span>
             </Link>
@@ -112,9 +134,12 @@ const MainHeader = () => {
             {/* Dropdown: Khóa học của tôi */}
             <div className="hidden md:block">
               <DropdownMenu modal={false}>
-                <DropdownMenuTrigger>Khoá học của tôi</DropdownMenuTrigger>
+                <DropdownMenuTrigger className="inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35">
+                  <BookOpen className="h-4 w-4" />
+                  Khoá học của tôi
+                </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="mt-[var(--distanceDropdown)] p-[var(--distanceAll)]"
+                  className="mt-3 w-56 rounded-xl border-border p-2 shadow-lg"
                   align="end"
                 >
                   <DropdownMenuLabel>Khoá học của tôi</DropdownMenuLabel>
@@ -127,26 +152,33 @@ const MainHeader = () => {
             </div>
           </>
         ) : user?.role === "TEACHER" || user?.role === "ADMIN" ? (
-          <Button>
-            <Link href={`/user-class`}>Về trang điều khiển</Link>
+          <Button asChild className="rounded-full">
+            <Link href={`/user-class`}>
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              Trang điều khiển
+            </Link>
           </Button>
         ) : null}
 
         {/* Auth */}
         {!user ? (
           <>
-            <Button asChild>
+            <Button asChild className="rounded-full">
               <Link href="/login">Đăng nhập</Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              className="hidden rounded-full sm:inline-flex"
+            >
               <Link href="/register">Đăng ký</Link>
             </Button>
           </>
         ) : (
           <div className="hidden md:block">
             <DropdownMenu modal={false}>
-              <DropdownMenuTrigger>
-                <Avatar className="cursor-pointer">
+              <DropdownMenuTrigger className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35">
+                <Avatar className="h-10 w-10 cursor-pointer border border-border">
                   <AvatarImage src={user?.avatar_url || ""} />
                   <AvatarFallback>
                     {user?.username?.[0]?.toUpperCase()}
@@ -155,7 +187,7 @@ const MainHeader = () => {
               </DropdownMenuTrigger>
 
               <DropdownMenuContent
-                className="mt-[var(--distanceDropdown)] p-[var(--distanceAll)]"
+                className="mt-3 w-72 rounded-xl border-border p-2 shadow-lg"
                 align="end"
               >
                 <DropdownMenuLabel className="flex gap-x-3 items-center">
@@ -167,19 +199,27 @@ const MainHeader = () => {
                   </Avatar>
                   <div>
                     <p className="font-medium">{user?.username}</p>
-                    <p className="text-sm text-gray-500">{user?.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {user?.email}
+                    </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
 
                 {user?.role === "STUDENT" && (
                   <DropdownMenuItem asChild>
-                    <Link href="/student/my-course">Khoá học của tôi</Link>
+                    <Link href="/student/my-course">
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Khoá học của tôi
+                    </Link>
                   </DropdownMenuItem>
                 )}
 
                 <DropdownMenuItem asChild>
-                  <Link href={`/setting`}>Sửa thông tin cá nhân</Link>
+                  <Link href={`/setting`}>
+                    <UserRound className="mr-2 h-4 w-4" />
+                    Sửa thông tin cá nhân
+                  </Link>
                 </DropdownMenuItem>
 
                 {/* <DropdownMenuItem asChild>
@@ -189,12 +229,16 @@ const MainHeader = () => {
                 </DropdownMenuItem> */}
 
                 <DropdownMenuItem asChild>
-                  <Link href="/setting">Cài đặt</Link>
+                  <Link href="/setting">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Cài đặt
+                  </Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
                   Đăng xuất
                 </DropdownMenuItem>
               </DropdownMenuContent>

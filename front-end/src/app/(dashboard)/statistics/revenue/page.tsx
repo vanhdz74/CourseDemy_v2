@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import PDFReport from "@/components/report/PDFReport";
 import DashboardSummary from "@/components/report/CommonReport";
-import { useAppSelector } from "@/redux/hooks";
+import { useSession } from "next-auth/react";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#00c49f"];
 
@@ -65,7 +65,8 @@ export default function Page() {
     0;
 
   const [sl, setSL] = useState<any>(0);
-  const user = useAppSelector((state) => state.auth.user);
+  const { data: session } = useSession();
+  const user = session?.user;
   const getQl = async () => {
     const data = await get(`/courses/user/${user?.id}`);
     console.log;
@@ -88,8 +89,8 @@ export default function Page() {
     getTopCourses();
     getRevenueByCategory();
     getRevenueByDays();
-    getQl();
-  }, []);
+    if (user?.id) getQl();
+  }, [user?.id]);
 
   return (
     <div className="p-6 space-y-12">

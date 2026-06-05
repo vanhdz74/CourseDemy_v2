@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SlidersHorizontal } from "lucide-react";
+import { buildCourseSearchUrl, getCategories } from "@/services/courses";
+import { Category } from "@/types/categoryType";
 
 interface CourseFilterSheetProps {
   onFilter: (apiUrl: string) => void;
@@ -31,7 +33,7 @@ const CourseFilterSheet: React.FC<CourseFilterSheetProps> = ({ onFilter }) => {
   const router = useRouter();
   const searchParams = useSearchParams(); // 👈 đọc query trên URL
 
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [keyword, setKeyword] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [minPrice, setMinPrice] = useState("");
@@ -46,16 +48,14 @@ const CourseFilterSheet: React.FC<CourseFilterSheetProps> = ({ onFilter }) => {
     if (maxPrice) query.set("max_price", maxPrice);
 
     const queryString = query.toString();
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/courses/search?${queryString}`;
+    const url = buildCourseSearchUrl(Object.fromEntries(query.entries()));
     onFilter(url);
     router.push(`/courses/search?${queryString}`);
   };
 
   // Lấy danh sách categories
   const getCategoriesList = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
-    const data = await res.json();
-    setCategories(data);
+    setCategories(await getCategories());
   };
 
   useEffect(() => {

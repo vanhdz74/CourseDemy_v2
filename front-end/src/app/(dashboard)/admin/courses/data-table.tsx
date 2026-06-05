@@ -29,6 +29,25 @@ import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setCourse } from "@/features/course/courseSlice";
+import { Category } from "@/types/categoryType";
+
+type ApiError = {
+  message?: string;
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
+
+function getErrorMessage(error: unknown) {
+  const apiError = error as ApiError;
+  return (
+    apiError.response?.data?.message ||
+    apiError.message ||
+    "Lỗi hệ thống"
+  );
+}
 
 interface DataTableProps<TData, TValue> {
   columns: (reload: () => void) => ColumnDef<TData, TValue>[];
@@ -47,14 +66,14 @@ export function DataTable<TData, TValue>({
   const router = useRouter();
   const { get, post } = useApi();
   const [searchValue, setSearchValue] = React.useState("");
-  const [categories, setCategories] = React.useState([]);
+  const [categories, setCategories] = React.useState<Category[]>([]);
 
   // Lưu course vô redux
   const course = useAppSelector((state) => state.course);
   const dispatch = useAppDispatch();
 
   const getCategory = async () => {
-    const data = await get("/categories");
+    const data = await get<Category[]>("/categories");
     setCategories(data);
   };
 
@@ -72,13 +91,13 @@ export function DataTable<TData, TValue>({
     },
     { name: "price", label: "Giá tiền", type: "number" },
     {
-      name: "category_name",
+      name: "category_id",
       label: "Tên danh mục",
       type: "select",
       options: [
-        ...categories.map((cate: any) => ({
+        ...categories.map((cate) => ({
           label: cate.name,
-          value: cate.name,
+          value: cate.id,
         })),
       ],
     },
@@ -136,16 +155,25 @@ export function DataTable<TData, TValue>({
           title="Thêm khoá học"
           fields={fields}
           submitText="Thêm mới"
-          defaultValues={[]}
+          defaultValues={{}}
           onClose={() => setOpenForm(false)}
           onSubmit={async (data) => {
             try {
-              // console.log(data);
-              await post(`/course`, data);
-              toast.success(data.message);
+              const categoryId = Number(data.category_id);
+              if (!categories.some((category) => category.id === categoryId)) {
+                toast.error("Danh mục đã chọn không tồn tại trong danh sách hiện tại.");
+                return;
+              }
+
+              const response = await post<{ message?: string }>(`/course`, {
+                ...data,
+                category_id: categoryId,
+                teacher_id: Number(data.teacher_id),
+              });
+              toast.success(response.message || "Thêm khoá học thành công");
               reload();
-            } catch (err: any) {
-              toast.error(err.message || "Lỗi hệ thống");
+            } catch (err: unknown) {
+              toast.error(getErrorMessage(err));
             }
           }}
         />

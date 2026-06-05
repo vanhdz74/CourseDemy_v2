@@ -1,22 +1,16 @@
 "use client";
 
-import { useApi } from "@/hooks/useApi";
-import { useEffect, useState } from "react";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { queryKeys } from "@/services/queryKeys";
 
 const UserManagerment = () => {
-  const { get } = useApi();
-  const [users, setUsers] = useState([]);
-
-  const getUsers = async () => {
-    const data = await get("/user/all");
-    setUsers(data);
-  };
-
-  useEffect(() => {
-    getUsers();
-  }, []);
+  const { data: users = [], refetch } = useQuery({
+    queryKey: queryKeys.users.all,
+    queryFn: api.users.getAllUsers,
+  });
 
   return (
     <div>
@@ -28,7 +22,7 @@ const UserManagerment = () => {
       <div>
         <DataTable
           data={users}
-          reload={getUsers} // reload khi thực hiện các thao tác trên bảng
+          reload={() => refetch()} // reload khi thực hiện các thao tác trên bảng
           columns={(reload) => columns(reload)}
         />
       </div>

@@ -1,4 +1,11 @@
 import React from "react";
+export async function generateStaticParams() {
+  return [
+    {
+      course_id: "placeholder",
+    },
+  ];
+}
 
 const CourseDetailPage = () => {
   return (

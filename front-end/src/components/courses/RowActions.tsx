@@ -7,9 +7,30 @@ import { useApi } from "@/hooks/useApi";
 import FormDialog, { FieldConfig } from "../common/FormDialog";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
+import { Category } from "@/types/categoryType";
+import { Course } from "@/types/courseType";
 
-export default function RowActions({ course, reload }: any) {
-  const [categories, setCategories] = useState([]);
+type CourseActionProps = {
+  course: Course;
+  reload: () => void;
+};
+
+type ApiError = {
+  message?: string;
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
+
+function getErrorMessage(error: unknown) {
+  const apiError = error as ApiError;
+  return apiError.response?.data?.message || apiError.message || "Lỗi hệ thống";
+}
+
+export default function RowActions({ course, reload }: CourseActionProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
   const { get, remove, put } = useApi();
   const [openConfirm, setOpenConfirm] = useState(false);
   const [openForm, setOpenForm] = useState(false);
@@ -17,7 +38,7 @@ export default function RowActions({ course, reload }: any) {
   const router = useRouter();
 
   const getCategory = async () => {
-    const data = await get("/categories");
+    const data = await get<Category[]>("/categories");
     setCategories(data);
   };
 
@@ -35,13 +56,13 @@ export default function RowActions({ course, reload }: any) {
     },
     { name: "price", label: "Giá tiền", type: "number" },
     {
-      name: "category_name",
+      name: "category_id",
       label: "Tên danh mục",
       type: "select",
       options: [
-        ...categories.map((cate: any) => ({
+        ...categories.map((cate) => ({
           label: cate.name,
-          value: cate.name,
+          value: cate.id,
         })),
       ],
     },
@@ -80,16 +101,28 @@ export default function RowActions({ course, reload }: any) {
         title="Chỉnh sửa người dùng"
         fields={fields}
         submitText="Cập nhật"
-        defaultValues={course} // <-- Gán dữ liệu mặc định
+        defaultValues={{
+          ...course,
+          category_id: course.category_id ?? "",
+        }}
         onClose={() => setOpenForm(false)}
         onSubmit={async (data) => {
-          console.log(data);
           try {
-            const res = await put(`/course/${course.id}`, data);
-            toast.success(data.message || "Cập nhật thành công");
+            const categoryId = Number(data.category_id);
+            if (!categories.some((category) => category.id === categoryId)) {
+              toast.error("Danh mục đã chọn không tồn tại trong danh sách hiện tại.");
+              return;
+            }
+
+            const response = await put<{ message?: string }>(`/course/${course.id}`, {
+              ...data,
+              category_id: categoryId,
+              teacher_id: Number(data.teacher_id),
+            });
+            toast.success(response.message || "Cập nhật thành công");
             reload(); // <---- refresh bảng
-          } catch (err: any) {
-            toast.error(err.message || "Lỗi hệ thống");
+          } catch (err: unknown) {
+            toast.error(getErrorMessage(err));
           }
         }}
       />
@@ -103,11 +136,11 @@ export default function RowActions({ course, reload }: any) {
         cancelText="Hủy"
         onConfirm={async () => {
           try {
-            const data = await remove(`/course/${course.id}`);
+            const data = await remove<{ message?: string }>(`/course/${course.id}`);
             toast.success(data.message);
             reload();
-          } catch (err: any) {
-            toast.error(err);
+          } catch (err: unknown) {
+            toast.error(getErrorMessage(err));
           }
         }}
         onClose={() => setOpenConfirm(false)}

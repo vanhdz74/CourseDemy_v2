@@ -3,7 +3,7 @@
 // Phân quyền FE
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useSession } from "next-auth/react";
 
 interface ProtectedRouteProps {
   allowedRoles: string[];
@@ -16,17 +16,19 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
-  const { user } = useAppSelector((state) => state.auth);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    const storedRole = user?.role;
+    if (status === "loading") return;
+
+    const storedRole = session?.user?.role;
 
     if (!storedRole || !allowedRoles.includes(storedRole)) {
       router.push("/login"); // không có quyền thì về login
     } else {
       setRole(storedRole);
     }
-  }, [allowedRoles, router]);
+  }, [allowedRoles, router, session?.user?.role, status]);
 
   if (!role) return <p>Đang kiểm tra quyền...</p>;
 

@@ -1,64 +1,78 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { queryKeys } from "@/services/queryKeys";
 
 const Categories = () => {
-  const [categories, setCategories] = useState<any[]>([]);
   const pathname = usePathname();
 
-  if (pathname.includes("/home")) {
-    localStorage.removeItem("select");
-  }
+  // clear localStorage khi về home
+  useEffect(() => {
+    if (pathname.includes("/home")) {
+      localStorage.removeItem("select");
+    }
+  }, [pathname]);
 
-  const saveCategoryName = (name: any) => {
+  const saveCategoryName = (name: string) => {
     localStorage.setItem("select", name);
   };
 
-  // Hàm gọi API
-  const getCategories = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
-      if (!res.ok) throw new Error("Failed to fetch categories");
-      const data = await res.json();
-      setCategories(data);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  };
-
-  // Gọi API khi component mount
-  useEffect(() => {
-    getCategories();
-  }, []);
+  // React Query fetch
+  const {
+    data: categories = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.categories.all,
+    queryFn: api.courses.getCategories,
+  });
 
   return (
-    <>
-      <div className="text-2xl font-bold">Danh sách danh mục</div>
-      <div className="hidden md:flex flex-wrap gap-3 max-w-[80%] mt-[10px]">
-        {categories.length > 0
-          ? categories.map((cat) => (
-              <div
-                key={cat.id}
-                className="px-5 py-2 border rounded-xl hover:bg-gray-100 cursor-pointer transition"
-              >
-                <button onClick={() => saveCategoryName(cat.name)}>
-                  <Link href={`/courses/category/${cat.id}`}>{cat.name}</Link>
-                </button>
-              </div>
-            ))
-          : Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton
-                key={index}
-                className="px-5 py-2 border rounded-xl w-[100px] h-[36px] animate-pulse"
-              >
-                <h1 className="opacity-0">Danh muc</h1>
-              </Skeleton>
-            ))}
+    <section className="pt-10">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-2xl font-bold tracking-tight text-slate-950">
+          Danh mục khóa học
+        </h2>
+        <p className="max-w-2xl text-sm leading-6 text-slate-600">
+          Chọn lĩnh vực bạn quan tâm để tìm nhanh các khóa học phù hợp.
+        </p>
       </div>
-    </>
+
+      <div className="mt-5 flex gap-3 overflow-x-auto pb-3">
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton
+              key={index}
+              className="h-10 w-[120px] shrink-0 rounded-full"
+            />
+          ))
+        ) : error ? (
+          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+            Không thể tải danh mục
+          </div>
+        ) : categories?.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            Chưa có danh mục nào
+          </p>
+        ) : (
+          categories.map((cat) => (
+            <Link
+              key={cat.id}
+              href={`/courses/category/${cat.id}`}
+              onClick={() => saveCategoryName(cat.name)}
+              className="inline-flex h-10 shrink-0 items-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-200"
+            >
+              {cat.name}
+            </Link>
+          ))
+        )}
+      </div>
+    </section>
   );
 };
 

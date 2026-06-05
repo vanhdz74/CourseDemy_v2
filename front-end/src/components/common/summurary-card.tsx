@@ -19,14 +19,22 @@ const SummaryCard: React.FC<Props> = ({
   valueClassName,
 }) => {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
+    <Card className="gap-3 p-5">
+      <CardHeader className="flex flex-row items-center justify-between p-0">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+          {icon}
+        </div>
       </CardHeader>
 
-      <CardContent>
-        <div className={`text-2xl font-bold ${valueClassName || ""}`}>
+      <CardContent className="p-0">
+        <div
+          className={`text-2xl font-bold tracking-tight ${
+            valueClassName || ""
+          }`}
+        >
           {value}
         </div>
 

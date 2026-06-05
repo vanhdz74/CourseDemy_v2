@@ -1,11 +1,17 @@
 "use client";
 
-import React, { use, useState } from "react";
-import { User, Bell, Lock, Sun, Globe, Zap } from "lucide-react";
-import { useAppSelector } from "@/redux/hooks";
+import React from "react";
+import { User, Bell, Lock, Sun, Zap } from "lucide-react";
+import { useSession } from "next-auth/react";
 
-export default function SidebarNav({ active, onChange }: any) {
-  const user = useAppSelector((state) => state.auth.user);
+interface SidebarNavProps {
+  active: string;
+  onChange: (key: string) => void;
+}
+
+export default function SidebarNav({ active, onChange }: SidebarNavProps) {
+  const { data: session } = useSession();
+  const user = session?.user;
 
   const menu = [
     { key: "profile", label: "Hồ sơ", icon: User },
@@ -37,7 +43,7 @@ export default function SidebarNav({ active, onChange }: any) {
           return (
             <button
               key={item.key}
-              onClick={() => onChange(item.key)} // 🔥 Khi bấm gọi lên cha
+              onClick={() => onChange(item.key)} // Khi bấm gọi lên cha
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-3
                 ${isActive ? "bg-gray-100 font-semibold" : "hover:bg-gray-50"}
               `}

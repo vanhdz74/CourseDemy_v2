@@ -1,5 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
+"use client";
+
 import Autoplay from "embla-carousel-autoplay";
+import Image from "next/image";
 import {
   Carousel,
   CarouselContent,
@@ -7,7 +9,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import Image from "next/image";
 
 const CarouselPage = () => {
   const images = [
@@ -26,67 +27,68 @@ const CarouselPage = () => {
   ];
 
   return (
-    <div>
+    <section className="pt-8">
       {/* ================= CAROUSEL ================= */}
-      <div
-        className="w-full mx-auto my-[10px] rounded-xl overflow-hidden shadow-md"
-        style={{ height: "var(--carousel-height)" }}
-      >
+      <div className="mx-auto h-[240px] w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm sm:h-[340px] lg:h-[460px]">
         <Carousel
-          plugins={[Autoplay({ delay: 8000 })]}
-          className="w-full h-full relative"
+          plugins={[
+            Autoplay({
+              delay: 8000,
+              stopOnInteraction: false,
+            }),
+          ]}
+          className="relative h-full w-full"
         >
           <CarouselContent className="h-full">
             {images.map((src, index) => (
-              <CarouselItem key={index} className="h-full basis-full">
-                <Card
-                  className="w-full h-full"
-                  style={{
-                    height: "var(--carousel-height)",
-                  }}
-                >
-                  <CardContent className="w-full h-full">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={src}
-                        fill
-                        alt="Banner"
-                        className="object-cover"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+              <CarouselItem key={src} className="h-full basis-full">
+                <div className="relative h-[240px] w-full sm:h-[340px] lg:h-[460px]">
+                  <Image
+                    src={src}
+                    fill
+                    alt={`Banner ${index + 1}`}
+                    priority={index === 0}
+                    quality={100}
+                    sizes="100vw"
+                    className="object-cover object-center"
+                  />
+
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/35 via-slate-950/5 to-transparent" />
+                </div>
               </CarouselItem>
             ))}
           </CarouselContent>
 
-          <CarouselPrevious className="absolute left-[10px]" />
-          <CarouselNext className="absolute right-[10px]" />
+          <CarouselPrevious className="absolute left-4 border-white/70 bg-white/90 text-slate-800 shadow-sm hover:bg-white" />
+          <CarouselNext className="absolute right-4 border-white/70 bg-white/90 text-slate-800 shadow-sm hover:bg-white" />
         </Carousel>
       </div>
 
       {/* ================= TRUSTED BY ================= */}
-      <div className="mx-auto max-w-[90%] mt-[40px]">
-        <h3
-          className="text-center mb-[30px] font-semibold"
-          style={{ fontSize: "var(--font-size-des)" }}
-        >
+      <div className="mx-auto mt-12 max-w-5xl">
+        <h3 className="mb-8 text-center text-sm font-medium leading-6 text-slate-500">
           Được hơn 17.000 công ty và hàng triệu học viên trên khắp thế giới tin
           dùng
         </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 place-items-center">
+        <div className="grid grid-cols-2 place-items-center gap-6 md:grid-cols-4">
           {logos.map((logo, i) => (
             <div
-              key={i}
-              className="w-28 h-12 relative hover:opacity-100 hover:grayscale-0 transition"
+              key={logo}
+              className="relative h-14 w-32 transition duration-300 hover:opacity-100 hover:grayscale-0"
             >
-              <Image src={logo} alt="Logo" fill className="object-contain" />
+              <Image
+                src={logo}
+                alt={`Partner logo ${i + 1}`}
+                fill
+                sizes="128px"
+                className="object-contain"
+              />
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

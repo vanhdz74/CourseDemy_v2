@@ -1,24 +1,16 @@
 "use client";
 
-import { useApi } from "@/hooks/useApi";
-import { useAppSelector } from "@/redux/hooks";
-import React, { useEffect, useState } from "react";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { queryKeys } from "@/services/queryKeys";
 
 const PaymentManagermentPage = () => {
-  const { get } = useApi();
-  const user = useAppSelector((state) => state.auth.user);
-  const [transactions, setTransactions] = useState([]);
-
-  const getTransaction = async () => {
-    const data = await get(`/transaction`);
-    setTransactions(data);
-  };
-
-  useEffect(() => {
-    getTransaction();
-  }, []);
+  const { data: transactions = [], refetch } = useQuery({
+    queryKey: queryKeys.transactions.all,
+    queryFn: api.transactions.getTransactions,
+  });
 
   return (
     <div>
@@ -30,7 +22,7 @@ const PaymentManagermentPage = () => {
       <div>
         <DataTable
           data={transactions}
-          reload={getTransaction} // reload khi thực hiện các thao tác trên bảng
+          reload={() => refetch()} // reload khi thực hiện các thao tác trên bảng
           columns={(reload) => columns(reload)}
         />
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import publicClient from "@/api/publicClient";
+import { getPublicLessons, getPublicSubLessons } from "@/services/courses";
 import { useEffect, useState } from "react";
 
 export default function ContentSection({
@@ -22,10 +22,7 @@ export default function ContentSection({
   useEffect(() => {
     const fetchLessons = async () => {
       try {
-        const res = await publicClient.get(
-          `/public/lessons/course/${courseId}`
-        );
-        const data = await res.data;
+        const data = await getPublicLessons(courseId);
         setLessons(data);
       } catch (err) {
         console.error(err);
@@ -44,10 +41,7 @@ export default function ContentSection({
     // fetch if not fetched before
     if (!subLessons[lessonId]) {
       try {
-        const res = await publicClient.get(
-          `/public/sublessons/lesson/${lessonId}`
-        );
-        const data = await res.data;
+        const data = await getPublicSubLessons(lessonId);
         setSubLessons((prev) => ({ ...prev, [lessonId]: data }));
       } catch (err) {
         console.error(err);

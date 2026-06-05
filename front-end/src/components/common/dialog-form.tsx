@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,17 +12,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAppSelector } from "@/redux/hooks";
 import { toast } from "sonner";
+import { uploadVideo } from "@/services/courses";
+import { SubLesson } from "@/types/lessonType";
+
+type SubLessonFormValues = Partial<Pick<SubLesson, "title" | "video_url">>;
 
 interface FormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
-  onSubmit: (data: any) => void;
-  defaultValues?: { [key: string]: any };
-  sublessonId?: number; // 👈 thêm prop để biết bài nào upload
+  onSubmit: (data: SubLessonFormValues) => void;
+  defaultValues?: SubLessonFormValues;
+  sublessonId?: number;
 }
 
 const FormDialog = ({
@@ -34,9 +37,6 @@ const FormDialog = ({
   defaultValues = {},
   sublessonId,
 }: FormDialogProps) => {
-  const token = useAppSelector((state) => state.auth.token);
-
-  // Các trường trong form
   const [formData, setFormData] = useState({
     title: defaultValues.title || "",
     video_file: null as File | null,
@@ -44,7 +44,15 @@ const FormDialog = ({
 
   const [uploading, setUploading] = useState(false);
 
-  // Xử lý phần dữ liệu
+  useEffect(() => {
+    if (!open) return;
+
+    setFormData({
+      title: defaultValues.title || "",
+      video_file: null,
+    });
+  }, [defaultValues.title, open]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, files } = e.target;
     if (files) {
@@ -54,40 +62,31 @@ const FormDialog = ({
     }
   };
 
-  // Submit dữ liệu
   const handleSubmit = async () => {
     setUploading(true);
     try {
-      let videoUrl;
+      const payload: SubLessonFormValues = {};
+      const nextTitle = formData.title.trim();
+      const currentTitle = defaultValues.title?.trim() || "";
 
-      // Nếu có file => upload lên BE
-      if (formData.video_file && sublessonId) {
-        const uploadData = new FormData();
-        uploadData.append("file", formData.video_file);
-
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/upload-video/${sublessonId}`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-            body: uploadData,
-          }
-        );
-
-        if (!res.ok) throw new Error("Upload video thất bại");
-
-        const result = await res.json();
-        videoUrl = result.url;
+      if (nextTitle && nextTitle !== currentTitle) {
+        payload.title = nextTitle;
       }
 
-      // Trả dữ liệu về component cha
-      onSubmit({
-        title: formData.title,
-        video_url: videoUrl,
-      });
+      let videoUrl: string | undefined;
+      if (formData.video_file && sublessonId) {
+        videoUrl = await uploadVideo(sublessonId, formData.video_file);
+        payload.video_url = videoUrl;
+      }
 
+      if (Object.keys(payload).length === 0) {
+        toast.info("Chưa có thay đổi để lưu.");
+        return;
+      }
+
+      onSubmit(payload);
       onOpenChange(false);
-    } catch (error) {
+    } catch {
       toast.error("Có lỗi xảy ra khi upload video!");
     } finally {
       setUploading(false);

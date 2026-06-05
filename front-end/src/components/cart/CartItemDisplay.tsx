@@ -1,64 +1,75 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useEffect, useState } from "react";
+import { useAppDispatch } from "@/redux/hooks";
 import { setCart } from "@/features/cart/cartSlice";
 import { setCheckoutCourses } from "@/features/checkout/checkoutSlice"; // slice mới
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { ArrowRight } from "lucide-react";
-import { useApi } from "@/hooks/useApi";
 import Image from "next/image";
+import { DetailedCartItem, getDetailedCart, removeFromCart } from "@/services/cart";
+import { useSession } from "next-auth/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/services/queryKeys";
+
+const EMPTY_CART_ITEMS: DetailedCartItem[] = [];
+const CHECKOUT_COURSES_STORAGE_KEY = "checkout_courses";
+const CHECKOUT_ITEMS_STORAGE_KEY = "checkout_items";
 
 const CartItemDisplay = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
-  const { get, remove } = useApi();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const userId = Number(user?.id);
+  const queryClient = useQueryClient();
 
-  const [cartItems, setCartItems] = useState<any[]>([]);
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
 
-  const getCoursesInCart = async () => {
-    if (!user?.id) return;
+  const {
+    data: cartItems = EMPTY_CART_ITEMS,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: queryKeys.cart.detailed(userId),
+    queryFn: () => getDetailedCart(userId),
+    enabled: Number.isFinite(userId) && userId > 0,
+  });
 
-    try {
-      const data = await get(`/cart/user/${user.id}`);
-      const items = Array.isArray(data?.cart_items) ? data.cart_items : [];
+  useEffect(() => {
+    const courseIds = cartItems.map((i) => i.course_id);
+    setSelectedCourses(courseIds);
+    dispatch(setCart(courseIds));
+  }, [cartItems, dispatch]);
 
-      const detailedItems = await Promise.all(
-        items.map(async (item: any) => {
-          try {
-            const course = await get(`/course/${item.course_id}`);
-            return { ...item, ...course };
-          } catch {
-            return { ...item, title: `Khóa học #${item.course_id}` };
-          }
-        })
+  const removeMutation = useMutation({
+    mutationFn: (courseId: number) => removeFromCart(userId, courseId),
+    onSuccess: (_data, courseId) => {
+      queryClient.setQueryData<DetailedCartItem[]>(
+        queryKeys.cart.detailed(userId),
+        (prev = []) => prev.filter((i) => i.course_id !== courseId)
       );
-
-      setCartItems(detailedItems);
-      // select all by default nếu muốn
-      setSelectedCourses(detailedItems.map((i) => i.course_id));
-    } catch (err) {
-      toast.error("Lỗi khi lấy giỏ hàng: " + err);
-      setCartItems([]);
-    }
-  };
+      dispatch(
+        setCart(
+          cartItems
+            .filter((i) => i.course_id !== courseId)
+            .map((i) => i.course_id)
+        )
+      );
+      setSelectedCourses((prev) => prev.filter((id) => id !== courseId));
+      toast.success("Xoá thành công");
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Lỗi khi xoá";
+      toast.error(message);
+    },
+  });
 
   const handleRemove = async (course_id: number) => {
     if (!user?.id) return toast.error("Bạn chưa đăng nhập!");
-
-    try {
-      await remove(`/cart/remove?userId=${user.id}&courseId=${course_id}`);
-      setCartItems((prev) => prev.filter((i) => i.course_id !== course_id));
-      dispatch(setCart(cartItems.filter((i) => i.course_id !== course_id)));
-      setSelectedCourses((prev) => prev.filter((id) => id !== course_id));
-      toast.success("Xoá thành công");
-    } catch (err: any) {
-      toast.error(err?.data?.response?.error || "Lỗi khi xoá");
-    }
+    removeMutation.mutate(course_id);
   };
 
   const handleSelect = (course_id: number) => {
@@ -74,17 +85,20 @@ const CartItemDisplay = () => {
       return toast.error("Vui lòng chọn ít nhất một khóa học");
     }
 
-    // dispatch vào checkout slice
-    // console.log(selectedCourses);
     dispatch(setCheckoutCourses(selectedCourses));
+    const selectedItems = cartItems.filter((item) =>
+      selectedCourses.includes(item.course_id)
+    );
+
+    localStorage.setItem(
+      CHECKOUT_COURSES_STORAGE_KEY,
+      JSON.stringify(selectedCourses)
+    );
+    localStorage.setItem(CHECKOUT_ITEMS_STORAGE_KEY, JSON.stringify(selectedItems));
     router.push("/payment/checkout");
   };
 
-  useEffect(() => {
-    getCoursesInCart();
-  }, [user?.id]);
-
-  let total = cartItems
+  const total = cartItems
     .filter((i) => selectedCourses.includes(i.course_id))
     .reduce((sum, i) => sum + Number(i.price || 0), 0);
 
@@ -94,6 +108,8 @@ const CartItemDisplay = () => {
         <h5 className="font-semibold text-lg mb-5 border-b">
           Có {cartItems.length} khóa học trong giỏ hàng
         </h5>
+        {isLoading && <p>Đang tải giỏ hàng...</p>}
+        {isError && <p className="text-red-500">Không tải được giỏ hàng</p>}
         <div className="space-y-3">
           {cartItems.map((item) => (
             <div
@@ -108,10 +124,10 @@ const CartItemDisplay = () => {
                 />
                 <div>
                   <Image
-                    src={item.course_img}
+                    src={item.course_img || "/logo/favicon.png"}
                     width={100}
                     height={100}
-                    alt={item.course_img}
+                    alt={item.title || "Course image"}
                     className="w-25 h-15"
                   />
                 </div>

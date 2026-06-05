@@ -46,7 +46,7 @@ export const columns = (
     accessorKey: "avatar_url",
     header: "Avatar",
     cell: ({ row }) => {
-      const url: any = row.getValue("avatar_url");
+      const url = row.getValue<string>("avatar_url");
       return <div className="max-w-10 overflow-hidden">{url}</div>;
     },
   },

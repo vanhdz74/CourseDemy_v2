@@ -12,10 +12,11 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
 // Tạo type cho login, gửi lên submit
-type LoginFormProps = React.ComponentProps<"form"> & {
-  onSubmit?: (data: { email: string; password: string }) => void;
+type LoginFormProps = Omit<React.ComponentProps<"form">, "onSubmit"> & {
+  onSubmit?: (data: { email: string; password: string }) => void | Promise<void>;
+  isSubmitting?: boolean;
 };
-export function LoginForm({ className, onSubmit, ...props }: LoginFormProps) {
+export function LoginForm({ className, onSubmit, isSubmitting = false, ...props }: LoginFormProps) {
   // Tạo form lưu
   const [formData, setFormData] = useState({ email: "", password: "" });
 
@@ -74,7 +75,9 @@ export function LoginForm({ className, onSubmit, ...props }: LoginFormProps) {
           />
         </Field>
         <Field>
-          <Button type="submit">Đăng nhập</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
+          </Button>
         </Field>
         <FieldSeparator>Hoặc tiếp tục với</FieldSeparator>
         <Field>

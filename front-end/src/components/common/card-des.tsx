@@ -1,15 +1,13 @@
-import React, { use } from "react";
+"use client";
+
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import Image from "next/image";
-import { Star } from "lucide-react";
+import { Star, UsersRound } from "lucide-react";
 import { formatVND } from "@/utils/formatVND";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/redux/hooks";
@@ -45,32 +43,39 @@ const CardDes = ({
         dispatch(setCourse({ courseId: courseId, courseTitle: title }));
         router.push(`/course-detail/${slugify(title)}`);
       }}
-      className="p-0 border-0 hover:shadow-lg transition cursor-pointer"
+      className="group h-full cursor-pointer overflow-hidden rounded-xl border-slate-200 bg-white p-0 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-purple-200 hover:shadow-md"
     >
-      <CardHeader>
+      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
         <Image
           src={img}
           alt={title}
-          width={100}
-          height={100}
-          className="w-full h-35 object-cover"
+          fill
+          sizes="(max-width: 768px) 50vw, 20vw"
+          className="object-cover transition duration-300 group-hover:scale-[1.03]"
         />
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-2 p-4">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardContent className="flex min-h-[190px] flex-col gap-3 p-4">
+        <CardTitle className="line-clamp-2 text-base font-semibold leading-6 text-slate-950">
+          {title}
+        </CardTitle>
+        <CardDescription className="line-clamp-2 text-sm leading-6 text-slate-600">
+          {description}
+        </CardDescription>
 
-        <p className="text-sm">{students} học viên</p>
-
-        <div className="flex items-center">
-          <Star className="h-4 w-4 text-yellow-500" />
-          <span className="ml-1">{star}</span>
+        <div className="mt-auto flex items-center gap-2 text-sm text-slate-500">
+          <UsersRound className="h-4 w-4 text-slate-400" />
+          <span>{trending || `${students ?? 0} học viên`}</span>
         </div>
-        <div>{formatVND(money)}</div>
-      </CardContent>
 
-      <CardFooter></CardFooter>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center font-medium text-amber-600">
+            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            <span className="ml-1">{star}</span>
+          </div>
+          <div className="font-bold text-slate-950">{formatVND(money)}</div>
+        </div>
+      </CardContent>
     </Card>
   );
 };

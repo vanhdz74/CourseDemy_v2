@@ -2,25 +2,27 @@
 
 import { SignupForm } from "@/components/form/signup-form";
 import AnimatedRectangles from "../login/AnimatedRectangles";
-import { JSEncrypt } from "jsencrypt";
+import { register } from "@/services/users";
+import { isAxiosError } from "axios";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
-export async function encryptPassword(password: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public-key`);
-  const { publicKey } = await res.json();
-
-  const encrypt = new JSEncrypt();
-  encrypt.setPublicKey(publicKey);
-
-  const encrypted = encrypt.encrypt(password);
-  return encrypted;
-}
 export default function RegisterPage() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
+
   const handleRegister = async (data: {
     username: string;
     email: string;
     password: string;
     retype_password: string;
   }) => {
+    setIsSubmitting(true);
+    setServerError("");
+
     const payload = {
       ...data,
       role: "STUDENT",
@@ -28,25 +30,27 @@ export default function RegisterPage() {
     };
 
     try {
-      // Mã hóa password bằng RSA
-      const encryptedPassword = await encryptPassword(data.password);
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...payload,
-          password: encryptedPassword,
-          retype_password: encryptedPassword,
-        }),
+      await register(payload);
+      const result = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
       });
 
-      if (!res.ok) throw new Error("Đăng ký thất bại");
+      if (!result?.ok || result.error) {
+        setServerError(
+          "Đăng ký thành công nhưng chưa thể tự đăng nhập. Vui lòng đăng nhập lại."
+        );
+        return;
+      }
 
-      alert("Đăng ký thành công! Hãy đăng nhập.");
-      window.location.href = "/login";
-    } catch (err: any) {
-      alert(`Lỗi: ${err.message}`);
+      toast.success("Đăng ký và đăng nhập thành công!");
+      router.refresh();
+      router.push("/home");
+    } catch (err: unknown) {
+      setServerError(getRegisterErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -55,8 +59,11 @@ export default function RegisterPage() {
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
-            {/* Gửi onSubmit dạng event */}
-            <SignupForm onSubmit={handleRegister} />
+            <SignupForm
+              onSubmit={handleRegister}
+              isSubmitting={isSubmitting}
+              serverError={serverError}
+            />
           </div>
         </div>
       </div>
@@ -65,4 +72,23 @@ export default function RegisterPage() {
       </div>
     </div>
   );
+}
+
+function getRegisterErrorMessage(error: unknown) {
+  if (!isAxiosError(error)) {
+    return error instanceof Error ? error.message : "Đăng ký thất bại";
+  }
+
+  const data = error.response?.data as
+    | {
+        message?: string;
+        errors?: unknown;
+      }
+    | undefined;
+
+  if (Array.isArray(data?.errors) && data.errors.length > 0) {
+    return data.errors.join(", ");
+  }
+
+  return data?.message || error.message || "Đăng ký thất bại";
 }

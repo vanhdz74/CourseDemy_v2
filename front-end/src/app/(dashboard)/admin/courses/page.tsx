@@ -1,24 +1,21 @@
 "use client";
 
-import { useApi } from "@/hooks/useApi";
-import { useEffect, useState } from "react";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
-import { useAppSelector } from "@/redux/hooks";
+import { useSession } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { queryKeys } from "@/services/queryKeys";
 
 const CourseManagerment = () => {
-  const { get } = useApi();
-  const user = useAppSelector((state) => state.auth.user);
-  const [courses, setCourses] = useState([]);
-
-  const getCourses = async () => {
-    const data = await get(`/courses/user/${user?.id}`);
-    setCourses(data);
-  };
-
-  useEffect(() => {
-    getCourses();
-  }, []);
+  const { data: session } = useSession();
+  const user = session?.user;
+  const userId = Number(user?.id);
+  const { data: courses = [], refetch } = useQuery({
+    queryKey: queryKeys.courses.byUser(userId),
+    queryFn: () => api.courses.getCoursesByUser(userId),
+    enabled: Number.isFinite(userId) && userId > 0,
+  });
 
   return (
     <div>
@@ -28,7 +25,7 @@ const CourseManagerment = () => {
       <div>
         <DataTable
           data={courses}
-          reload={getCourses} // reload khi thực hiện các thao tác trên bảng
+          reload={() => refetch()} // reload khi thực hiện các thao tác trên bảng
           columns={(reload) => columns(reload)}
         />
       </div>

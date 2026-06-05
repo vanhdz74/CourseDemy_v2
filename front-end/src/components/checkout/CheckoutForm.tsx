@@ -6,17 +6,29 @@ import { Button } from "../ui/button";
 import Link from "next/link";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "sonner";
-import { useAppSelector } from "@/redux/hooks";
-import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 interface CheckoutFormProps {
   courseItems: Course[];
 }
 
+type PaymentResponse = {
+  paymentUrl: string;
+};
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+      error?: string;
+    };
+  };
+};
+
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
   const { post } = useApi();
-  const router = useRouter();
-  const user = useAppSelector((state) => state.auth.user);
+  const { data: session } = useSession();
+  const user = session?.user;
   const [paymentMethod, setPaymentMethod] = useState<string>("");
 
   // Tổng giá trị đơn hàng
@@ -32,25 +44,31 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
 
     try {
       const body = {
-        userId: user?.id, // TODO: Lấy từ Redux hoặc Context
+        courseIds: courseItems.map((item) => item.id),
         courseId: courseItems.map((item) => item.id),
-        paymentMethod: paymentMethod,
+        userId: user?.id,
+        paymentMethod,
         totalPrice: totalAmount,
       };
 
-      // const data = await post("/checkout", body);
-
-      const payment = await post(
+      const payment = await post<PaymentResponse>(
         `/api/payment/create?provider=${paymentMethod}`,
         body
       );
-      toast.success("Chuyển hướng đến thanh toán");
-      console.log(payment.paymentUrl);
-      router.push(payment.paymentUrl);
 
-      // TODO: chuyển hướng đến trang thanh toán nếu cần
-    } catch (error: any) {
-      const msg = error?.response?.data?.error || "Đã có lỗi xảy ra!";
+      if (!payment.paymentUrl) {
+        toast.error("Không nhận được đường dẫn thanh toán.");
+        return;
+      }
+
+      toast.success("Chuyển hướng đến thanh toán");
+      window.location.assign(payment.paymentUrl);
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      const msg =
+        apiError.response?.data?.message ||
+        apiError.response?.data?.error ||
+        "Đã có lỗi xảy ra!";
       toast.error(msg);
     }
   };

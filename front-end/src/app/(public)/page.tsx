@@ -1,13 +1,12 @@
-"use client";
+// export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
 import Body from "@/components/layout/body/Body";
 
-const page = () => {
+export default function Page() {
   return (
-    <>
+    <Suspense fallback={<div>Loading...</div>}>
       <Body />
-    </>
+    </Suspense>
   );
-};
-
-export default page;
+}

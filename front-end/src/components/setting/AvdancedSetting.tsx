@@ -11,6 +11,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Zap } from "lucide-react";
+import { getAdvancedSettings } from "@/services/settings";
 
 export default function AdvancedSetting() {
   const [language, setLanguage] = useState("vi");
@@ -18,8 +19,7 @@ export default function AdvancedSetting() {
 
   useEffect(() => {
     async function fetchAdvanced() {
-      const res = await fetch("/api/settings/advanced");
-      const json = await res.json();
+      const json = await getAdvancedSettings();
       setLanguage(json.language);
       setItemsPerPage(json.itemsPerPage);
     }

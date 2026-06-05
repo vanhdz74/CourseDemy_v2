@@ -10,9 +10,10 @@ export interface Course {
   price: number;
   quantity?: number;
   level?: number;
-  category_name?: String;
+  category_name?: string;
+  category_id?: number;
   beginLessonId?: number;
-  update_at?: String;
+  update_at?: string | number;
   course_img: string;
 }
 

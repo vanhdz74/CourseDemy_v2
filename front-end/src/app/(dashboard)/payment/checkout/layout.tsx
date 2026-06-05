@@ -2,18 +2,16 @@
 
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ReactNode } from "react";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import {
-  clearCheckoutCourses,
-  setCheckoutCourses,
-} from "@/features/checkout/checkoutSlice";
+import { useAppDispatch } from "@/redux/hooks";
+import { clearCheckoutCourses } from "@/features/checkout/checkoutSlice";
 import Image from "next/image";
+
+const CHECKOUT_COURSES_STORAGE_KEY = "checkout_courses";
+const CHECKOUT_ITEMS_STORAGE_KEY = "checkout_items";
 
 const CheckoutPage = ({ children }: { children: ReactNode }) => {
   const dispatch = useAppDispatch();
-  const router = useRouter();
 
   return (
     <>
@@ -31,8 +29,10 @@ const CheckoutPage = ({ children }: { children: ReactNode }) => {
         {/* Nút Hủy */}
         <button
           onClick={() => {
-            dispatch(setCheckoutCourses([])); // reset state
-            window.location.href = "/cart"; // reload trang Cart hoàn toàn
+            dispatch(clearCheckoutCourses());
+            localStorage.removeItem(CHECKOUT_COURSES_STORAGE_KEY);
+            localStorage.removeItem(CHECKOUT_ITEMS_STORAGE_KEY);
+            window.location.href = "/cart";
           }}
           className="hover:underline"
         >

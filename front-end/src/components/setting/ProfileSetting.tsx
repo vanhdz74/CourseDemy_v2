@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 import { toast } from "sonner";
-import { useApi } from "@/hooks/useApi";
+import { useSession } from "next-auth/react";
+import { api } from "@/services/api";
 
 export default function ProfileSetting() {
-  const { get, put, post } = useApi();
+  const { data: session, status } = useSession();
+  const user = session?.user;
   const [loading, setLoading] = useState(true);
 
   const [data, setData] = useState({
@@ -26,35 +28,38 @@ export default function ProfileSetting() {
 
   //  LẤY PROFILE TỪ API GIỐNG EditInfor
   useEffect(() => {
-    const userObj = localStorage.getItem("user");
-    if (!userObj) {
-      toast.error("Không tìm thấy user!");
+    if (status === "loading") {
       return;
     }
 
-    const { id } = JSON.parse(userObj);
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     (async () => {
       try {
-        const res = await get(`/user/${id}`);
+        setLoading(true);
+        const res = await api.users.getProfile(user.id);
         setData({
-          username: res.username,
-          email: res.email,
-          avatar_url: res.avatar_url,
-          phone_number: res.phone_number,
-          role: res.role,
-          description: res.description,
+          username: res.username || "",
+          email: res.email || "",
+          avatar_url: res.avatar_url || "",
+          phone_number: res.phone_number || "",
+          role: res.role || "",
+          description: res.description || "",
         });
-      } catch (e: any) {
-        toast.error(e.message || "Không tải được profile");
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Không tải được profile";
+        toast.error(message);
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [status, user?.id]);
 
   // ===== Chọn avatar (preview) =====
-  const handleAvatarChange = (e: any) => {
+  const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -65,11 +70,7 @@ export default function ProfileSetting() {
 
   // ======= LƯU HỒ SƠ GIỐNG EditInfor =======
   const handleSave = async () => {
-    const userObj = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    if (!userObj || !token) return;
-
-    const { id } = JSON.parse(userObj);
+    if (!user?.id) return;
 
     await toast.promise(
       (async () => {
@@ -77,16 +78,10 @@ export default function ProfileSetting() {
 
         // Nếu có upload avatar mới
         if (selectedFile) {
-          const formData = new FormData();
-          formData.append("file", selectedFile);
-
-          const uploadRes = await post(`/user/upload-avatar/${id}`, formData);
-          avatarUrl = uploadRes.url;
+          avatarUrl = await api.users.uploadAvatar(user.id, selectedFile);
         }
 
-        // console.log(data);
-
-        await put(`/user/update/${id}`, {
+        await api.users.updateProfile(user.id, {
           username: data.username,
           phone_number: data.phone_number,
           email: data.email,
@@ -123,6 +118,7 @@ export default function ProfileSetting() {
               {data.avatar_url ? (
                 <img
                   src={data.avatar_url}
+                  alt="Avatar người dùng"
                   className="w-full h-full object-cover"
                 />
               ) : (

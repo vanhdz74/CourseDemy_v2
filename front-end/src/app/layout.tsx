@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import "@/styles/globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { ReduxProvider } from "@/redux/provider";
+import QueryProvider from "@/providers/query-provider";
 import { Chatbot } from "@/chatbot/components/Chatbot";
 import { Toaster } from "sonner";
+import { AuthSessionProvider } from "@/providers/auth-session-provider";
 
 export const metadata: Metadata = {
   icons: [
@@ -30,11 +32,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ReduxProvider>
-            {children}
-            <Chatbot />
-            <Toaster richColors position="top-right" style={{ top: "70px" }} />
-          </ReduxProvider>
+          <AuthSessionProvider>
+            <ReduxProvider>
+              <QueryProvider>{children}</QueryProvider>
+              <Chatbot />
+              <Toaster
+                richColors
+                position="top-right"
+                style={{ top: "70px" }}
+              />
+            </ReduxProvider>
+          </AuthSessionProvider>
         </ThemeProvider>
       </body>
     </html>

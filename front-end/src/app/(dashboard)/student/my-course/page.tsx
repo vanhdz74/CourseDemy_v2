@@ -1,52 +1,100 @@
 "use client";
 
 import CourseCard from "@/components/common/card-course";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import { useApi } from "@/hooks/useApi";
-import { useAppSelector } from "@/redux/hooks";
-import { Course } from "@/types/courseType";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { queryKeys } from "@/services/queryKeys";
+import { AlertCircle, BookOpenCheck } from "lucide-react";
+
+const CourseGridSkeleton = () => (
+  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {Array.from({ length: 8 }).map((_, index) => (
+      <div
+        key={index}
+        className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+      >
+        <Skeleton className="aspect-[16/10] w-full rounded-none" />
+        <div className="space-y-3 p-4">
+          <Skeleton className="h-5 w-4/5" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <div className="flex items-center justify-between pt-3">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-9 w-28 rounded-full" />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 const MyCourse = () => {
-  const { get } = useApi();
-  const user = useAppSelector((state) => state.auth.user);
+  const { data: session } = useSession();
+  const user = session?.user;
+  const userId = Number(user?.id);
 
-  const [courses, setCourses] = useState<Course[]>([]);
-
-  const getCourses = async () => {
-    try {
-      const data = await get(`/courses/user/${user?.id}`);
-      setCourses(data);
-    } catch (err: any) {
-      toast.error(err);
-    }
-  };
-
-  useEffect(() => {
-    getCourses();
-  }, []);
+  const { data: courses = [], isLoading, isError } = useQuery({
+    queryKey: queryKeys.courses.byUser(userId),
+    queryFn: () => api.courses.getCoursesByUser(userId),
+    enabled: Number.isFinite(userId) && userId > 0,
+  });
 
   return (
-    <div>
-      <h1 className="text-2xl mb-[var(--distanceAll)]">Khoá học của tôi</h1>
-
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {courses.map((item) => (
-          <CourseCard
-            key={item.id}
-            id={item.id}
-            course_img={item.course_img}
-            title={item.title}
-            description={item.description}
-            price={item.price}
-            quantity={item.quantity}
-            teacher_name={item.teacher_name}
-            beginLessonId={item.id}
-            img=""
-          />
-        ))}
+    <div className="py-8">
+      <div className="mb-8 flex flex-col gap-2">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+          Khoá học của tôi
+        </h1>
+        <p className="max-w-2xl text-sm leading-6 text-slate-600">
+          Tiếp tục các khóa học bạn đã đăng ký và theo dõi tiến độ học tập.
+        </p>
       </div>
+
+      {isLoading ? (
+        <CourseGridSkeleton />
+      ) : isError ? (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-5 text-red-700">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Không tải được khóa học</p>
+              <p className="mt-1 text-sm text-red-600">
+                Vui lòng thử lại sau hoặc đăng nhập lại nếu phiên đã hết hạn.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : courses.length === 0 ? (
+        <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center">
+          <BookOpenCheck className="h-10 w-10 text-slate-400" />
+          <h2 className="mt-4 text-lg font-semibold text-slate-950">
+            Bạn chưa có khóa học nào
+          </h2>
+          <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
+            Khi bạn mua hoặc được ghi danh vào khóa học, chúng sẽ xuất hiện tại
+            đây để bạn tiếp tục học.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {courses.map((item) => (
+            <CourseCard
+              key={item.id}
+              id={item.id}
+              course_img={item.course_img}
+              title={item.title}
+              description={item.description}
+              price={item.price}
+              quantity={item.quantity}
+              teacher_name={item.teacher_name}
+              img=""
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

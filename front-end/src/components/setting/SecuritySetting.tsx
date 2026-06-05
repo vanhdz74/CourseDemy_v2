@@ -9,9 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/useApi";
-import { JSEncrypt } from "jsencrypt";
-import { get } from "http";
-import publicClient from "@/api/publicClient";
+import { isAxiosError } from "axios";
 
 export default function SecuritySetting() {
   const { post } = useApi();
@@ -40,32 +38,20 @@ export default function SecuritySetting() {
       return;
     }
 
-    const { data } = await publicClient.get("/public-key");
-
-    const encrypt = new JSEncrypt();
-    encrypt.setPublicKey(data.publicKey);
-
-    // TẠO BIẾN MỚI – KHÔNG ĐỤNG STATE
-    const encryptedCurrentPassword =
-      encrypt.encrypt(resetPw.currentPassword) || "";
-
-    const encryptedNewPassword = encrypt.encrypt(resetPw.newPassword) || "";
-
-    const encryptedConfirmPassword =
-      encrypt.encrypt(resetPw.confirmPassword) || "";
-
-    // console.log("encryptedCurrentPassword", encryptedCurrentPassword);
-
     try {
       const res = await post("/reset-password", {
-        currentPassword: encryptedCurrentPassword,
-        newPassword: encryptedNewPassword,
-        confirmPassword: encryptedConfirmPassword,
+        currentPassword: resetPw.currentPassword,
+        newPassword: resetPw.newPassword,
+        confirmPassword: resetPw.confirmPassword,
       });
 
       toast.success(res.message || "Cập nhật mật khẩu thành công");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || "Cập nhật mật khẩu thất bại");
+    } catch (error: unknown) {
+      const message =
+        isAxiosError<{ message?: string }>(error) && error.response?.data?.message
+          ? error.response.data.message
+          : "Cập nhật mật khẩu thất bại";
+      toast.error(message);
     }
   };
 

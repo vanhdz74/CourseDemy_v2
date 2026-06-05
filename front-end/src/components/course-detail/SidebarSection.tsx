@@ -1,25 +1,56 @@
-import { Course, CourseDetail } from "@/types/courseType";
+import { Course } from "@/types/courseType";
 import Image from "next/image";
 import ImageUploader from "@/components/common/ImageUploader";
-import { useEffect, useState } from "react";
+import { MouseEvent, useState } from "react";
 import { toast } from "sonner";
-import { usePathname, useRouter } from "next/navigation";
-import { useApi } from "@/hooks/useApi";
+import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setCart } from "@/features/cart/cartSlice";
 import { slugify } from "@/lib/utils";
 import { formatVND } from "@/utils/formatVND";
 import { setCheckoutCourses } from "@/features/checkout/checkoutSlice"; // slice mới
+import { addToCart } from "@/services/cart";
+import { Button } from "@/components/ui/button";
+import {
+  BadgeCheck,
+  BookOpenCheck,
+  Pencil,
+  ShieldCheck,
+  ShoppingCart,
+} from "lucide-react";
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
+
+type CourseDetailForm = {
+  content: string;
+  request: string;
+  description: string;
+  course_include: string;
+};
+
+type CourseDetailUser = {
+  id?: string | number | null;
+  role?: string | null;
+};
+
+const CHECKOUT_COURSES_STORAGE_KEY = "checkout_courses";
+const CHECKOUT_ITEMS_STORAGE_KEY = "checkout_items";
 
 // -------------------- SidebarSection --------------------
 export const SidebarSection: React.FC<{
   isEditing: boolean;
   course: Course;
-  user: any;
+  user?: CourseDetailUser | null;
   editCourse: Course | null;
   setEditCourse: (c: Course | null) => void;
-  editDetail: any;
-  setEditDetail: (d: any) => void;
+  editDetail: CourseDetailForm;
+  setEditDetail: (d: CourseDetailForm) => void;
   editImageFile: File | null;
   handleImageChange: (f: File | null) => void;
   onToggleEdit: () => void;
@@ -32,21 +63,13 @@ export const SidebarSection: React.FC<{
   setEditCourse,
   editDetail,
   setEditDetail,
-  editImageFile,
   handleImageChange,
   onToggleEdit,
   onSave,
 }) => {
-  const [sticky, setSticky] = useState(false); // xử lý sticky sidebar
-
-  const pathname = usePathname();
   const router = useRouter();
-  const { get, post } = useApi();
   const cartItems = useAppSelector((state) => state.cart.items);
   const myItems = useAppSelector((state) => state.my_course.courses);
-  console.log(myItems);
-
-  // const { user } = useAppSelector((state) => state.auth);
 
   const dispatch = useAppDispatch();
   const [cartCourses, setCartCourses] = useState<number[]>(cartItems);
@@ -56,7 +79,10 @@ export const SidebarSection: React.FC<{
     (courseItem) => courseItem.id === course.id
   );
 
-  const handleAddToCart = async (course_id: number, e: any) => {
+  const handleAddToCart = async (
+    course_id: number,
+    e: MouseEvent<HTMLButtonElement>
+  ) => {
     e.stopPropagation(); // Dừng sự kiện nổi lên Card
 
     if (!user?.id) {
@@ -66,19 +92,19 @@ export const SidebarSection: React.FC<{
     }
 
     try {
-      const data = await post(
-        `/cart/add?userId=${user.id}&courseId=${course_id}`
-      );
-      toast.success(data?.message || data || "Đã thêm vào giỏ hàng!");
+      const data = await addToCart(Number(user.id), course_id);
+      toast.success(data?.message || "Đã thêm vào giỏ hàng!");
       setCartCourses((prev) => [...prev, course_id]);
 
       // Dispatch redux để cập nhật giỏ hàng
       dispatch(setCart([...cartItems, course_id]));
-    } catch (err: any) {
-      user.role === "STUDENT" &&
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      if (user.role === "STUDENT") {
         toast.error(
-          err?.response?.data?.message || "Khóa học đã có trong giỏ hàng!"
+          apiError.response?.data?.message || "Khóa học đã có trong giỏ hàng!"
         );
+      }
     }
   };
 
@@ -87,111 +113,142 @@ export const SidebarSection: React.FC<{
   };
 
   const goToPayment = () => {
-    dispatch(setCheckoutCourses([course.id]));
+    const courseIds = [course.id];
+    dispatch(setCheckoutCourses(courseIds));
+    localStorage.setItem(
+      CHECKOUT_COURSES_STORAGE_KEY,
+      JSON.stringify(courseIds)
+    );
+    localStorage.setItem(CHECKOUT_ITEMS_STORAGE_KEY, JSON.stringify([course]));
     router.push("/payment/checkout");
   };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY >= 60) setSticky(true);
-      else setSticky(false);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
-    <div
-      className={
-        `bg-[#fff] space-y-4 p-6 border-5 border-gray-200 rounded-lg shadow-md lg:absolute lg:top-20 lg:right-65 lg:w-[350px] lg:min-h-[80vh] ` +
-        (sticky ? " lg:fixed lg:top-[80px] lg:w-[350px]" : "")
-      }
-    >
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       {!isEditing ? (
         <>
-          <div className="border-1 h-[200px]">
-            <Image
-              src={course.course_img}
-              width={100}
-              height={100}
-              alt="img"
-              className="w-full h-full"
-            />
+          <div className="aspect-video bg-muted">
+            {course.course_img ? (
+              <Image
+                src={course.course_img}
+                width={720}
+                height={405}
+                alt={course.title}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                Chưa có ảnh khóa học
+              </div>
+            )}
           </div>
 
-          <p className="text-2xl font-bold">{formatVND(course.price)}</p>
-
-          {user?.role === "TEACHER" || user?.role === "ADMIN" ? (
-            <div className="min-w-[300px]"></div>
-          ) : (
-            <>
-              {!isInCart ? (
-                <button
-                  onClick={(e) => handleAddToCart(course.id, e)}
-                  className="w-full bg-[#ec5252] hover:bg-red-600 text-white py-3 px-4 rounded font-semibold transition-all duration-200"
-                >
-                  Thêm vào giỏ hàng
-                </button>
-              ) : (
-                <button
-                  onClick={() => router.push("/cart")}
-                  className="w-full bg-[#5295ec] hover:bg-red-600 text-white py-3 px-4 rounded font-semibold transition-all duration-200"
-                >
-                  Đã có trong giỏ hàng
-                </button>
-              )}
-
-              {!isInMyCourse ? (
-                <button
-                  onClick={goToPayment}
-                  className="w-full border border-gray-300 hover:bg-gray-100 text-gray-800 py-3 px-4 rounded font-semibold transition-all duration-200 cursor-pointer"
-                >
-                  Mua ngay
-                </button>
-              ) : (
-                <button
-                  onClick={handleGoToCourse}
-                  className="w-full border border-gray-300 hover:bg-gray-100 text-gray-800 py-3 px-4 rounded font-semibold transition-all duration-200 cursor-pointer"
-                >
-                  Đi đến khóa học - {">"}
-                </button>
-              )}
-
-              <p className="text-sm text-center">
-                Đảm bảo hoàn tiền trong 30 ngày
+          <div className="space-y-5 p-5">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Học phí
               </p>
-            </>
-          )}
-
-          <div className="mt-4 text-sm text-gray-500 space-y-1 mt-10">
-            <p>Số lượng học viên: {course.quantity}</p>
-            <p>
-              Level:{" "}
-              {["Cơ bản", "Trung bình", "Nâng cao"][Number(course.level) - 1]}
-            </p>
-
-            <section>
-              <h2 className="text-xl font-bold mb-3">Khóa học bao gồm:</h2>
-              <ul className="list-disc list-inside text-gray-700 whitespace-pre-line leading-relaxed">
-                {editDetail.course_include}
-              </ul>
-            </section>
-          </div>
-
-          {(user?.role === "TEACHER" || user?.role === "ADMIN") && (
-            <div className="my-4">
-              <button
-                onClick={onToggleEdit}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-              >
-                Chỉnh sửa
-              </button>
+              <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+                {formatVND(course.price)}
+              </p>
             </div>
-          )}
+
+            {user?.role === "TEACHER" || user?.role === "ADMIN" ? (
+              <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                Bạn đang xem khóa học với quyền quản lý.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {!isInCart ? (
+                  <Button
+                    onClick={(e) => handleAddToCart(course.id, e)}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Thêm vào giỏ hàng
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => router.push("/cart")}
+                    className="w-full"
+                    size="lg"
+                    variant="secondary"
+                  >
+                    <BadgeCheck className="h-4 w-4" />
+                    Xem trong giỏ hàng
+                  </Button>
+                )}
+
+                {!isInMyCourse ? (
+                  <Button
+                    onClick={goToPayment}
+                    className="w-full"
+                    size="lg"
+                    variant="outline"
+                  >
+                    Mua ngay
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleGoToCourse}
+                    className="w-full"
+                    size="lg"
+                    variant="outline"
+                  >
+                    <BookOpenCheck className="h-4 w-4" />
+                    Đi đến khóa học
+                  </Button>
+                )}
+
+                <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Đảm bảo hoàn tiền trong 30 ngày
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 border-t border-border pt-4 text-sm">
+              <div className="rounded-lg bg-muted/50 p-3">
+                <p className="text-muted-foreground">Học viên</p>
+                <p className="mt-1 font-semibold text-foreground">
+                  {course.quantity ?? 0}
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3">
+                <p className="text-muted-foreground">Cấp độ</p>
+                <p className="mt-1 font-semibold text-foreground">
+                  {["Cơ bản", "Trung bình", "Nâng cao"][
+                    Number(course.level) - 1
+                  ] || "Cơ bản"}
+                </p>
+              </div>
+            </div>
+
+            <section className="border-t border-border pt-4">
+              <h2 className="text-base font-semibold text-foreground">
+                Khóa học bao gồm
+              </h2>
+              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-muted-foreground">
+                {editDetail.course_include || "Nội dung đang được cập nhật."}
+              </p>
+            </section>
+
+            {(user?.role === "TEACHER" || user?.role === "ADMIN") && (
+              <Button
+                onClick={onToggleEdit}
+                className="w-full"
+                variant="outline"
+              >
+                <Pencil className="h-4 w-4" />
+                Chỉnh sửa khóa học
+              </Button>
+            )}
+          </div>
         </>
       ) : (
-        <>
-          <div className="border-1 h-[200px] mb-20">
+        <div className="space-y-5 p-5">
+          <div className="mb-14">
             <ImageUploader
               value={editCourse?.course_img}
               onChange={handleImageChange}
@@ -203,7 +260,7 @@ export const SidebarSection: React.FC<{
 
           <input
             type="number"
-            className="border p-2 rounded w-full lg:w-full"
+            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
             value={editCourse?.price}
             onChange={(e) =>
               setEditCourse({ ...editCourse!, price: Number(e.target.value) })
@@ -211,7 +268,7 @@ export const SidebarSection: React.FC<{
           />
 
           <select
-            className="border p-2 rounded w-full lg:w-[40%]"
+            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
             value={editCourse?.level}
             onChange={(e) =>
               setEditCourse({ ...editCourse!, level: Number(e.target.value) })
@@ -223,9 +280,11 @@ export const SidebarSection: React.FC<{
           </select>
 
           <section>
-            <h2 className="text-xl font-bold mb-3">Khóa học bao gồm:</h2>
+            <h2 className="mb-2 text-base font-semibold text-foreground">
+              Khóa học bao gồm
+            </h2>
             <textarea
-              className="border p-2 rounded w-full min-h-50 lg:w-full"
+              className="min-h-40 w-full rounded-lg border border-input bg-background p-3 text-sm shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
               value={editDetail?.course_include}
               onChange={(e) =>
                 setEditDetail({
@@ -236,21 +295,15 @@ export const SidebarSection: React.FC<{
             />
           </section>
 
-          <div className="my-4 flex gap-2">
-            <button
-              onClick={onSave}
-              className="bg-green-600 text-white px-4 py-2 rounded"
-            >
+          <div className="flex gap-2">
+            <Button onClick={onSave} className="flex-1">
               Lưu thay đổi
-            </button>
-            <button
-              onClick={onToggleEdit}
-              className="bg-gray-200 px-4 py-2 rounded"
-            >
+            </Button>
+            <Button onClick={onToggleEdit} variant="outline" className="flex-1">
               Hủy
-            </button>
+            </Button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
