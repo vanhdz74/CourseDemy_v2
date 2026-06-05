@@ -1,0 +1,24 @@
+* text=auto
+
+# Keep Docker and Unix scripts LF so builds behave the same on Windows/macOS/Linux.
+Dockerfile text eol=lf
+*.dockerignore text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+mvnw text eol=lf
+
+# Windows scripts should keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Source and config files are safest with LF inside Docker contexts.
+*.java text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.properties text eol=lf
