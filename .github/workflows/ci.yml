@@ -26,7 +26,7 @@ jobs:
     # Tất cả lệnh run sẽ thực hiện trong thư mục backend
     defaults:
       run:
-        working-directory: backend
+        working-directory: back-end
 
     steps:
       # Lấy source code từ GitHub
@@ -67,7 +67,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: frontend
+        working-directory: front-end
 
     steps:
       # Lấy source code
