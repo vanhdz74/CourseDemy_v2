@@ -1,65 +1,69 @@
-# Tên workflow hiển thị trong tab Actions
 name: CourseDemy CI
 
-# Khi nào workflow chạy
 on:
-  # Chạy khi tạo hoặc cập nhật Pull Request vào nhánh testing
   pull_request:
     branches:
       - testing
+      - "release/**"
+      - main
+      - production
 
-  # Chạy khi push trực tiếp lên testing
   push:
     branches:
       - testing
+      - "release/**"
+      - main
+      - production
 
 jobs:
-  # =========================
-  # JOB BUILD BACKEND
   backend:
-    # Tên hiển thị trên GitHub Actions
     name: Build Spring Boot
 
-    # Máy ảo GitHub cung cấp
     runs-on: ubuntu-latest
 
-    # Tất cả lệnh run sẽ thực hiện trong thư mục backend
     defaults:
       run:
         working-directory: back-end
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coursedemy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d coursedemy_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SPRING_PROFILES_ACTIVE: uat
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/coursedemy_test
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      MAIL_USERNAME: ci@example.local
+      MAIL_PASSWORD: ci-placeholder
+      JWT_SECRET: ZGV2LW9ubHktY291cnNlZGVteS1qd3Qtc2VjcmV0LTEyMzQ1Ng==
+      FRONTEND_URL: http://localhost:3000
+
     steps:
-      # Lấy source code từ GitHub
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      # Cài Java 17
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          # Dùng OpenJDK Temurin
           distribution: temurin
-
-          # Phiên bản Java
           java-version: 17
-
-          # Cache thư viện Maven
           cache: maven
 
-      # Build project Spring Boot
       - name: Build Backend
-        run: mvn clean verify
+        run: mvn -B clean verify
 
-        # clean:
-        #   Xóa build cũ
-
-        # verify:
-        #   Compile
-        #   Chạy test
-        #   Kiểm tra project lỗi hay không
-
-  # =========================
-  # JOB BUILD FRONTEND
   frontend:
     name: Build NextJS
 
@@ -70,38 +74,23 @@ jobs:
         working-directory: front-end
 
     steps:
-      # Lấy source code
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      # Cài NodeJS
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # Node phiên bản 22
           node-version: 22
-
-          # Cache node_modules
           cache: npm
+          cache-dependency-path: front-end/package-lock.json
 
-          # Đường dẫn package-lock
-          cache-dependency-path: frontend/package-lock.json
-
-      # Cài package
       - name: Install Dependencies
         run: npm ci
 
-        # npm ci:
-        # Cài đúng version trong package-lock
-        # Nhanh và ổn định hơn npm install
-
-      # Build NextJS
       - name: Build Frontend
+        env:
+          AUTH_SECRET: ci-auth-secret
+          AUTH_URL: http://localhost:3000
+          NEXTAUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_API_URL: http://localhost:8080
         run: npm run build
-
-        # Kiểm tra:
-        # - TypeScript
-        # - ESLint
-        # - Next Build
-        # - Lỗi import
-        # - Lỗi compile
