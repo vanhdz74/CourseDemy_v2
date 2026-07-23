@@ -1,0 +1,27 @@
+{
+  "name": "coursedemy-backend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev:gateway": "./mvnw -f apps/api-gateway/pom.xml spring-boot:run",
+    "dev:auth": "./mvnw -f apps/auth-service/pom.xml spring-boot:run",
+    "dev:user": "./mvnw -f apps/user-service/pom.xml spring-boot:run",
+    "dev:course": "./mvnw -f apps/course-service/pom.xml spring-boot:run",
+    "dev:enrollment": "./mvnw -f apps/enrollment-service/pom.xml spring-boot:run",
+    "dev:order": "./mvnw -f apps/order-service/pom.xml spring-boot:run",
+    "dev:payment": "./mvnw -f apps/payment-service/pom.xml spring-boot:run",
+    "dev:notification": "./mvnw -f apps/notification-service/pom.xml spring-boot:run",
+    "build:gateway": "./mvnw -f apps/api-gateway/pom.xml -DskipTests package",
+    "build:auth": "./mvnw -f apps/auth-service/pom.xml -DskipTests package",
+    "build:user": "./mvnw -f apps/user-service/pom.xml -DskipTests package",
+    "build:course": "./mvnw -f apps/course-service/pom.xml -DskipTests package",
+    "build:enrollment": "./mvnw -f apps/enrollment-service/pom.xml -DskipTests package",
+    "build:order": "./mvnw -f apps/order-service/pom.xml -DskipTests package",
+    "build:payment": "./mvnw -f apps/payment-service/pom.xml -DskipTests package",
+    "build:notification": "./mvnw -f apps/notification-service/pom.xml -DskipTests package",
+    "build": "npm run build:gateway && npm run build:auth && npm run build:user && npm run build:course && npm run build:enrollment && npm run build:order && npm run build:payment && npm run build:notification",
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f"
+  }
+}

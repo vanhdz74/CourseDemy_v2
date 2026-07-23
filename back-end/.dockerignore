@@ -1,8 +1,8 @@
-.DS_Store
+.git
+.gitignore
+**/target
+**/.mvn
+**/.DS_Store
 .env
 .env.*
-.git
-.idea
-.mvn/wrapper/maven-wrapper.jar
-target
-*.log
+node_modules
