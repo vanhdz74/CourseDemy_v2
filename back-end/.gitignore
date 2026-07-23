@@ -37,4 +37,5 @@ build/
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
+# file môi trường
 .env
