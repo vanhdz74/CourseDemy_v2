@@ -6,6 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,6 +50,15 @@ public class UserEntity implements UserDetails {
     @Column(name = "is_active")
     private int isActive;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
 //    @Column(name = "facebook_account_id")
 //    private int facebookAccountId;
 //
@@ -60,8 +70,6 @@ public class UserEntity implements UserDetails {
     @JoinColumn(name = "role_id")
     private RoleEntity roleEntity;
 
-    @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL)
-    private CartEntity cartEntity;
 
     // Lấy danh sách role, phải extend UserDetails của security để sử dụng
     @Override

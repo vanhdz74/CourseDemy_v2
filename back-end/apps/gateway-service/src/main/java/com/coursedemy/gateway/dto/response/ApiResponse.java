@@ -1,4 +1,4 @@
-package com.coursedemy.common.dto.response;
+package com.coursedemy.gateway.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
