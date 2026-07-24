@@ -34,11 +34,13 @@ public class GlobalExceptionHandler {
         );
     }
 
+
     @ExceptionHandler(WebExchangeBindException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(
             WebExchangeBindException ex,
             ServerWebExchange exchange
     ) {
+
         List<ApiError> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -54,6 +56,7 @@ public class GlobalExceptionHandler {
                 exchange
         );
     }
+
 
     @ExceptionHandler({
             ConstraintViolationException.class,
@@ -72,6 +75,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+
     @ExceptionHandler(DataNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(
             Exception ex,
@@ -83,6 +87,7 @@ public class GlobalExceptionHandler {
                 exchange
         );
     }
+
 
     @ExceptionHandler({
             PermissionDenyException.class,
@@ -99,6 +104,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(
             BadCredentialsException ex,
@@ -109,6 +115,7 @@ public class GlobalExceptionHandler {
                 exchange
         );
     }
+
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(
@@ -122,6 +129,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(
             DataIntegrityViolationException ex,
@@ -132,6 +140,7 @@ public class GlobalExceptionHandler {
                 exchange
         );
     }
+
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<Void>> handleConflict(
@@ -145,6 +154,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<Void>> handleRuntimeException(
             RuntimeException ex,
@@ -157,6 +167,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(
             Exception ex,
@@ -168,6 +179,11 @@ public class GlobalExceptionHandler {
         );
     }
 
+
+    // =====================================================
+    // BUILD RESPONSE
+    // =====================================================
+
     private ResponseEntity<ApiResponse<Void>> build(
             ErrorCode errorCode,
             ServerWebExchange exchange
@@ -178,6 +194,7 @@ public class GlobalExceptionHandler {
                 exchange
         );
     }
+
 
     private ResponseEntity<ApiResponse<Void>> build(
             ErrorCode errorCode,
@@ -193,6 +210,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+
     private ResponseEntity<ApiResponse<Void>> build(
             ErrorCode errorCode,
             Object errors,
@@ -207,6 +225,11 @@ public class GlobalExceptionHandler {
         );
     }
 
+
+    // =====================================================
+    // BUILD RESPONSE WITH PATH
+    // =====================================================
+
     private ResponseEntity<ApiResponse<Void>> build(
             HttpStatus status,
             String code,
@@ -214,20 +237,24 @@ public class GlobalExceptionHandler {
             Object errors,
             ServerWebExchange exchange
     ) {
+
+        // Lấy đường dẫn API hiện tại
+        String path = exchange.getRequest()
+                .getURI()
+                .getPath();
+
+        ApiResponse<Void> response = ApiResponse.fail(
+                status.value(),
+                code,
+                message == null
+                        ? status.getReasonPhrase()
+                        : message,
+                errors,
+                path
+        );
+
         return ResponseEntity
                 .status(status)
-                .body(
-                        ApiResponse.fail(
-                                status,
-                                code,
-                                message == null
-                                        ? status.getReasonPhrase()
-                                        : message,
-                                exchange.getRequest()
-                                        .getURI()
-                                        .getPath(),
-                                errors
-                        )
-                );
+                .body(response);
     }
 }

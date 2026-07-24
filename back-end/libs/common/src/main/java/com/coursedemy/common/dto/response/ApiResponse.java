@@ -5,10 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.http.HttpStatus;
 
 import java.time.Instant;
-import java.util.Collections;
 
 @Data
 @Builder
@@ -16,62 +14,131 @@ import java.util.Collections;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
+
     private boolean success;
-    private Integer status;
+
+    private int status;
+
     private String code;
+
     private String message;
+
     private T data;
+
     private Object errors;
+
     private String path;
+
     private Instant timestamp;
 
+
+    // =========================
+    // SUCCESS - 200
+    // =========================
+
     public static <T> ApiResponse<T> ok(T data) {
-        return ok("Lấy dữ liệu thành công", data);
-    }
 
-    public static <T> ApiResponse<T> ok(String message, T data) {
-        return ok(HttpStatus.OK, message, data);
-    }
-
-    public static <T> ApiResponse<T> ok(HttpStatus status, String message, T data) {
         return ApiResponse.<T>builder()
                 .success(true)
-                .status(status.value())
+                .status(200)
+                .message("Lấy dữ liệu thành công")
+                .data(data)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+
+    public static <T> ApiResponse<T> ok(
+            String message,
+            T data
+    ) {
+
+        return ApiResponse.<T>builder()
+                .success(true)
+                .status(200)
                 .message(message)
                 .data(data)
                 .timestamp(Instant.now())
                 .build();
     }
 
-    public static <T> ApiResponse<T> created(String message, T data) {
+
+    // =========================
+    // CREATED - 201
+    // =========================
+
+    public static <T> ApiResponse<T> created(
+            String message,
+            T data
+    ) {
+
         return ApiResponse.<T>builder()
                 .success(true)
-                .status(HttpStatus.CREATED.value())
+                .status(201)
                 .message(message)
                 .data(data)
                 .timestamp(Instant.now())
                 .build();
     }
 
-    public static <T> ApiResponse<T> fail(String code, String message) {
-        return fail(HttpStatus.BAD_REQUEST, code, message, null, Collections.emptyList());
-    }
 
-    public static <T> ApiResponse<T> fail(String code, String message, Object errors) {
-        return fail(HttpStatus.BAD_REQUEST, code, message, null, errors);
-    }
+    // =========================
+    // ERROR
+    // =========================
 
-    public static <T> ApiResponse<T> fail(HttpStatus status, String code, String message, String path) {
-        return fail(status, code, message, path, Collections.emptyList());
-    }
+    public static <T> ApiResponse<T> fail(
+            String code,
+            String message
+    ) {
 
-    public static <T> ApiResponse<T> fail(HttpStatus status, String code, String message, String path, Object errors) {
         return ApiResponse.<T>builder()
                 .success(false)
-                .status(status.value())
+                .status(400)
                 .code(code)
                 .message(message)
-                .errors(errors == null ? Collections.emptyList() : errors)
+                .data(null)
+                .errors(null)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+
+    public static <T> ApiResponse<T> fail(
+            String code,
+            String message,
+            Object errors
+    ) {
+
+        return ApiResponse.<T>builder()
+                .success(false)
+                .status(400)
+                .code(code)
+                .message(message)
+                .data(null)
+                .errors(errors)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+
+    // =========================
+    // ERROR WITH STATUS + PATH
+    // =========================
+
+    public static <T> ApiResponse<T> fail(
+            int status,
+            String code,
+            String message,
+            Object errors,
+            String path
+    ) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .status(status)
+                .code(code)
+                .message(message)
+                .data(null)
+                .errors(errors)
                 .path(path)
                 .timestamp(Instant.now())
                 .build();
