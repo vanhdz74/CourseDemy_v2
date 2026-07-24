@@ -1,134 +1,18 @@
-x-service-env: &service_env
-  DB_HOST: postgres
-  DB_PORT: 5432
-  DB_NAME: ${DB_NAME:-coursedemy}
-  DB_USERNAME: ${DB_USERNAME:-postgres}
-  DB_PASSWORD: ${DB_PASSWORD:-postgres}
-  REDIS_HOST: redis
-  REDIS_PORT: 6379
-  JWT_SECRET: ${JWT_SECRET}
-  MAIL_USERNAME: ${MAIL_USERNAME}
-  MAIL_PASSWORD: ${MAIL_PASSWORD}
-  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-  CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
-  CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
-  CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
-  VNPAY_TMN_CODE: ${VNPAY_TMN_CODE}
-  VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET}
-  VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8086/api/payment/vnpay/return}
+version: '3.9'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${DB_NAME:-coursedemy}
-      POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   redis:
-    image: redis:7-alpine
+    image: redis:7.2
+    container_name: redis-CourseDemy
+    restart: always
     ports:
-      - "6379:6379"
-
-  api-gateway:
-    build:
-      context: .
-      dockerfile: apps/gateway-service/Dockerfile
-    environment:
-      <<: *service_env
-      USER_SERVICE_URL: http://user-service:8082
-      COURSE_SERVICE_URL: http://course-service:8083
-      ENROLLMENT_SERVICE_URL: http://enrollment-service:8084
-      ORDER_SERVICE_URL: http://order-service:8085
-      PAYMENT_SERVICE_URL: http://payment-service:8086
-      NOTIFICATION_SERVICE_URL: http://notification-service:8087
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-      - redis
-      - user-service
-      - course-service
-      - enrollment-service
-      - order-service
-      - payment-service
-      - notification-service
-
-  user-service:
-    build:
-      context: .
-      dockerfile: apps/user-service/Dockerfile
-    environment:
-      <<: *service_env
-    ports:
-      - "8082:8082"
-    depends_on:
-      - postgres
-      - redis
-
-  course-service:
-    build:
-      context: .
-      dockerfile: apps/course-service/Dockerfile
-    environment:
-      <<: *service_env
-    ports:
-      - "8083:8083"
-    depends_on:
-      - postgres
-      - redis
-
-  enrollment-service:
-    build:
-      context: .
-      dockerfile: apps/enrollment-service/Dockerfile
-    environment:
-      <<: *service_env
-    ports:
-      - "8084:8084"
-    depends_on:
-      - postgres
-      - redis
-
-  order-service:
-    build:
-      context: .
-      dockerfile: apps/order-service/Dockerfile
-    environment:
-      <<: *service_env
-    ports:
-      - "8085:8085"
-    depends_on:
-      - postgres
-      - redis
-
-  payment-service:
-    build:
-      context: .
-      dockerfile: apps/payment-service/Dockerfile
-    environment:
-      <<: *service_env
-    ports:
-      - "8086:8086"
-    depends_on:
-      - postgres
-      - redis
-
-  notification-service:
-    build:
-      context: .
-      dockerfile: apps/notification-service/Dockerfile
-    environment:
-      <<: *service_env
-    ports:
-      - "8087:8087"
-    depends_on:
-      - postgres
-      - redis
-
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - spring-microservice
 volumes:
-  postgres_data:
+  redis_data:
+networks:
+  spring-microservice:
+    driver: bridge

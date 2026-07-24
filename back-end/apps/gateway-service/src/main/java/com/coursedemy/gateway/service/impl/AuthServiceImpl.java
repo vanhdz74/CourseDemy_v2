@@ -129,7 +129,7 @@ public class AuthServiceImpl implements AuthService {
         UserEntity newUser = UserEntity.builder()
                 .username(userDTO.getUsername())
                 .email(userDTO.getEmail())
-                .password(rawPassword)
+                .password(passwordEncoder.encode(rawPassword))
                 .phoneNumber(userDTO.getPhoneNumber())
                 .avatarUrl(userDTO.getAvatarUrl())
                 .isActive(1)

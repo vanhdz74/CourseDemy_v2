@@ -1,134 +1,359 @@
 package com.coursedemy.gateway.filter;
 
-import com.coursedemy.gateway.util.JwtTokenUtil;
 import com.coursedemy.gateway.entity.UserEntity;
-import io.micrometer.common.lang.NonNull;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import com.coursedemy.gateway.util.JwtTokenUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.util.Pair;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter; // kế thừa
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
+import reactor.core.publisher.Mono;
 
-import org.springframework.security.core.userdetails.UserDetailsService;
-
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class JwtTokenFilter extends OncePerRequestFilter {
+public class JwtTokenFilter implements WebFilter {
+
     @Value("${api.prefix}")
     private String apiPrefix;
 
     private final UserDetailsService userDetailsService;
     private final JwtTokenUtil jwtTokenUtil;
 
+
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, // request hiện tại.
-                                    @NonNull HttpServletResponse response, // response hiện tại.
-                                    @NonNull FilterChain filterChain) // tiếp tục phần xử lý (controller, filter khác).
+    public Mono<Void> filter(
+            ServerWebExchange exchange,
+            WebFilterChain chain
+    ) {
 
-        // bắt/propagate IO và Servlet exceptions.
-            throws ServletException, IOException {
+        ServerHttpRequest request = exchange.getRequest();
+
+        String path = request.getURI().getPath();
+
+        String method = request.getMethod() != null
+                ? request.getMethod().name()
+                : "";
+
+
+        // =========================================================
+        // 1. KIỂM TRA API CÓ ĐƯỢC BYPASS JWT HAY KHÔNG
+        // =========================================================
+
+        if (isBypassToken(path, method)) {
+
+            return chain.filter(exchange);
+        }
+
+
+        // =========================================================
+        // 2. LẤY AUTHORIZATION HEADER
+        // =========================================================
+
+        String authHeader = request.getHeaders()
+                .getFirst(HttpHeaders.AUTHORIZATION);
+
+
+        // =========================================================
+        // 3. KHÔNG CÓ TOKEN
+        // =========================================================
+
+        if (authHeader == null
+                || !authHeader.startsWith("Bearer ")) {
+
+            return unauthorized(exchange);
+        }
+
+
+        // =========================================================
+        // 4. LẤY TOKEN
+        // =========================================================
+
+        String token = authHeader.substring(7);
+
+
         try {
-            // Ktra request, nếu request “bỏ qua”, không cần kiểm tra JWT → cho đi luôn.
-            if (isBypassToken(request)) {
-                filterChain.doFilter(request, response);
-                return;
+
+            // =====================================================
+            // 5. LẤY EMAIL TỪ JWT
+            // =====================================================
+
+            String email = jwtTokenUtil.extractEmail(token);
+
+
+            if (email == null || email.isBlank()) {
+
+                return unauthorized(exchange);
             }
 
-            // Ktra respon kèm theo
-            final String authHeader = request.getHeader("Authorization");
-            // Check header có bị null hay ko có Bearer đầu
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-                return;
+
+            // =====================================================
+            // 6. LOAD USER TỪ DATABASE
+            // =====================================================
+
+            UserEntity userDetails =
+                    (UserEntity) userDetailsService
+                            .loadUserByUsername(email);
+
+
+            // =====================================================
+            // 7. VALIDATE JWT
+            // =====================================================
+
+            if (!jwtTokenUtil.validateAccessToken(
+                    token,
+                    userDetails
+            )) {
+
+                return unauthorized(exchange);
             }
 
-            // Lấy token
-            final String token = authHeader.substring(7);
 
-            // Lấy email token
-            final String email = jwtTokenUtil.extractEmail(token);
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserEntity userDetails = (UserEntity) userDetailsService.loadUserByUsername(email);
+            // =====================================================
+            // 8. TẠO AUTHENTICATION
+            //
+            // userDetails.getAuthorities()
+            //
+            // Ví dụ:
+            //
+            // ROLE_ADMIN
+            // ROLE_TEACHER
+            // ROLE_STUDENT
+            // =====================================================
 
-                // Check email của token và email lấy đc trong đb khi load
-                if (jwtTokenUtil.validateAccessToken(token, userDetails)) {
-                    UsernamePasswordAuthenticationToken authenticationToken =
-                            new UsernamePasswordAuthenticationToken(userDetails, null,
-                                    userDetails.getAuthorities());
-                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                }
-            }
+            Authentication authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
 
-            // Tiếp tục doFilter
-            filterChain.doFilter(request, response); //enable bypass
+
+            // =====================================================
+            // 9. TẠO SECURITY CONTEXT
+            // =====================================================
+
+            SecurityContext securityContext =
+                    new SecurityContextImpl(authentication);
+
+
+            // =====================================================
+            // 10. LƯU AUTHENTICATION VÀO
+            // REACTIVE SECURITY CONTEXT
+            // =====================================================
+
+            return chain
+                    .filter(exchange)
+                    .contextWrite(
+                            ReactiveSecurityContextHolder
+                                    .withSecurityContext(
+                                            Mono.just(securityContext)
+                                    )
+                    );
+
 
         } catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+
+            return unauthorized(exchange);
         }
     }
 
-    // Xác định request hiện tại có phải isBypassToken
-    // kiểm tra xem request hiện tại có nằm trong danh sách “bỏ qua xác thực JWT” không.
-    private boolean isBypassToken(@NonNull HttpServletRequest request) {
-        final List<Pair<String, String>> bypassTokens = Arrays.asList(
-                Pair.of("/register", "POST"),
-                Pair.of("/login", "POST"),
-                Pair.of("/refresh-token", "POST"),
-                Pair.of("/send-otp", "POST"),
-                Pair.of("/verify-otp", "POST"),
-                Pair.of("/categories", "GET"),
-                Pair.of("/courses", "GET"),
-                Pair.of("/course/", "GET"),
-                Pair.of("/cart/add", "POST"),
-                Pair.of("/course-detail", "GET"),
-                Pair.of("/api/payment/{provider}/ipn", "POST"),
-                Pair.of("/ipn", "POST"),
-                Pair.of("/api/payment/", "GET"),
-                Pair.of("/public", "GET"),
-                Pair.of("/reviews", "GET"),
-                Pair.of("/revenue/top-courses", "GET"),
-                Pair.of("/revenue-categories", "GET")
-//                Pair.of("/", "GET")
-//                Pair.of("/upload-len", "POST")
+
+    // =============================================================
+    // UNAUTHORIZED
+    // =============================================================
+
+    private Mono<Void> unauthorized(
+            ServerWebExchange exchange
+    ) {
+
+        exchange.getResponse()
+                .setStatusCode(
+                        HttpStatus.UNAUTHORIZED
+                );
+
+        return exchange.getResponse()
+                .setComplete();
+    }
+
+
+    // =============================================================
+    // BYPASS TOKEN
+    // =============================================================
+
+    private boolean isBypassToken(
+            String path,
+            String method
+    ) {
+
+        List<String[]> bypassTokens = Arrays.asList(
+
+                new String[]{
+                        "/register",
+                        "POST"
+                },
+
+                new String[]{
+                        "/login",
+                        "POST"
+                },
+
+                new String[]{
+                        "/refresh-token",
+                        "POST"
+                },
+
+                new String[]{
+                        "/send-otp",
+                        "POST"
+                },
+
+                new String[]{
+                        "/verify-otp",
+                        "POST"
+                },
+
+                new String[]{
+                        "/categories",
+                        "GET"
+                },
+
+                new String[]{
+                        "/courses",
+                        "GET"
+                },
+
+                new String[]{
+                        "/course/",
+                        "GET"
+                },
+
+                new String[]{
+                        "/cart/add",
+                        "POST"
+                },
+
+                new String[]{
+                        "/course-detail",
+                        "GET"
+                },
+
+                new String[]{
+                        "/payment/{provider}/ipn",
+                        "POST"
+                },
+
+                new String[]{
+                        "/ipn",
+                        "POST"
+                },
+
+                new String[]{
+                        "/payment/",
+                        "GET"
+                },
+
+                new String[]{
+                        "/public",
+                        "GET"
+                },
+
+                new String[]{
+                        "/reviews",
+                        "GET"
+                },
+
+                new String[]{
+                        "/revenue/top-courses",
+                        "GET"
+                },
+
+                new String[]{
+                        "/revenue-categories",
+                        "GET"
+                }
         );
 
-        // first: đường dẫn API
-        // second: method HTTP
-        for (Pair<String, String> bypassToken : bypassTokens) {
-            if ("/course/".equals(bypassToken.getFirst())) {
-                if (isPublicCourseDetailRequest(request)) {
+
+        for (String[] bypassToken : bypassTokens) {
+
+            String bypassPath = bypassToken[0];
+
+            String bypassMethod = bypassToken[1];
+
+
+            // =====================================================
+            // PUBLIC COURSE DETAIL
+            // GET /course/123
+            // GET /api/v1/course/123
+            // =====================================================
+
+            if ("/course/".equals(bypassPath)) {
+
+                if (isPublicCourseDetailRequest(
+                        path,
+                        method
+                )) {
+
                     return true;
                 }
+
                 continue;
             }
 
-            if (request.getRequestURI().contains(bypassToken.getFirst()) &&
-                    request.getMethod().equals(bypassToken.getSecond())) {
+
+            // =====================================================
+            // KIỂM TRA PATH + METHOD
+            // =====================================================
+
+            if (path.contains(bypassPath)
+                    && method.equalsIgnoreCase(
+                    bypassMethod
+            )) {
+
                 return true;
             }
         }
+
+
         return false;
     }
 
-    private boolean isPublicCourseDetailRequest(HttpServletRequest request) {
-        if (!request.getMethod().equals("GET")) {
+
+    // =============================================================
+    // PUBLIC COURSE DETAIL
+    // =============================================================
+
+    private boolean isPublicCourseDetailRequest(
+            String path,
+            String method
+    ) {
+
+        if (!"GET".equalsIgnoreCase(method)) {
+
             return false;
         }
 
-        String uri = request.getRequestURI();
-        return uri.matches("^/course/\\d+$") || uri.matches("^" + apiPrefix + "/course/\\d+$");
+
+        return path.matches(
+                "^/course/\\d+$"
+        )
+                || path.matches(
+                "^"
+                        + apiPrefix
+                        + "/course/\\d+$"
+        );
     }
 }

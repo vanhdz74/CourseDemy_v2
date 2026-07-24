@@ -1,28 +1,29 @@
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
 
 spring:
   application:
-    name: api-gateway
-  config:
-    import: optional:file:.env[.properties]
+    name: gateway-service
+  main:
+    web-application-type: reactive
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:coursedemy}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://localhost:5432/auth_coursedemy_db
+    username: postgres
+    password: hieuit07
+
   jpa:
-    show-sql: ${JPA_SHOW_SQL:true}
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+      ddl-auto: update
+
+    show-sql: true
+
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    host: smtp.gmail.com
+    port: 587
+    #    username: vanhnekdungso74@gmail.com
+    #    password: odbv zeup ignq lagi
+    username: ${MAIL_USERNAME:hieeusbs05@gmail.com}
+    password: ${MAIL_PASSWORD:xlgvamvkrwuattsc}
     properties:
       mail:
         smtp:
@@ -31,77 +32,60 @@ spring:
             enable: true
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      timeout: 6000
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      host: localhost
+      port: 6380
+
   cloud:
     gateway:
-      server:
-        webmvc:
-          routes:
-            - id: user-service
-              uri: ${USER_SERVICE_URL:http://localhost:8082}
-              predicates:
-                - Path=/user/**,/users/**
-            - id: course-service
-              uri: ${COURSE_SERVICE_URL:http://localhost:8083}
-              predicates:
-                - Path=/course/**,/courses/**,/course-detail/**,/category/**,/categories/**,/lesson/**,/lessons/**,/sublesson/**,/comments/**,/comment/**,/reviews/**,/review/**
-            - id: enrollment-service
-              uri: ${ENROLLMENT_SERVICE_URL:http://localhost:8084}
-              predicates:
-                - Path=/enrollments/**
-            - id: order-service
-              uri: ${ORDER_SERVICE_URL:http://localhost:8085}
-              predicates:
-                - Path=/cart/**,/checkout/**,/transaction/**,/revenue/**
-            - id: payment-service
-              uri: ${PAYMENT_SERVICE_URL:http://localhost:8086}
-              predicates:
-                - Path=/api/payment/**
-            - id: notification-service
-              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8087}
-              predicates:
-                - Path=/notifications/**
+      routes:
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/users/**
 
-api:
-  prefix:
+        - id: course-service
+          uri: lb://COURSE-SERVICE
+          predicates:
+            - Path=/courses/**
 
-course:
-  limit: 9
+        - id: cart-service
+          uri: lb://CART-SERVICE
+          predicates:
+            - Path=/cart/**
 
+        - id: order-service
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/orders/**
+
+        - id: payment-service
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/payments/**
+
+        - id: enrollment-service
+          uri: lb://ENROLLMENT-SERVICE
+          predicates:
+            - Path=/enrollments/**
+
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/notifications/**
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka
+eureka:
+  client:
+    enabled: false
 jwt:
-  secretKey: ${JWT_SECRET}
-  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:3600000}
-  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
+  secretKey: ${JWT_SECRET:ZGV2LW9ubHktY291cnNlZGVteS1qd3Qtc2VjcmV0LTEyMzQ1Ng==}
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:3600000} # 1 giờ
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000} # 30 ngày
 
 fe:
   url: ${FRONTEND_URL:http://localhost:3000}
-
-cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
-  api-key: ${CLOUDINARY_API_KEY:}
-  api-secret: ${CLOUDINARY_API_SECRET:}
-
-vnpay:
-  tmn-code: ${VNPAY_TMN_CODE:}
-  hash-secret: ${VNPAY_HASH_SECRET:}
-  pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
-  return-url: ${VNPAY_RETURN_URL:http://localhost:8086/api/payment/vnpay/return}
-
-app:
-  seed:
-    admin:
-      email: ${SEED_ADMIN_EMAIL:admin@coursedemy.local}
-      password: ${SEED_ADMIN_PASSWORD:1234}
+api:
+  prefix:
