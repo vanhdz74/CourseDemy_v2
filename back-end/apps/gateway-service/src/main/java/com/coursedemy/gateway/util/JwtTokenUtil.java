@@ -1,7 +1,8 @@
 package com.coursedemy.gateway.util;
 
+import com.coursedemy.common.exception.BusinessException;
+import com.coursedemy.common.exception.ErrorCode;
 import com.coursedemy.gateway.entity.UserEntity;
-import com.coursedemy.common.exception.InvalidParamException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -35,15 +36,15 @@ public class JwtTokenUtil {
     private static final String ACCESS_TOKEN = "access";
     private static final String REFRESH_TOKEN = "refresh";
 
-    public String generateToken(UserEntity userEntity) throws InvalidParamException {
+    public String generateToken(UserEntity userEntity) {
         return generateAccessToken(userEntity);
     }
 
-    public String generateAccessToken(UserEntity userEntity) throws InvalidParamException {
+    public String generateAccessToken(UserEntity userEntity) {
         return generateToken(userEntity, ACCESS_TOKEN, accessExpirationMs);
     }
 
-    public String generateRefreshToken(UserEntity userEntity) throws InvalidParamException {
+    public String generateRefreshToken(UserEntity userEntity) {
         return generateToken(userEntity, REFRESH_TOKEN, refreshExpirationMs);
     }
 
@@ -51,7 +52,7 @@ public class JwtTokenUtil {
         return accessExpirationMs;
     }
 
-    private String generateToken(UserEntity userEntity, String tokenType, long expirationMs) throws InvalidParamException {
+    private String generateToken(UserEntity userEntity, String tokenType, long expirationMs) {
         // properties => claims
         Map<String, Object> claims = new HashMap<>();
 
@@ -77,8 +78,7 @@ public class JwtTokenUtil {
                     .compact();
             return token;
         } catch (Exception e) {
-            // you can "inject" Logger, instead System.out.println
-            throw new InvalidParamException("Cannot create jwt token, error: " + e.getMessage());
+            throw new BusinessException(ErrorCode.JWT_TOKEN_CREATION_FAILED);
         }
     }
 

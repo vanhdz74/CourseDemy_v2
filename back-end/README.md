@@ -2,39 +2,55 @@
 
 Backend da duoc sap xep theo workspace microservice:
 
+## Structure
+
 ```text
 backend/
 |-- apps/
-|   |-- api-gateway/
-|   |-- auth-service/
+|   |-- gateway-service/
 |   |-- user-service/
 |   |-- course-service/
 |   |-- enrollment-service/
 |   |-- order-service/
 |   |-- payment-service/
-|   `-- notification-service/
+|   |-- notification-service/
 |-- libs/
 |   |-- common/
 |   |-- database/
 |   |-- contracts/
 |   |-- config/
 |   |-- messaging/
-|   `-- logger/
+|   |-- logger/
 |-- docker-compose.yml
 |-- package.json
-`-- README.md
+|-- README.md
 ```
 
 ## Service ports
 
-- `api-gateway`: 8080
-- `auth-service`: 8081
+- `gateway-service`: 8080
 - `user-service`: 8082
 - `course-service`: 8083
 - `enrollment-service`: 8084
 - `order-service`: 8085
 - `payment-service`: 8086
 - `notification-service`: 8087
+
+## Service databases
+
+Local development uses one PostgreSQL container with one database per service:
+
+- `gateway-service`: `gateway_service_db`
+- `user-service`: `user_service_db`
+- `course-service`: `course_service_db`
+- `enrollment-service`: `enrollment_service_db`
+- `order-service`: `order_service_db`
+- `payment-service`: `payment_service_db`
+- `notification-service`: `notification_service_db`
+
+The init script at `docker/postgres/init-databases.sh` creates these databases
+when the Postgres volume is created for the first time. Run `npm run db:init`
+after `npm run compose:up` if the local volume already exists.
 
 ## Layer convention
 
@@ -54,25 +70,43 @@ backend/
 
 ## Run local
 
+See [RUNNING.md](RUNNING.md) for the full local running guide, including local
+PostgreSQL with pgAdmin and Docker Compose.
+
 Set env variables first:
 
 ```bash
-export JWT_SECRET=replace-with-local-secret
-export DB_USERNAME=postgres
-export DB_PASSWORD=postgres
+cp .env.example .env
+```
+
+Start local infrastructure:
+
+```bash
+npm run compose:up
+npm run db:init
 ```
 
 Run one service:
 
 ```bash
-npm run dev:auth
+npm run dev:user
 ```
 
-Run all services with Docker Compose:
+Or run a service directly with Maven:
 
 ```bash
-npm run compose:up
+./mvnw -f apps/user-service/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
 ```
+
+Run each service in a separate terminal when developing without Docker Compose
+for the app services. The root Maven project is only the parent/aggregator and
+does not start all Spring Boot applications with one `spring-boot:run` command.
+
+Available service scripts: `dev:gateway`, `dev:user`, `dev:course`,
+`dev:order`, `dev:payment`, `dev:enrollment`, `dev:notification`.
+These scripts run with the `dev` Spring profile, so each service loads both
+`application.yml` and `application-dev.yml`. Use `SPRING_PROFILES_ACTIVE=prod`
+or `-Dspring-boot.run.profiles=prod` for production-style config.
 
 Build all services:
 

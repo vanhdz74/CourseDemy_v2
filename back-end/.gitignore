@@ -39,3 +39,4 @@ build/
 
 # file môi trường
 .env
+.env.local

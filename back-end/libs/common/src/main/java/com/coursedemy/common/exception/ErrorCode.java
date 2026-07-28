@@ -17,6 +17,7 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Bạn cần đăng nhập để thực hiện thao tác này"),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Email hoặc mật khẩu không đúng"),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "Refresh token không hợp lệ hoặc đã hết hạn"),
+    JWT_TOKEN_CREATION_FAILED(HttpStatus.UNAUTHORIZED, "JWT_TOKEN_CREATION_FAILED", "Không thể tạo JWT token"),
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này"),
     ADMIN_REGISTER_DENIED(HttpStatus.FORBIDDEN, "ADMIN_REGISTER_DENIED", "Không thể đăng ký tài khoản admin"),
 
@@ -25,6 +26,11 @@ public enum ErrorCode {
     ROLE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROLE_NOT_FOUND", "Không tìm thấy vai trò"),
     EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "EMAIL_NOT_FOUND", "Email không tồn tại"),
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE_NOT_FOUND", "Không tìm thấy khóa học"),
+
+    OTP_EXPIRED_OR_NOT_FOUND(HttpStatus.BAD_REQUEST, "OTP_EXPIRED_OR_NOT_FOUND", "OTP đã hết hạn hoặc không tồn tại"),
+    INVALID_OTP(HttpStatus.BAD_REQUEST, "INVALID_OTP", "OTP sai"),
+    CURRENT_PASSWORD_INCORRECT(HttpStatus.BAD_REQUEST, "CURRENT_PASSWORD_INCORRECT", "Mật khẩu hiện tại nhập vào sai"),
+    NEW_PASSWORD_SAME_AS_OLD(HttpStatus.BAD_REQUEST, "NEW_PASSWORD_SAME_AS_OLD", "Mật khẩu mới không được trùng với mật khẩu cũ"),
 
     UNSUPPORTED_PAYMENT_PROVIDER(HttpStatus.BAD_REQUEST, "UNSUPPORTED_PAYMENT_PROVIDER", "Nhà cung cấp thanh toán không được hỗ trợ"),
     COURSE_ID_EMPTY(HttpStatus.BAD_REQUEST, "COURSE_ID_EMPTY", "Danh sách khóa học không được để trống"),

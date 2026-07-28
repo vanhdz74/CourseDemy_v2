@@ -5,7 +5,6 @@ import com.coursedemy.order.entity.UserEntity;
 import com.coursedemy.order.repository.RoleRepository;
 import com.coursedemy.order.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,36 +18,22 @@ public class DatabaseSeedConfig {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.seed.admin.email:admin@coursedemy.local}")
-    private String adminEmail;
-
-    @Value("${app.seed.admin.password:1234}")
-    private String adminPassword;
+    private static final String TEST_PASSWORD = "123456";
 
     @Bean
     ApplicationRunner seedDefaultData() {
-        return args -> seedRolesAndAdmin();
+        return args -> seedRolesAndTestUsers();
     }
 
     @Transactional
-    public void seedRolesAndAdmin() {
+    public void seedRolesAndTestUsers() {
         RoleEntity adminRole = seedRole(RoleEntity.ADMIN, "Quản trị hệ thống");
-        seedRole(RoleEntity.TEACHER, "Giảng viên");
-        seedRole(RoleEntity.STUDENT, "Học viên");
+        RoleEntity teacherRole = seedRole(RoleEntity.TEACHER, "Giảng viên");
+        RoleEntity studentRole = seedRole(RoleEntity.STUDENT, "Học viên");
 
-        if (userRepository.findByEmail(adminEmail) != null) {
-            return;
-        }
-
-        UserEntity admin = UserEntity.builder()
-                .username("Administrator")
-                .email(adminEmail)
-                .password(passwordEncoder.encode(adminPassword))
-                .isActive(1)
-                .roleEntity(adminRole)
-                .build();
-
-        userRepository.save(admin);
+        seedUser("Admin Test", "admin@coursedemy.local", adminRole);
+        seedUser("Teacher Test", "teacher@coursedemy.local", teacherRole);
+        seedUser("Student Test", "student@coursedemy.local", studentRole);
     }
 
     private RoleEntity seedRole(String roleName, String description) {
@@ -59,5 +44,22 @@ public class DatabaseSeedConfig {
                     role.setDescription(description);
                     return roleRepository.save(role);
                 });
+    }
+
+    private void seedUser(String username, String email, RoleEntity role) {
+        UserEntity user = userRepository.findByEmail(email);
+        if (user == null) {
+            user = UserEntity.builder()
+                    .email(email)
+                    .build();
+        }
+
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(TEST_PASSWORD));
+        user.setIsActive(1);
+        user.setRoleEntity(role);
+
+        userRepository.save(user);
     }
 }

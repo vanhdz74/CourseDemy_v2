@@ -22,10 +22,6 @@
     <name>common</name>
     <description>CourseDemy shared response and exception library</description>
 
-    <properties>
-        <java.version>17</java.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>

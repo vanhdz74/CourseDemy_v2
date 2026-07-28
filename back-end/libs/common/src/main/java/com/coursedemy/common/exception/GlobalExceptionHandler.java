@@ -70,7 +70,6 @@ public class GlobalExceptionHandler {
     ) {
         return build(
                 ErrorCode.BAD_REQUEST,
-                ex.getMessage(),
                 exchange
         );
     }
@@ -83,7 +82,6 @@ public class GlobalExceptionHandler {
     ) {
         return build(
                 ErrorCode.NOT_FOUND,
-                ex.getMessage(),
                 exchange
         );
     }
@@ -99,7 +97,6 @@ public class GlobalExceptionHandler {
     ) {
         return build(
                 ErrorCode.FORBIDDEN,
-                ex.getMessage(),
                 exchange
         );
     }
@@ -124,7 +121,6 @@ public class GlobalExceptionHandler {
     ) {
         return build(
                 ErrorCode.UNAUTHORIZED,
-                ex.getMessage(),
                 exchange
         );
     }
@@ -149,7 +145,6 @@ public class GlobalExceptionHandler {
     ) {
         return build(
                 ErrorCode.CONFLICT,
-                ex.getMessage(),
                 exchange
         );
     }
@@ -162,7 +157,6 @@ public class GlobalExceptionHandler {
     ) {
         return build(
                 ErrorCode.BUSINESS_ERROR,
-                ex.getMessage(),
                 exchange
         );
     }

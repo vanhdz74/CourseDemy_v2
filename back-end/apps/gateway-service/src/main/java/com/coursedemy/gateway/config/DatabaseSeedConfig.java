@@ -1,15 +1,17 @@
-package com.coursedemy.user.config;
+package com.coursedemy.gateway.config;
 
-import com.coursedemy.user.entity.RoleEntity;
-import com.coursedemy.user.entity.UserEntity;
-import com.coursedemy.user.repository.RoleRepository;
-import com.coursedemy.user.repository.UserRepository;
+import com.coursedemy.gateway.entity.RoleEntity;
+import com.coursedemy.gateway.entity.UserEntity;
+import com.coursedemy.gateway.repository.RoleRepository;
+import com.coursedemy.gateway.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Configuration
 @RequiredArgsConstructor
@@ -48,9 +50,12 @@ public class DatabaseSeedConfig {
 
     private void seedUser(String username, String email, RoleEntity role) {
         UserEntity user = userRepository.findByEmail(email);
+        LocalDateTime now = LocalDateTime.now();
+
         if (user == null) {
             user = UserEntity.builder()
                     .email(email)
+                    .createdAt(now)
                     .build();
         }
 
@@ -59,6 +64,7 @@ public class DatabaseSeedConfig {
         user.setPassword(passwordEncoder.encode(TEST_PASSWORD));
         user.setIsActive(1);
         user.setRoleEntity(role);
+        user.setUpdatedAt(now);
 
         userRepository.save(user);
     }

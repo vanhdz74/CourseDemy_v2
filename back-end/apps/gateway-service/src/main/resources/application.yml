@@ -1,91 +1,73 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:${PORT:8080}}
 
 spring:
   application:
     name: gateway-service
+  config:
+    import:
+      - optional:file:../../.env[.properties]
+      - optional:file:.env[.properties]
+      - optional:classpath:coursedemy-common.yml
   main:
     web-application-type: reactive
   datasource:
-    url: jdbc:postgresql://localhost:5432/auth_coursedemy_db
-    username: postgres
-    password: hieuit07
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-
-    show-sql: true
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    #    username: vanhnekdungso74@gmail.com
-    #    password: odbv zeup ignq lagi
-    username: ${MAIL_USERNAME:hieeusbs05@gmail.com}
-    password: ${MAIL_PASSWORD:xlgvamvkrwuattsc}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+    url: ${GATEWAY_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${GATEWAY_SERVICE_DB_NAME:gateway_service_db}}
+    username: ${GATEWAY_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
+    password: ${GATEWAY_SERVICE_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}}
   data:
     redis:
-      host: localhost
-      port: 6380
-
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:}
+      timeout: 6000
+  #  cấu hình Spring Cloud Gateway Nó biến service hiện tại thành API Gateway,
+  #  nhận request từ frontend rồi chuyển tiếp sang các microservice tương ứng.
   cloud:
     gateway:
-      routes:
+      server:
+        webflux:
+          routes:
 
-        - id: user-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/users/**
+            - id: user-service
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/users/**
 
-        - id: course-service
-          uri: lb://COURSE-SERVICE
-          predicates:
-            - Path=/courses/**
+            - id: course-service
+              uri: lb://COURSE-SERVICE
+              predicates:
+                - Path=/courses/**
 
-        - id: cart-service
-          uri: lb://CART-SERVICE
-          predicates:
-            - Path=/cart/**
+            - id: cart-service
+              uri: lb://CART-SERVICE
+              predicates:
+                - Path=/cart/**
 
-        - id: order-service
-          uri: lb://ORDER-SERVICE
-          predicates:
-            - Path=/orders/**
+            - id: order-service
+              uri: lb://ORDER-SERVICE
+              predicates:
+                - Path=/orders/**
 
-        - id: payment-service
-          uri: lb://PAYMENT-SERVICE
-          predicates:
-            - Path=/payments/**
+            - id: payment-service
+              uri: lb://PAYMENT-SERVICE
+              predicates:
+                - Path=/payments/**
 
-        - id: enrollment-service
-          uri: lb://ENROLLMENT-SERVICE
-          predicates:
-            - Path=/enrollments/**
+            - id: enrollment-service
+              uri: lb://ENROLLMENT-SERVICE
+              predicates:
+                - Path=/enrollments/**
 
-        - id: notification-service
-          uri: lb://NOTIFICATION-SERVICE
-          predicates:
-            - Path=/notifications/**
-#eureka:
-#  client:
-#    service-url:
-#      defaultZone: http://localhost:8761/eureka
+            - id: notification-service
+              uri: lb://NOTIFICATION-SERVICE
+              predicates:
+                - Path=/notifications/**
+#  Gateway phải bật Eureka client và connect được Eureka.
 eureka:
   client:
-    enabled: false
-jwt:
-  secretKey: ${JWT_SECRET:ZGV2LW9ubHktY291cnNlZGVteS1qd3Qtc2VjcmV0LTEyMzQ1Ng==}
-  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:3600000} # 1 giờ
-  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000} # 30 ngày
-
-fe:
-  url: ${FRONTEND_URL:http://localhost:3000}
-api:
-  prefix:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+#eureka:
+#  client:
+#    enabled: false
