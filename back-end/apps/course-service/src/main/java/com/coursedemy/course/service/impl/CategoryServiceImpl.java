@@ -1,11 +1,11 @@
 package com.coursedemy.course.service.impl;
 
+import com.coursedemy.course.client.OrderClient;
 import com.coursedemy.course.mapper.MapperConfiguration;
 import com.coursedemy.course.dto.CategoryDTO;
 import com.coursedemy.course.dto.RevenueDTO;
 import com.coursedemy.course.entity.CategoryEntity;
 import com.coursedemy.course.repository.CategoryRepository;
-import com.coursedemy.course.repository.OrderRepository;
 import com.coursedemy.course.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +19,8 @@ import java.util.Optional;
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final MapperConfiguration mapperConfiguration;
-    private final OrderRepository orderRepository;
+    private final OrderClient orderClient;
+
 
     @Override
     public List<CategoryDTO> getAllCategories() {
@@ -36,18 +37,29 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<RevenueDTO.RevenueByCategoryDTO> getRevenueByCategory() {
+
         List<RevenueDTO.RevenueByCategoryDTO> data =
-                orderRepository.getRevenueByCategory();
+                orderClient.getRevenueByCategory();
 
         double totalRevenue = data.stream()
                 .mapToDouble(RevenueDTO.RevenueByCategoryDTO::getRevenue)
                 .sum();
 
+        if (totalRevenue == 0) {
+            return data.stream()
+                    .map(d -> new RevenueDTO.RevenueByCategoryDTO(
+                            d.getCategory(),
+                            d.getRevenue(),
+                            0.0
+                    ))
+                    .toList();
+        }
+
         return data.stream()
                 .map(d -> new RevenueDTO.RevenueByCategoryDTO(
                         d.getCategory(),
                         d.getRevenue(),
-                        new Double(Math.round(d.getRevenue() * 100 / totalRevenue))
+                        d.getRevenue() * 100.0 / totalRevenue
                 ))
                 .toList();
     }
@@ -64,7 +76,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public void deleteCategory(Integer id) {
+    public void deleteCategory(Long id) {
         CategoryEntity categoryEntity = categoryRepository.findById(id).orElse(null);
         categoryRepository.delete(categoryEntity);
     }

@@ -3,19 +3,79 @@ server:
 
 spring:
   application:
-    name: course-service
+    name: COURSE-SERVICE
   config:
-    import:
-      - optional:file:../../.env[.properties]
-      - optional:file:.env[.properties]
-      - optional:classpath:coursedemy-common.yml
+    import: optional:file:.env[.properties]
+  autoconfigure: #tắt spring security
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
-    url: ${COURSE_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${COURSE_SERVICE_DB_NAME:course_service_db}}
-    username: ${COURSE_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
-    password: ${COURSE_SERVICE_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:course_coursedemy_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:hieuit07}
+  jpa:
+    show-sql: ${JPA_SHOW_SQL:true}
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 6000
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+api:
+  prefix:
+
+course:
+  limit: 9
+
+jwt:
+  secretKey: ${JWT_SECRET}
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:3600000}
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
+
+fe:
+  url: ${FRONTEND_URL:http://localhost:3000}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}
+
+vnpay:
+  tmn-code: ${VNPAY_TMN_CODE:}
+  hash-secret: ${VNPAY_HASH_SECRET:}
+  pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+  return-url: ${VNPAY_RETURN_URL:http://localhost:8086/api/payment/vnpay/return}
+
+app:
+  seed:
+    admin:
+      email: ${SEED_ADMIN_EMAIL:admin@coursedemy.local}
+      password: ${SEED_ADMIN_PASSWORD:1234}

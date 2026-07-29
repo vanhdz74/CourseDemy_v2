@@ -1,7 +1,7 @@
 package com.coursedemy.user.service;
 
-import com.coursedemy.user.dto.UserDTO;
-import com.coursedemy.user.dto.UserProfileUpdateDTO;
+import com.coursedemy.user.dto.request.UserDTO;
+import com.coursedemy.user.dto.request.UserProfileUpdateDTO;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,4 +28,8 @@ public interface UserService {
     void addStudentToCourseByEmail(Long courseId, String email);
 
     void removeStudentFromCourse(Long courseId, Long userId);
+
+    String getRoleByUserId(Long userId);
+
+    List<Long> getCourseIdsByUserId(Long userId);
 }

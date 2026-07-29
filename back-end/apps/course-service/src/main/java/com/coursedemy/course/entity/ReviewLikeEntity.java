@@ -28,9 +28,9 @@ public class ReviewLikeEntity {
     private Date createdAt;
 
     // ================ USER ================ //
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private UserEntity userEntity;
+    
+    @Column(name = "user_id")
+    private Long userEntity;
 
     // ================ REVIEW ================ //
     @ManyToOne(fetch = FetchType.LAZY)

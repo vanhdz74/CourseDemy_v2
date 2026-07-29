@@ -53,9 +53,8 @@ public class WebSecurityConfig {
 
                         .pathMatchers(
                                 "/categories/**",
-                                "/courses/**",
-                                "/course/**",
-                                "/course-detail/**",
+//                                "/course/**",
+
                                 "/public/**",
                                 "/reviews/**"
                         )
@@ -83,7 +82,7 @@ public class WebSecurityConfig {
                         .hasRole("STUDENT")
 
                         .pathMatchers(
-                                "/course",
+                                "/course","/courses/**",
                                 "/course/**",
                                 "/upload-course-img/**"
                         )

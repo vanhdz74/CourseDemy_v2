@@ -1,7 +1,9 @@
 package com.coursedemy.course.service.impl;
 
 import com.coursedemy.course.mapper.MapperConfiguration;
+import com.coursedemy.course.client.UserClient;
 import com.coursedemy.course.dto.ReviewDTO;
+import com.coursedemy.course.dto.request.UserDTO;
 import com.coursedemy.course.entity.*;
 import com.coursedemy.course.repository.*;
 import com.coursedemy.course.service.ReviewService;
@@ -17,42 +19,93 @@ import java.util.Optional;
 public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepository;
-    private final UserRepository userRepository;
+    private final UserClient userClient;
     private final CourseRepository courseRepository;
-    private final LessonRepository lessonRepository;
-    private final SubLessonRepository subLessonRepository;
     private final MapperConfiguration mapperConfiguration;
 
     // LẤY REVIEW THEO COURSE
-    @Override
-    public List<ReviewDTO> getReviewsByCourseId(Long courseId) {
+   @Override
+    public List<ReviewDTO> getReviewsByCourseId(
+            Long courseId
+    ) {
 
-        CourseEntity courseEntity = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
+        /**
+         * Kiểm tra Course có tồn tại không.
+         */
+        CourseEntity courseEntity =
+                courseRepository.findById(courseId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Khoá học không tồn tại"
+                                )
+                        );
 
-        List<ReviewEntity> reviews = reviewRepository.findByCourseEntity_Id(courseId);
+        /**
+         * Lấy tất cả Review của Course.
+         */
+        List<ReviewEntity> reviews =
+                reviewRepository.findByCourseEntity_Id(
+                        courseId
+                );
 
-        List<ReviewDTO> reviewDTOS = new ArrayList<>();
+        List<ReviewDTO> reviewDTOS =
+                new ArrayList<>();
 
         for (ReviewEntity review : reviews) {
-            Optional<UserEntity> user = userRepository.findById(review.getUserEntity().getId());
-            if (user.isEmpty()) {
-                throw new RuntimeException("User không tồn tại");
+
+            /**
+             * Lấy thông tin User từ User-Service
+             * thông qua OpenFeign.
+             */
+            UserDTO userDTO;
+
+            try {
+
+                userDTO =
+                        userClient.getUserById(
+                                review.getUserId()
+                        ).getData();
+
+            } catch (Exception e) {
+
+                throw new RuntimeException(
+                        "User không tồn tại với id: "
+                                + review.getUserId()
+                );
             }
 
-            ReviewDTO dto = mapperConfiguration.toReviewDTO(review);
+            /**
+             * Mapping ReviewEntity -> ReviewDTO.
+             */
+            ReviewDTO dto =
+                    mapperConfiguration.toReviewDTO(
+                            review
+                    );
 
-            dto.setUserName(user.get().getUsername());
-            dto.setUserAvatar(user.get().getAvatarUrl());
+            /**
+             * Thông tin User.
+             */
+            dto.setUserName(
+                    userDTO.getUsername()
+            );
 
-            // check xem có phải review của mình
-//            dto.setMe(user.get().getId().equals(userAuId) ? 1 : 0);
+            dto.setUserAvatar(
+                    userDTO.getAvatarUrl()
+            );
 
-            // nếu bị xóa
+            /**
+             * Nếu Review đã bị xóa mềm.
+             */
             if (review.getStatus() == 0) {
-                dto.setComment("Review đã bị xoá");
+
+                dto.setComment(
+                        "Review đã bị xoá"
+                );
+
                 dto.setMe(0);
+
             } else {
+
                 dto.setMe(0);
             }
 
@@ -64,49 +117,168 @@ public class ReviewServiceImpl implements ReviewService {
 
     // TẠO REVIEW
     @Override
-    public void createReview(ReviewDTO reviewDTO, Long userId, Long courseId) {
+    public void createReview(
+            ReviewDTO reviewDTO,
+            Long userId,
+            Long courseId
+    ) {
 
-        UserEntity userEntity = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tồn tại người dùng"));
+        /**
+         * Kiểm tra User tồn tại
+         * thông qua User-Service.
+         */
+        UserDTO userDTO;
 
-        CourseEntity courseEntity = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Không tồn tại khóa học"));
+        try {
 
-        ReviewEntity reviewEntity = new ReviewEntity();
-        reviewEntity.setRating(reviewDTO.getRating());
-        reviewEntity.setComment(reviewDTO.getComment());
+            userDTO =
+                    userClient.getUserById(
+                            userId
+                    ).getData();
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Không tồn tại người dùng có id: "
+                            + userId
+            );
+        }
+
+        /**
+         * Kiểm tra Course tồn tại.
+         */
+        CourseEntity courseEntity =
+                courseRepository.findById(courseId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Không tồn tại khóa học"
+                                )
+                        );
+
+        /**
+         * Tạo Review.
+         */
+        ReviewEntity reviewEntity =
+                new ReviewEntity();
+
+        reviewEntity.setRating(
+                reviewDTO.getRating()
+        );
+
+        reviewEntity.setComment(
+                reviewDTO.getComment()
+        );
+
         reviewEntity.setStatus(1);
-        reviewEntity.setParentId(reviewDTO.getParentId());
-        reviewEntity.setUserEntity(userEntity);
-        reviewEntity.setCourseEntity(courseEntity);
 
-        reviewRepository.save(reviewEntity);
+        reviewEntity.setParentId(
+                reviewDTO.getParentId()
+        );
+
+        /**
+         * Không còn:
+         *
+         * reviewEntity.setUserEntity(userEntity);
+         *
+         * Chỉ lưu userId.
+         */
+        reviewEntity.setUserId(
+                userId
+        );
+
+        /**
+         * Course cùng Course-Service
+         * nên vẫn giữ Entity relationship.
+         */
+        reviewEntity.setCourseEntity(
+                courseEntity
+        );
+
+        reviewRepository.save(
+                reviewEntity
+        );
     }
 
     // XOÁ REVIEW
     @Override
-    public ReviewDTO removeReview(Long id, Long userId) {
+    public ReviewDTO removeReview(
+            Long id,
+            Long userId
+    ) {
 
-        ReviewEntity reviewEntity = reviewRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Review không tồn tại"));
+        /**
+         * Tìm Review.
+         */
+        ReviewEntity reviewEntity =
+                reviewRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Review không tồn tại"
+                                )
+                        );
 
-        UserEntity userEntity = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        /**
+         * Kiểm tra User có phải người tạo Review không.
+         *
+         * Không cần UserEntity.
+         */
+        if (!reviewEntity.getUserId().equals(userId)) {
 
-        // chỉ người tạo review mới được xóa
-        if (reviewEntity.getUserEntity().getId().equals(userId)) {
-            reviewEntity.setStatus(0);
-        } else {
-            throw new RuntimeException("Bạn không được phép xoá review này");
+            throw new RuntimeException(
+                    "Bạn không được phép xoá review này"
+            );
         }
 
-        reviewRepository.save(reviewEntity);
+        /**
+         * Xóa mềm.
+         */
+        reviewEntity.setStatus(0);
 
-        ReviewDTO dto = mapperConfiguration.toReviewDTO(reviewEntity);
+        reviewRepository.save(
+                reviewEntity
+        );
+
+        /**
+         * Lấy thông tin User từ User-Service.
+         */
+        UserDTO userDTO;
+
+        try {
+
+            userDTO =
+                    userClient.getUserById(
+                            userId
+                    ).getData();
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Không tìm thấy người dùng có id: "
+                            + userId
+            );
+        }
+
+        /**
+         * Mapping Entity -> DTO.
+         */
+        ReviewDTO dto =
+                mapperConfiguration.toReviewDTO(
+                        reviewEntity
+                );
+
         dto.setMe(0);
-        dto.setComment("Review đã bị xoá");
-        dto.setUserName(userEntity.getUsername());
-        dto.setUserAvatar(userEntity.getAvatarUrl());
+
+        dto.setComment(
+                "Review đã bị xoá"
+        );
+
+        dto.setUserName(
+                userDTO.getUsername()
+        );
+
+        dto.setUserAvatar(
+                userDTO.getAvatarUrl()
+        );
 
         return dto;
     }

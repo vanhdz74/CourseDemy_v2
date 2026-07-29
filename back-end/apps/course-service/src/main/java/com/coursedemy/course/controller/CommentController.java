@@ -1,12 +1,10 @@
 package com.coursedemy.course.controller;
 
 import com.coursedemy.course.dto.CommentDTO;
-import com.coursedemy.common.dto.response.ApiResponse;
-import com.coursedemy.course.entity.UserEntity;
+import com.coursedemy.course.dto.response.ApiResponse;
 import com.coursedemy.course.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,10 +18,9 @@ public class CommentController {
     @GetMapping("/comments/sublesson/{sublesson_id}")
     public ResponseEntity<ApiResponse<List<CommentDTO>>> getCommentsBySublessonId(
             @PathVariable Long sublesson_id,
-            Authentication authentication) {
-        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-        Long userId = userEntity.getId();
-        return ResponseEntity.ok(ApiResponse.ok(commentService.getCommentsBuSublessonId(sublesson_id, userId)));
+            @RequestHeader("X-User-Id") Long userId) {
+
+        return ResponseEntity.ok(ApiResponse.ok(commentService.getCommentsBySublessonId(sublesson_id, userId)));
     }
 
     // GET: Lấy ra comments của toàn khoá
@@ -36,19 +33,16 @@ public class CommentController {
     @PostMapping("/comment")
     public ResponseEntity<ApiResponse<CommentDTO>> createComment(
             @RequestBody CommentDTO commentDTO,
-            Authentication authentication
+            @RequestHeader("X-User-Id") Long userId
     ) {
-        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-        Long userId = userEntity.getId();
         CommentDTO comment = commentService.createComment(commentDTO, userId);
         return ResponseEntity.ok(ApiResponse.ok(comment));
     }
 
     // DELETE: xoá comment
     @DeleteMapping("/comment/{id}")
-    public ResponseEntity<ApiResponse<CommentDTO>> removeComment(@PathVariable Long id, Authentication authentication) {
-        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-        Long userId = userEntity.getId();
+    public ResponseEntity<ApiResponse<CommentDTO>> removeComment(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId) {
+
         CommentDTO commentDTO = commentService.removeComment(id, userId);
         return ResponseEntity.ok(ApiResponse.ok(commentDTO));
     }

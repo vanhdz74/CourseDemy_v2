@@ -2,7 +2,9 @@ package com.coursedemy.gateway.filter;
 
 import com.coursedemy.gateway.entity.UserEntity;
 import com.coursedemy.gateway.util.JwtTokenUtil;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,7 +23,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
-
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtTokenFilter implements WebFilter {
@@ -119,7 +121,43 @@ public class JwtTokenFilter implements WebFilter {
 
                 return unauthorized(exchange);
             }
+            /*
+             * Lấy claim
+             */
+            Claims claims =
+                    jwtTokenUtil.extractAllClaims(
+                            token
+                    );
 
+
+            String userId =
+                    String.valueOf(
+                            claims.get("id")
+                    );
+
+
+
+            /*
+             * Gắn userId vào request
+             */
+            ServerHttpRequest mutatedRequest =
+                    request
+                            .mutate()
+                            .header(
+                                    "X-User-Id",
+                                    userId
+                            )
+                            .build();
+
+
+
+            ServerWebExchange mutatedExchange =
+                    exchange
+                            .mutate()
+                            .request(
+                                    mutatedRequest
+                            )
+                            .build();
 
             // =====================================================
             // 8. TẠO AUTHENTICATION
@@ -155,7 +193,7 @@ public class JwtTokenFilter implements WebFilter {
             // =====================================================
 
             return chain
-                    .filter(exchange)
+                    .filter(mutatedExchange)
                     .contextWrite(
                             ReactiveSecurityContextHolder
                                     .withSecurityContext(
@@ -165,6 +203,11 @@ public class JwtTokenFilter implements WebFilter {
 
 
         } catch (Exception e) {
+
+            log.error(
+                    "JWT authentication failed",
+                    e
+            );
 
             return unauthorized(exchange);
         }
@@ -230,25 +273,21 @@ public class JwtTokenFilter implements WebFilter {
                         "GET"
                 },
 
-                new String[]{
-                        "/courses",
-                        "GET"
-                },
 
-                new String[]{
-                        "/course/",
-                        "GET"
-                },
+//                new String[]{
+//                        "/course/",
+//                        "GET"
+//                },
 
                 new String[]{
                         "/cart/add",
                         "POST"
                 },
 
-                new String[]{
-                        "/course-detail",
-                        "GET"
-                },
+//                new String[]{
+//                        "/course/course-detail",
+//                        "GET"
+//                },
 
                 new String[]{
                         "/payment/{provider}/ipn",
@@ -300,18 +339,18 @@ public class JwtTokenFilter implements WebFilter {
             // GET /api/v1/course/123
             // =====================================================
 
-            if ("/course/".equals(bypassPath)) {
-
-                if (isPublicCourseDetailRequest(
-                        path,
-                        method
-                )) {
-
-                    return true;
-                }
-
-                continue;
-            }
+//            if ("/course/".equals(bypassPath)) {
+//
+//                if (isPublicCourseDetailRequest(
+//                        path,
+//                        method
+//                )) {
+//
+//                    return true;
+//                }
+//
+//                continue;
+//            }
 
 
             // =====================================================
@@ -340,7 +379,7 @@ public class JwtTokenFilter implements WebFilter {
             String path,
             String method
     ) {
-
+        // chỉ phương thức get đối với /course mới k bị vào hàm if này để chạy
         if (!"GET".equalsIgnoreCase(method)) {
 
             return false;
@@ -349,8 +388,8 @@ public class JwtTokenFilter implements WebFilter {
 
         return path.matches(
                 "^/course/\\d+$"
-        )
-                || path.matches(
+        ) // chỉ /course/số thì mới trả ra true
+                || path.matches( //chỉ apiPrefix/course/số thì mới trả ra true
                 "^"
                         + apiPrefix
                         + "/course/\\d+$"

@@ -1,21 +1,47 @@
 package com.coursedemy.user.repository;
 
-import com.coursedemy.user.dto.UserDTO;
 import com.coursedemy.user.entity.UserCourseEntity;
-import com.coursedemy.user.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface UserCourseRepository extends JpaRepository<UserCourseEntity, Long> {
-    List<UserCourseEntity> findByUserEntity_Id(Long id);
+public interface UserCourseRepository
+        extends JpaRepository<UserCourseEntity, Long> {
 
-    boolean existsByUserEntity_IdAndCourseEntity_Id(Long userId, Long courseId);
+    /**
+     * Lấy tất cả khóa học mà User đã đăng ký.
+     */
+    List<UserCourseEntity> findByUserEntity_Id(Long userId);
 
-    List<UserCourseEntity> findByCourseEntity_Id(Long courseId);
+    /**
+     * Kiểm tra User đã đăng ký Course chưa.
+     */
+    boolean existsByUserEntity_IdAndCourseId(
+            Long userId,
+            Long courseId
+    );
 
-    Optional<Object> findByUserEntity_IdAndCourseEntity_Id(Long userId, Long courseId);
+    /**
+     * Lấy tất cả User đã đăng ký Course.
+     */
+    List<UserCourseEntity> findByCourseId(
+            Long courseId
+    );
 
-    void deleteByUserEntity_IdAndCourseEntity_Id(Long userId, Long courseId);
+    /**
+     * Tìm UserCourse theo User và Course.
+     */
+    Optional<UserCourseEntity> findByUserEntity_IdAndCourseId(
+            Long userId,
+            Long courseId
+    );
+
+    /**
+     * Xóa User khỏi Course.
+     */
+    void deleteByUserEntity_IdAndCourseId(
+            Long userId,
+            Long courseId
+    );
 }

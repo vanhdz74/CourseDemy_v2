@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface CommentService {
 
-    List<CommentDTO> getCommentsBuSublessonId(Long sublessonId, Long userId);
+    List<CommentDTO> getCommentsBySublessonId(Long sublessonId, Long userId);
 
     List<CommentDTO> getCommentsByCourseId(Long courseId);
 

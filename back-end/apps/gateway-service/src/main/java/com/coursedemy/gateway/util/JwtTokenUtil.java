@@ -1,8 +1,7 @@
 package com.coursedemy.gateway.util;
 
-import com.coursedemy.common.exception.BusinessException;
-import com.coursedemy.common.exception.ErrorCode;
 import com.coursedemy.gateway.entity.UserEntity;
+import com.coursedemy.common.exception.InvalidParamException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -36,15 +35,15 @@ public class JwtTokenUtil {
     private static final String ACCESS_TOKEN = "access";
     private static final String REFRESH_TOKEN = "refresh";
 
-    public String generateToken(UserEntity userEntity) {
+    public String generateToken(UserEntity userEntity) throws InvalidParamException {
         return generateAccessToken(userEntity);
     }
 
-    public String generateAccessToken(UserEntity userEntity) {
+    public String generateAccessToken(UserEntity userEntity) throws InvalidParamException {
         return generateToken(userEntity, ACCESS_TOKEN, accessExpirationMs);
     }
 
-    public String generateRefreshToken(UserEntity userEntity) {
+    public String generateRefreshToken(UserEntity userEntity) throws InvalidParamException {
         return generateToken(userEntity, REFRESH_TOKEN, refreshExpirationMs);
     }
 
@@ -52,7 +51,7 @@ public class JwtTokenUtil {
         return accessExpirationMs;
     }
 
-    private String generateToken(UserEntity userEntity, String tokenType, long expirationMs) {
+    private String generateToken(UserEntity userEntity, String tokenType, long expirationMs) throws InvalidParamException {
         // properties => claims
         Map<String, Object> claims = new HashMap<>();
 
@@ -78,7 +77,8 @@ public class JwtTokenUtil {
                     .compact();
             return token;
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.JWT_TOKEN_CREATION_FAILED);
+            // you can "inject" Logger, instead System.out.println
+            throw new InvalidParamException("Cannot create jwt token, error: " + e.getMessage());
         }
     }
 
@@ -93,7 +93,7 @@ public class JwtTokenUtil {
     }
 
     //
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignInKey())
                 .build()

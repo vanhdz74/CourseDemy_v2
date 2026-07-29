@@ -1,11 +1,13 @@
 package com.coursedemy.course.service.impl;
 
-import com.coursedemy.course.mapper.MapperConfiguration;
+import com.coursedemy.course.client.UserClient;
 import com.coursedemy.course.dto.LessonDTO;
 import com.coursedemy.course.dto.SubLessonDTO;
+import com.coursedemy.course.dto.request.UserDTO;
 import com.coursedemy.course.entity.CourseEntity;
 import com.coursedemy.course.entity.LessonEntity;
 import com.coursedemy.course.entity.SubLessonEntity;
+import com.coursedemy.course.mapper.MapperConfiguration;
 import com.coursedemy.course.repository.CourseRepository;
 import com.coursedemy.course.repository.LessonRepository;
 import com.coursedemy.course.repository.SubLessonRepository;
@@ -13,310 +15,160 @@ import com.coursedemy.course.service.CloudinaryService;
 import com.coursedemy.course.service.LessonService;
 import com.coursedemy.course.util.ExtractUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-@RequiredArgsConstructor // thay authrided
 @Service
+@RequiredArgsConstructor
+@Transactional
 public class LessonServiceImpl implements LessonService {
-
     private final LessonRepository lessonRepository;
     private final SubLessonRepository subLessonRepository;
     private final MapperConfiguration mapperConfiguration;
     private final CloudinaryService cloudinaryService;
     private final CourseRepository courseRepository;
+    private final UserClient userClient;
 
     @Override
-    public List<LessonDTO> getLessonsByCourseId(Long id) {
-        List<LessonEntity> lessonEntities = lessonRepository.findByCourseEntity_IdOrderByOrderIndexAsc(id);
-
-        List<LessonDTO> result = new ArrayList<>();
-        for (LessonEntity item : lessonEntities) {
-            LessonDTO lessonDTO = mapperConfiguration.toLessonDTO(item);
-            result.add(lessonDTO);
-        }
-        return result;
+    @Transactional(readOnly = true)
+    public List<LessonDTO> getLessonsByCourseId(Long courseId) {
+        return lessonRepository.findByCourseEntity_IdOrderByOrderIndexAsc(courseId).stream()
+                .map(mapperConfiguration::toLessonDTO).toList();
     }
 
     @Override
     public void createLesson(Long courseId, LessonDTO dto, Long teacherId) {
-
-        CourseEntity courseNow = courseRepository.findById(courseId).orElse(null);
-
-        // Lấy order_index lớn nhất
-        Long maxOrder = lessonRepository.findMaxOrderIndexByCourseId(courseId);
-
-        LessonEntity newLes = LessonEntity.builder()
-                .title(dto.getTitle())
-                .orderIndex(maxOrder + 1)
-                .courseEntity(courseNow)
-                .build();
-
-        lessonRepository.save(newLes);
+        CourseEntity course = course(courseId);
+        assertOwner(course, teacherId);
+        if (blank(dto.getTitle())) throw new IllegalArgumentException("Tiêu đề lesson không được để trống");
+        Long max = lessonRepository.findMaxOrderIndexByCourseId(courseId);
+        lessonRepository.save(LessonEntity.builder().title(dto.getTitle().trim())
+                .orderIndex((max == null ? 0 : max) + 1).courseEntity(course).build());
     }
 
     @Override
-    public void deleteLessonById(Long id) {
-        LessonEntity lessonEntity = lessonRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phần này"));
-
-        Long courseId = lessonEntity.getCourseEntity().getId();
-        Long deletedOrder = lessonEntity.getOrderIndex();
-
-        // Xoá
-        lessonRepository.delete(lessonEntity);
-
-        // Cập nhật các order index phía sau
-        List<LessonEntity> lessonsToUpdate = lessonRepository
-                .findByCourseEntityIdAndOrderIndexGreaterThan(courseId, deletedOrder);
-
-        for (LessonEntity lesson : lessonsToUpdate) {
-            lesson.setOrderIndex(lesson.getOrderIndex() - 1);
-        }
-
-        lessonRepository.saveAll(lessonsToUpdate);
+    public void deleteLessonById(Long id, Long teacherId) {
+        LessonEntity lesson = lesson(id);
+        assertOwner(lesson.getCourseEntity(), teacherId);
+        Long courseId = lesson.getCourseEntity().getId();
+        Long order = lesson.getOrderIndex();
+        lessonRepository.delete(lesson);
+        List<LessonEntity> later = lessonRepository.findByCourseEntityIdAndOrderIndexGreaterThan(courseId, order);
+        later.forEach(item -> item.setOrderIndex(item.getOrderIndex() - 1));
+        lessonRepository.saveAll(later);
     }
 
     @Override
-    public void updateLessonById(Long id, LessonDTO dto) {
-        LessonEntity lessonEntity = lessonRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phần này"));
-
-        lessonEntity.setTitle(dto.getTitle());
-        lessonRepository.save(lessonEntity);
+    public void updateLessonById(Long id, LessonDTO dto, Long teacherId) {
+        LessonEntity lesson = lesson(id);
+        assertOwner(lesson.getCourseEntity(), teacherId);
+        if (blank(dto.getTitle())) throw new IllegalArgumentException("Tiêu đề lesson không được để trống");
+        lesson.setTitle(dto.getTitle().trim());
+        lessonRepository.save(lesson);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SubLessonDTO> getSubLessonsByLessonId(Long id) {
-        List<SubLessonEntity> subLessonEntities = subLessonRepository.findByLessonIdOrderByOrderIndexAsc(id);
-
-        List<SubLessonDTO> result = new ArrayList<>();
-        for (SubLessonEntity item : subLessonEntities) {
-            SubLessonDTO subLessonDTO = mapperConfiguration.toSubLessonDTO(item);
-            result.add(subLessonDTO);
-        }
-        return result;
+        return subLessonRepository.findByLessonIdOrderByOrderIndexAsc(id).stream()
+                .map(mapperConfiguration::toSubLessonDTO).toList();
     }
 
     @Override
-    public SubLessonDTO getSubLessonById(Long id) {
-        SubLessonEntity subLessonEntity = subLessonRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bài học không tìm thấy"));
+    @Transactional(readOnly = true)
+    public SubLessonDTO getSubLessonById(Long id) { return mapperConfiguration.toSubLessonDTO(subLesson(id)); }
 
-        return mapperConfiguration.toSubLessonDTO(subLessonEntity);
+    @Override
+    public void createSubLesson(Long lessonId, SubLessonDTO dto, Long teacherId) {
+        LessonEntity lesson = lesson(lessonId);
+        assertOwner(lesson.getCourseEntity(), teacherId);
+        if (blank(dto.getTitle())) throw new IllegalArgumentException("Tiêu đề sublesson không được để trống");
+        long next = subLessonRepository.findByLessonIdOrderByOrderIndexAsc(lessonId).stream()
+                .map(SubLessonEntity::getOrderIndex).filter(i -> i != null).mapToLong(Long::longValue).max().orElse(0) + 1;
+        subLessonRepository.save(SubLessonEntity.builder().title(dto.getTitle().trim()).videoUrl(dto.getVideoUrl())
+                .duration(dto.getDuration()).orderIndex(next).lesson(lesson).build());
     }
 
     @Override
-    public void createSubLesson(Long lessonId, SubLessonDTO subLessonDTO, Long teacherId) {
-        LessonEntity lessonEntity = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy lesson"));
-
-        SubLessonEntity newSub = SubLessonEntity.builder()
-                .title(subLessonDTO.getTitle())
-                .videoUrl(subLessonDTO.getVideoUrl())
-                .duration(subLessonDTO.getDuration())
-                .orderIndex(subLessonDTO.getOrderIndex())
-                .lesson(lessonEntity)
-                .build();
-
-        // Lưu và trả về
-        subLessonRepository.save(newSub);
+    public String uploadVideo(Long id, MultipartFile file, Long teacherId) throws IOException {
+        if (file == null || file.isEmpty()) throw new IllegalArgumentException("File video không được để trống");
+        SubLessonEntity sub = subLesson(id);
+        assertOwner(sub.getLesson().getCourseEntity(), teacherId);
+        String oldUrl = sub.getVideoUrl();
+        String url = cloudinaryService.uploadVideo(file).get("url");
+        if (blank(url)) throw new IOException("Không nhận được URL video từ Cloudinary");
+        sub.setVideoUrl(url);
+        subLessonRepository.save(sub);
+        if (!blank(oldUrl)) { String publicId = ExtractUtils.extractPublicIdFromUrl(oldUrl); if (publicId != null) cloudinaryService.deleteFile(publicId); }
+        return url;
     }
 
     @Override
-    public String uploadVideo(Long sublessonId, MultipartFile file) throws IOException {
-        // 1
-        SubLessonEntity subLessonEntity = subLessonRepository.findById(sublessonId)
-                .orElseThrow(() -> new RuntimeException("Bài học không tìm thấy"));
-
-        // 2
-        if (subLessonEntity.getVideoUrl() != null && !subLessonEntity.getVideoUrl().isEmpty()) {
-            String publicId = ExtractUtils.extractPublicIdFromUrl(subLessonEntity.getVideoUrl());
-            if (publicId != null) {
-                cloudinaryService.deleteFile(publicId);
-            }
-        }
-
-        // 3. Upload video mới lên Cloudinary
-        Map<String, String> uploadResult = cloudinaryService.uploadVideo(file);
-        String newUrl = uploadResult.get("url");
-
-        return newUrl;
+    public void updateSublessonById(Long id, SubLessonDTO dto, Long teacherId) {
+        SubLessonEntity sub = subLesson(id);
+        assertOwner(sub.getLesson().getCourseEntity(), teacherId);
+        if (dto.getTitle() != null) sub.setTitle(dto.getTitle().trim());
+        if (dto.getVideoUrl() != null) sub.setVideoUrl(dto.getVideoUrl());
+        if (dto.getDuration() != null) sub.setDuration(dto.getDuration());
+        subLessonRepository.save(sub);
     }
 
     @Override
-    public void updateSublessonById(Long id, SubLessonDTO dto) {
-        SubLessonEntity subLessonEntity = subLessonRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bài học không tìm thấy"));
-
-        if (dto.getTitle() != null) {
-            subLessonEntity.setTitle(dto.getTitle());
-        }
-
-        if (dto.getVideoUrl() != null) {
-            subLessonEntity.setVideoUrl(dto.getVideoUrl());
-        }
-
-        if (dto.getDuration() != null) {
-            subLessonEntity.setDuration(dto.getDuration());
-        }
-
-        ResponseEntity.ok(subLessonRepository.save(subLessonEntity));
-    }
-
-    @Transactional
-    @Override
-    public void deleteSubLessonById(Long subLessonId, Long currentTeacherId) {
-        SubLessonEntity subLesson = subLessonRepository.findById(subLessonId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy subLesson"));
-
-        LessonEntity lesson = subLesson.getLesson();
-        CourseEntity course = lesson.getCourseEntity();
-
-        Long ownerTeacherId = course.getUser().getId();
-
-        if (!ownerTeacherId.equals(currentTeacherId)) {
-            throw new AccessDeniedException("Bạn không có quyền xóa sublesson này");
-        }
-
-        Long lessonId = lesson.getId();
-        Long orderIndex = subLesson.getOrderIndex();
-
-        subLessonRepository.delete(subLesson);
-        subLessonRepository.decrementOrderIndexesAfterDelete(lessonId, orderIndex);
-    }
-
-
-    @Override
-    @Transactional
-    public SubLessonEntity addSubLessonRelative(Long lessonId, Long referenceSubLessonId, boolean insertAfter, SubLessonDTO dto, Long currentTeacherId) {
-        SubLessonEntity reference = subLessonRepository.findById(referenceSubLessonId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sublesson tham chiếu"));
-
-        LessonEntity lesson = reference.getLesson();
-        CourseEntity course = lesson.getCourseEntity();
-
-        Long ownerTeacherId = course.getUser().getId();
-
-        if (!ownerTeacherId.equals(currentTeacherId)) {
-            throw new AccessDeniedException("Bạn không có quyền xóa sublesson này");
-        }
-
-        Long refIndex = reference.getOrderIndex();
-        Long newIndex = insertAfter ? refIndex + 1 : refIndex;
-
-        // Dịch các sublesson phía sau để chừa chỗ
-        subLessonRepository.incrementOrderIndexes(lessonId, newIndex);
-
-        // Tạo mới sublesson
-        LessonEntity lessonPar = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy lesson cha"));
-
-        SubLessonEntity newSub = SubLessonEntity.builder()
-                .title(dto.getTitle())
-                .videoUrl(dto.getVideoUrl())
-                .duration(dto.getDuration())
-                .orderIndex(newIndex)
-                .lesson(lesson)
-                .build();
-
-        return subLessonRepository.save(newSub);
+    public void deleteSubLessonById(Long id, Long teacherId) {
+        SubLessonEntity sub = subLesson(id);
+        assertOwner(sub.getLesson().getCourseEntity(), teacherId);
+        subLessonRepository.delete(sub);
+        subLessonRepository.decrementOrderIndexesAfterDelete(sub.getLesson().getId(), sub.getOrderIndex());
     }
 
     @Override
-    public void updateLessonReorder(List<Map<String, Object>> lessonReorder, Long currentTeacherId) {
-        for (Map<String, Object> item : lessonReorder) {
-            Object idObj = item.get("id");
-            Object orderObj = item.get("order_index");
-
-            if (idObj == null || orderObj == null) continue; // skip nếu thiếu dữ liệu
-
-            Long id = idObj instanceof Number
-                    ? ((Number) idObj).longValue()
-                    : Long.parseLong(idObj.toString());
-
-            Long orderIndex = orderObj instanceof Number
-                    ? ((Number) orderObj).intValue()
-                    : Long.parseLong(orderObj.toString());
-
-            lessonRepository.findById(id).ifPresent(lesson -> {
-                lesson.setOrderIndex(orderIndex);
-                lessonRepository.save(lesson);
-            });
+    public SubLessonEntity addSubLessonRelative(Long lessonId, Long referenceId, boolean after, SubLessonDTO dto, Long teacherId) {
+        LessonEntity lesson = lesson(lessonId);
+        assertOwner(lesson.getCourseEntity(), teacherId);
+        if (referenceId == null) {
+            createSubLesson(lessonId, dto, teacherId);
+            List<SubLessonEntity> subLessons = subLessonRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
+            return subLessons.get(subLessons.size() - 1);
         }
+        SubLessonEntity reference = subLesson(referenceId);
+        if (!reference.getLesson().getId().equals(lessonId)) throw new IllegalArgumentException("Sublesson tham chiếu không thuộc lesson này");
+        long index = after ? reference.getOrderIndex() + 1 : reference.getOrderIndex();
+        subLessonRepository.incrementOrderIndexes(lessonId, index);
+        return subLessonRepository.save(SubLessonEntity.builder().title(dto.getTitle()).videoUrl(dto.getVideoUrl())
+                .duration(dto.getDuration()).orderIndex(index).lesson(lesson).build());
     }
 
-    @Override
-    public void updateSubLessonReorder(List<Map<String, Object>> subLessonReorder, Long currentTeacherId) {
-        for (Map<String, Object> item : subLessonReorder) {
-            Object idObj = item.get("id");
-            Object orderObj = item.get("order_index");
+    @Override public void updateLessonReorder(List<Map<String, Object>> items, Long teacherId) {
+        for (Map<String, Object> item : items) { LessonEntity lesson = lesson(id(item)); assertOwner(lesson.getCourseEntity(), teacherId); lesson.setOrderIndex(order(item)); lessonRepository.save(lesson); }
+    }
+    @Override public void updateSubLessonReorder(List<Map<String, Object>> items, Long teacherId) {
+        for (Map<String, Object> item : items) { SubLessonEntity sub = subLesson(id(item)); assertOwner(sub.getLesson().getCourseEntity(), teacherId); sub.setOrderIndex(order(item)); subLessonRepository.save(sub); }
+    }
+    @Override public List<LessonDTO> getPublicLessons(Long courseId) { return getLessonsByCourseId(courseId); }
+    @Override public List<SubLessonDTO> getPublicSubLessons(Long lessonId) {
+        return subLessonRepository.findByLessonIdOrderByOrderIndexAsc(lessonId).stream().map(s -> SubLessonDTO.builder().id(s.getId()).title(s.getTitle()).duration(s.getDuration()).orderIndex(s.getOrderIndex()).videoUrl(s.getOrderIndex() == 1 ? s.getVideoUrl() : null).build()).toList();
+    }
+    private CourseEntity course(Long id) { return courseRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Khóa học không tồn tại")); }
+    private LessonEntity lesson(Long id) { return lessonRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Lesson không tồn tại")); }
+    private SubLessonEntity subLesson(Long id) { return subLessonRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Sublesson không tồn tại")); }
+    private void assertOwner(CourseEntity course, Long teacherId) {
+        UserDTO userDTO=userClient.getUserById(teacherId).getData();
+        if (teacherId == null
+                || (!teacherId.equals(course.getTeacherId())
+                && !"ADMIN".equalsIgnoreCase(userDTO.getRole()))) {
 
-            if (idObj == null || orderObj == null) continue;
-
-            Long id = idObj instanceof Number
-                    ? ((Number) idObj).longValue()
-                    : Long.parseLong(idObj.toString());
-
-            Long orderIndex = orderObj instanceof Number
-                    ? ((Number) orderObj).longValue()
-                    : Long.parseLong(orderObj.toString());
-
-            subLessonRepository.findById(id).ifPresent(subLesson -> {
-                CourseEntity course = subLesson.getLesson().getCourseEntity();
-                Long ownerTeacherId = course.getUser().getId();
-
-                if (!ownerTeacherId.equals(currentTeacherId)) {
-                    throw new AccessDeniedException("Bạn không có quyền sắp xếp bài học này");
-                }
-
-                subLesson.setOrderIndex(orderIndex);
-                subLessonRepository.save(subLesson);
-            });
+            throw new AccessDeniedException(
+                    "Bạn không có quyền chỉnh sửa nội dung khóa học này"
+            );
         }
     }
-
-    @Override
-    public List<LessonDTO> getPublicLessons(Long courseId) {
-        List<LessonEntity> lessonEntities = lessonRepository.findByCourseEntity_IdOrderByOrderIndexAsc(courseId);
-
-        List<LessonDTO> result = new ArrayList<>();
-        for (LessonEntity item : lessonEntities) {
-            LessonDTO lessonDTO = new LessonDTO();
-            lessonDTO.setTitle(item.getTitle());
-            lessonDTO.setOrderIndex(item.getOrderIndex());
-            result.add(lessonDTO);
-        }
-        return result;
-    }
-
-    @Override
-    public List<SubLessonDTO> getPublicSubLessons(Long lessonId) {
-        List<SubLessonEntity> subLessonEntities = subLessonRepository.findByLessonIdOrderByOrderIndexAsc(lessonId);
-
-        List<SubLessonDTO> result = new ArrayList<>();
-        for (SubLessonEntity item : subLessonEntities) {
-            SubLessonDTO subLessonDTO = new SubLessonDTO();
-            subLessonDTO.setId(item.getId());
-            subLessonDTO.setTitle(item.getTitle());
-            subLessonDTO.setDuration(item.getDuration());
-            subLessonDTO.setOrderIndex(item.getOrderIndex());
-            if (item.getOrderIndex() == 1) {
-                subLessonDTO.setVideoUrl(item.getVideoUrl());
-            } else {
-                subLessonDTO.setVideoUrl(null);
-            }
-            result.add(subLessonDTO);
-        }
-        return result;
-    }
+    private static boolean blank(String value) { return value == null || value.isBlank(); }
+    private static Long id(Map<String, Object> value) { Object id = value.get("id"); if (id == null) throw new IllegalArgumentException("Thiếu id"); return id instanceof Number n ? n.longValue() : Long.parseLong(id.toString()); }
+    private static Long order(Map<String, Object> value) { Object order = value.get("order_index"); if (order == null) throw new IllegalArgumentException("Thiếu order_index"); long result = order instanceof Number n ? n.longValue() : Long.parseLong(order.toString()); if (result < 1) throw new IllegalArgumentException("order_index phải lớn hơn 0"); return result; }
 }

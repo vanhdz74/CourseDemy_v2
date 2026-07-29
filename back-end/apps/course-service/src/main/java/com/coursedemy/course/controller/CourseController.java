@@ -3,10 +3,13 @@ package com.coursedemy.course.controller;
 import com.coursedemy.course.dto.CourseDTO;
 import com.coursedemy.course.dto.CourseDetailDTO;
 import com.coursedemy.course.dto.RevenueDTO;
-import com.coursedemy.common.dto.response.ApiResponse;
+import com.coursedemy.course.dto.response.ApiResponse;
 import com.coursedemy.course.dto.response.PageResponse;
+import com.coursedemy.course.entity.CourseEntity;
 import com.coursedemy.course.service.CourseService;
+import com.coursedemy.course.util.FindCourseUtils;
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,31 +20,32 @@ import java.util.Map;
 
 
 @RestController
+@RequestMapping("/course")
 @RequiredArgsConstructor
 public class CourseController {
 
     private final CourseService courseService;
 
     // GET: Lấy danh sách courses theo các trường nhập vào
-    @GetMapping("/courses/search")
+    @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<CourseDTO>>> getCoursesByKeyword(@RequestParam Map<String, String> params) {
         return ResponseEntity.ok(ApiResponse.ok(courseService.findAllHave(params)));
     }
 
     // GET: Lấy danh sách courses theo cate_id
-    @GetMapping("/courses/category/{id}")
-    public ResponseEntity<ApiResponse<List<CourseDTO>>> getCoursesByCategoryId(@PathVariable(name = "id") Integer id) {
+    @GetMapping("/category/{id}")
+    public ResponseEntity<ApiResponse<List<CourseDTO>>> getCoursesByCategoryId(@PathVariable(name = "id") Long id) {
         return ResponseEntity.ok(ApiResponse.ok(courseService.getCoursesByCategoryId(id)));
     }
 
     // GET: Lấy danh sách khoá học theo id user (3 role)
-    @GetMapping("/courses/user/{id}")
+    @GetMapping("/user/{id}")
     public ResponseEntity<ApiResponse<List<CourseDTO>>> getCoursesByUserId(@PathVariable(name = "id") Long id) {
         return ResponseEntity.ok(ApiResponse.ok(courseService.getCoursesByUserId(id)));
     }
 
     // GET: Lấy khoá học theo id
-    @GetMapping("/course/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CourseDTO>> getCourseById(@PathVariable(name = "id") Long id) {
         return ResponseEntity.ok(ApiResponse.ok(courseService.getCourseById(id)));
     }
@@ -56,7 +60,7 @@ public class CourseController {
     }
 
     // POST: Thêm khoá học
-    @PostMapping("/course")
+    @PostMapping("/")
     public ResponseEntity<ApiResponse<Void>> addCourse(
             @RequestBody CourseDTO courseDTO
     ) {
@@ -65,7 +69,7 @@ public class CourseController {
     }
 
     // DELETE: Xoá khoá học theo id
-    @DeleteMapping("/course/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCourseById(
             @PathVariable Long id
     ) {
@@ -74,7 +78,7 @@ public class CourseController {
     }
 
     // PUT: Cập nhật khoá học
-    @PutMapping("/course/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> updateCourse(
             @PathVariable long id,
             @RequestBody CourseDTO courseDTO
@@ -108,5 +112,24 @@ public class CourseController {
     public ResponseEntity<ApiResponse<List<RevenueDTO.TopCourseDTO>>> getTopCoursesRevenue() {
         return ResponseEntity.ok(ApiResponse.ok(courseService.getTopCoursesRevenue()));
     }
+    @PutMapping("/{courseId}/quantity/increase")
+    public ResponseEntity<Void> increaseQuantity(
+            @PathVariable Long courseId
+    ) {
+
+        courseService.increaseQuantity(courseId);
+
+        return ResponseEntity.ok().build();
+    }
+    @PutMapping("/{courseId}/quantity/decrease")
+    public ResponseEntity<Void> decreaseQuantity(
+            @PathVariable Long courseId
+    ) {
+
+        courseService.decreaseQuantity(courseId);
+
+        return ResponseEntity.ok().build();
+    }
+
 
 }
