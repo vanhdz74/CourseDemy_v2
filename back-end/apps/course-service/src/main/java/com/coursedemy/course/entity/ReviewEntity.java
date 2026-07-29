@@ -39,9 +39,11 @@ public class ReviewEntity {
     private Long parentId;
 
     // ============== USER ==============
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private UserEntity userEntity;
+    @Column(
+        name = "user_id",
+        nullable = false
+    )
+    private Long userId;
 
     // ============== COURSE ==============
     @ManyToOne(fetch = FetchType.LAZY)

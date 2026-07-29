@@ -1,7 +1,9 @@
 package com.coursedemy.course.service.impl;
 
 import com.coursedemy.course.mapper.MapperConfiguration;
+import com.coursedemy.course.client.UserClient;
 import com.coursedemy.course.dto.CommentDTO;
+import com.coursedemy.course.dto.request.UserDTO;
 import com.coursedemy.course.entity.*;
 import com.coursedemy.course.repository.*;
 import com.coursedemy.course.service.CommentService;
@@ -19,38 +21,94 @@ public class CommentServiceImpl implements CommentService {
     private final SubLessonRepository subLessonRepository;
     private final CommentRepository commentRepository;
     private final MapperConfiguration mapperConfiguration;
-    private final UserRepository userRepository;
+    private final UserClient userClient;
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
 
     @Override
-    public List<CommentDTO> getCommentsBuSublessonId(Long sublessonId, Long userAuId) {
-        Optional<SubLessonEntity> subLessonEntity = subLessonRepository.findById(sublessonId);
-        if (subLessonEntity.isEmpty()) {
-            throw new RuntimeException(("Không tồn tại bài học này có id: " + sublessonId));
-        }
+    public List<CommentDTO> getCommentsBySublessonId(
+            Long sublessonId,
+            Long userAuId
+    ) {
+
+        // Kiểm tra SubLesson có tồn tại không
+        SubLessonEntity subLessonEntity =
+                subLessonRepository.findById(sublessonId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Không tồn tại bài học này có id: "
+                                                + sublessonId
+                                )
+                        );
 
         List<CommentDTO> commentDTOS = new ArrayList<>();
-        List<CommentEntity> commentEntities = commentRepository.findAllBySubLessonEntity_Id(sublessonId);
+
+        List<CommentEntity> commentEntities =
+                commentRepository.findAllBySubLessonEntity_Id(
+                        sublessonId
+                );
+
         for (CommentEntity comment : commentEntities) {
-            Optional<UserEntity> user = userRepository.findById(comment.getUserEntity().getId());
-            if (user.isEmpty()) {
-                throw new RuntimeException("User không tồn tại");
+
+            /**
+             * Lấy User từ User-Service thông qua OpenFeign.
+             */
+            UserDTO userDTO;
+
+            try {
+
+                userDTO = userClient.getUserById(
+                        comment.getUserId()
+                ).getData();
+
+            } catch (Exception e) {
+
+                throw new RuntimeException(
+                        "User không tồn tại với id: "
+                                + comment.getUserId()
+                );
             }
 
-            CommentDTO commentDTO = new CommentDTO();
-            commentDTO = mapperConfiguration.toCommentDTO(comment);
-            if (user.get().getId().equals(userAuId)) {
+            CommentDTO commentDTO =
+                    mapperConfiguration.toCommentDTO(comment);
+
+            /**
+             * Kiểm tra comment có phải của user hiện tại không.
+             */
+            if (userDTO.getId().equals(userAuId)) {
                 commentDTO.setMe(1);
-            }
-            if (comment.getStatus() == 0) {
-                commentDTO.setComment("Tin nhắn đã bị xoá");
-                commentDTO.setMe(0);
             } else {
-                commentDTO.setComment(comment.getComment());
+                commentDTO.setMe(0);
             }
-            commentDTO.setUserName(user.get().getUsername());
-            commentDTO.setUserAvatar(user.get().getAvatarUrl());
+
+            /**
+             * Nếu comment đã bị xóa mềm.
+             */
+            if (comment.getStatus() == 0) {
+
+                commentDTO.setComment(
+                        "Tin nhắn đã bị xoá"
+                );
+
+                commentDTO.setMe(0);
+
+            } else {
+
+                commentDTO.setComment(
+                        comment.getComment()
+                );
+            }
+
+            /**
+             * Thông tin User lấy từ User-Service.
+             */
+            commentDTO.setUserName(
+                    userDTO.getUsername()
+            );
+
+            commentDTO.setUserAvatar(
+                    userDTO.getAvatarUrl()
+            );
 
             commentDTOS.add(commentDTO);
         }
@@ -91,50 +149,181 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public CommentDTO createComment(CommentDTO commentDTO, Long userId) {
-        UserEntity userEntity = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tồn tại ngừoi dùng có id: " + commentDTO.getUserId()));
+    public CommentDTO createComment(
+            CommentDTO commentDTO,
+            Long userId
+    ) {
 
-        SubLessonEntity subLessonEntity = subLessonRepository.findById(commentDTO.getSubLessonId())
-                .orElseThrow(() -> new RuntimeException("Không tồn tại bài học"));
+        /**
+         * Kiểm tra User tồn tại thông qua User-Service.
+         */
+        UserDTO userDTO;
 
-        CommentEntity commentEntity = new CommentEntity();
+        try {
+
+            userDTO = userClient.getUserById(userId).getData();
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Không tồn tại người dùng có id: "
+                            + userId
+            );
+        }
+
+        /**
+         * Kiểm tra SubLesson tồn tại.
+         */
+        SubLessonEntity subLessonEntity =
+                subLessonRepository.findById(
+                        commentDTO.getSubLessonId()
+                )
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Không tồn tại bài học"
+                        )
+                );
+
+        /**
+         * Tạo Comment.
+         */
+        CommentEntity commentEntity =
+                new CommentEntity();
+
         commentEntity.setStatus(1);
-        commentEntity.setComment(commentDTO.getComment());
-        commentEntity.setUserEntity(userEntity);
-        commentEntity.setSubLessonEntity(subLessonEntity);
-        commentEntity.setParentId(commentDTO.getParentId());
 
-        commentEntity = commentRepository.save(commentEntity);
+        commentEntity.setComment(
+                commentDTO.getComment()
+        );
 
-        CommentDTO comment = mapperConfiguration.toCommentDTO(commentEntity);
+        /**
+         * Chỉ lưu userId.
+         */
+        commentEntity.setUserId(userId);
+
+        commentEntity.setSubLessonEntity(
+                subLessonEntity
+        );
+
+        commentEntity.setParentId(
+                commentDTO.getParentId()
+        );
+
+        commentEntity =
+                commentRepository.save(
+                        commentEntity
+                );
+
+        /**
+         * Mapping CommentEntity -> CommentDTO.
+         */
+        CommentDTO comment =
+                mapperConfiguration.toCommentDTO(
+                        commentEntity
+                );
+
+        /**
+         * Comment mới chắc chắn là của User hiện tại.
+         */
         comment.setMe(1);
-        comment.setUserName(userEntity.getUsername());
-        comment.setUserAvatar(userEntity.getAvatarUrl());
+
+        /**
+         * Lấy thông tin User từ User-Service.
+         */
+        comment.setUserName(
+                userDTO.getUsername()
+        );
+
+        comment.setUserAvatar(
+                userDTO.getAvatarUrl()
+        );
+
         return comment;
     }
 
     @Override
-    public CommentDTO removeComment(Long id, Long userId) {
-        CommentEntity commentEntity = commentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comment không tồn tại"));
+    public CommentDTO removeComment(
+            Long id,
+            Long userId
+    ) {
 
-        UserEntity userEntity = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tồn tại ngừoi dùng có id: " + userId));
+        /**
+         * Tìm Comment.
+         */
+        CommentEntity commentEntity =
+                commentRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Comment không tồn tại"
+                                )
+                        );
 
-        if (commentEntity.getUserEntity().getId().equals(userId)) {
-            commentEntity.setStatus(0);
-        } else {
-            throw new RuntimeException("Bạn không được phép xoá");
+        /**
+         * Kiểm tra User có phải chủ Comment không.
+         *
+         * Không cần UserEntity.
+         */
+        if (!commentEntity.getUserId().equals(userId)) {
+
+            throw new RuntimeException(
+                    "Bạn không được phép xoá"
+            );
         }
 
-        commentRepository.save(commentEntity);
+        /**
+         * Xóa mềm.
+         */
+        commentEntity.setStatus(0);
 
-        CommentDTO comment = mapperConfiguration.toCommentDTO(commentEntity);
+        commentRepository.save(
+                commentEntity
+        );
+
+        /**
+         * Lấy User từ User-Service.
+         */
+        UserDTO userDTO;
+
+        try {
+
+            userDTO =
+                    userClient.getUserById(
+                            userId
+                    ).getData();
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Không tồn tại người dùng có id: "
+                            + userId
+            );
+        }
+
+        /**
+         * Mapping sang DTO.
+         */
+        CommentDTO comment =
+                mapperConfiguration.toCommentDTO(
+                        commentEntity
+                );
+
         comment.setMe(0);
-        comment.setUserName(userEntity.getUsername());
-        comment.setUserAvatar(userEntity.getAvatarUrl());
-        comment.setComment("Tin nhắn đã bị xoá");
+
+        comment.setUserName(
+                userDTO.getUsername()
+        );
+
+        comment.setUserAvatar(
+                userDTO.getAvatarUrl()
+        );
+
+        /**
+         * Nội dung comment sau khi xóa.
+         */
+        comment.setComment(
+                "Tin nhắn đã bị xoá"
+        );
+
         return comment;
     }
 }

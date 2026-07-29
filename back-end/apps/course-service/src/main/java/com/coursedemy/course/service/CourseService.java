@@ -15,7 +15,7 @@ import java.util.Map;
 public interface CourseService {
     PageResponse<CourseDTO> findAllHave(@RequestParam Map<String, String> params);
 
-    List<CourseDTO> getCoursesByCategoryId(Integer categoryId);
+    List<CourseDTO> getCoursesByCategoryId(Long categoryId);
 
     List<CourseDTO> getCoursesByUserId(Long id);
 
@@ -36,4 +36,8 @@ public interface CourseService {
     Double getAverageRatingByCourseId(Long courseId);
 
     List<RevenueDTO.TopCourseDTO> getTopCoursesRevenue();
+
+    public void increaseQuantity(Long courseId);
+
+    public void decreaseQuantity(Long courseId);
 }

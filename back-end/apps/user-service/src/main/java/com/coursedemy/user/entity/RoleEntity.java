@@ -1,30 +1,38 @@
 package com.coursedemy.user.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+@Entity
+@Table(
+        name = "roles",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_roles_role_name",
+                        columnNames = "role_name"
+                )
+        }
+)
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-@Entity
-@Table(name = "roles")
+@AllArgsConstructor
+@Builder
 public class RoleEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
-    @Column(name = "role_name")
+    @Column(
+            name = "role_name",
+            nullable = false
+    )
     private String roleName;
 
-    @Column(name = "description")
+    @Column(
+            name = "description",
+            columnDefinition = "TEXT"
+    )
     private String description;
-
-    public static String ADMIN = "ADMIN";
-    public static String STUDENT = "STUDENT";
-    public static String TEACHER = "TEACHER";
-
 }

@@ -1,10 +1,9 @@
 package com.coursedemy.user.controller;
 
 
-import com.coursedemy.user.service.CloudinaryService;
-import com.coursedemy.user.dto.UserDTO;
-import com.coursedemy.user.dto.UserProfileUpdateDTO;
-import com.coursedemy.common.dto.response.ApiResponse;
+import com.coursedemy.user.dto.request.UserDTO;
+import com.coursedemy.user.dto.request.UserProfileUpdateDTO;
+import com.coursedemy.user.dto.response.ApiResponse;
 import com.coursedemy.user.service.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -71,7 +70,7 @@ public class UserController {
     }
 
     // GET: Lấy các học viên theo khoá học
-    @GetMapping("/users/course/{courseId}")
+    @GetMapping("/user/course/{courseId}")
     public ResponseEntity<ApiResponse<List<UserDTO>>> getStudentsByCourseId(@PathVariable Long courseId) {
         List<UserDTO> students = userService.getStudentsByCourseId(courseId);
         return ResponseEntity.ok(ApiResponse.ok(students));
@@ -96,5 +95,14 @@ public class UserController {
         userService.removeStudentFromCourse(courseId, userId);
         return ResponseEntity.ok(ApiResponse.ok("Xoá người dùng khỏi khoá học thành công", null));
     }
-}
 
+    @GetMapping("/user/internal/users/{id}/role")
+    public ResponseEntity<ApiResponse<String>> getRoleByUserId(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(userService.getRoleByUserId(id)));
+    }
+
+    @GetMapping("/user/internal/users/{id}/course-ids")
+    public ResponseEntity<ApiResponse<List<Long>>> getCourseIdsByUserId(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(userService.getCourseIdsByUserId(id)));
+    }
+}

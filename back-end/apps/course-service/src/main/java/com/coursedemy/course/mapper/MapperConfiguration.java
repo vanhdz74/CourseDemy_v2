@@ -1,15 +1,20 @@
 package com.coursedemy.course.mapper;
 
+import com.coursedemy.course.client.UserClient;
 import com.coursedemy.course.dto.*;
 import com.coursedemy.course.entity.*;
+
+import lombok.RequiredArgsConstructor;
+
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@RequiredArgsConstructor
 public class MapperConfiguration {
-
+    private final UserClient userClient;
     @Bean
     public ModelMapper modelMapper() {
         ModelMapper mapper = new ModelMapper();
@@ -20,51 +25,21 @@ public class MapperConfiguration {
                 .setSkipNullEnabled(true)
                 .setFieldAccessLevel(org.modelmapper.config.Configuration.AccessLevel.PRIVATE);
 
-        // Cấu hình map riêng cho UserEntity → UserDTO
-        mapper.addMappings(new PropertyMap<UserEntity, UserDTO>() {
-            @Override
-            protected void configure() {
-                // Map roleEntity.roleName → role
-                map().setRole(source.getRoleEntity().getRoleName());
-
-                // Không map password ra DTO
-                skip(destination.getPassword());
-
-                // Không map retypePassword (để tránh NullPointerException)
-                skip(destination.getRetypePassword());
-            }
-        });
+        
 
         // Cấu hình map riêng cho CourseEntity → CourseDTO
-        mapper.addMappings(new PropertyMap<CourseEntity, CourseDTO>() {
-            @Override
-            protected void configure() {
-                //  →
-                map().setCategoryName(source.getCategory().getName());
-                map().setTeacherName(source.getUser().getUsername());
-                map().setTeacherId(source.getUser().getId());
-                map().setImageUrl(source.getCourseImageEntity().getImageUrl());
-            }
-        });
-
-        // Map CartItemEntity → CartItemDTO
-        mapper.addMappings(new PropertyMap<CartItemEntity, CartItemDTO>() {
-            @Override
-            protected void configure() {
-                map().setCourseId(source.getCourseEntity().getId());
-                map().setPrice(source.getCourseEntity().getPrice());
-            }
-        });
+//        mapper.addMappings(new PropertyMap<CourseEntity, CourseDTO>() {
+//            @Override
+//            protected void configure() {
+//                //source là CourseEntity  ,destination là CourseDTO
+//                map().setCategoryName(source.getCategory().getName());
+//                //Lỗi do trong mapper k cho phép dùng feign client bên trong nó
+//                map().setTeacherName(userClient.getUserById(source.getTeacherId()).getData().getUsername());
+//                map().setTeacherId(source.getTeacherId());
+//                map().setImageUrl(source.getCourseImageEntity().getImageUrl());
+//            }
+//        });
         return mapper;
-    }
-
-    // Các hàm chuyển đổi
-    public UserDTO toUserDTO(UserEntity userEntity) {
-        return modelMapper().map(userEntity, UserDTO.class);
-    }
-
-    public UserProfileUpdateDTO toUserProfileUpdateDTO(UserEntity userEntity) {
-        return modelMapper().map(userEntity, UserProfileUpdateDTO.class);
     }
 
     public CourseDTO toCourseDTO(CourseEntity courseEntity) {
@@ -76,16 +51,16 @@ public class MapperConfiguration {
         courseDTO.setLevel(courseEntity.getLevel());
         courseDTO.setQuantity(courseEntity.getQuantity() == null ? null : courseEntity.getQuantity().doubleValue());
         courseDTO.setCreatedAt(courseEntity.getCreatedAt());
-        courseDTO.setUpdateAt(courseEntity.getUpdateAt());
+        courseDTO.setUpdateAt(courseEntity.getUpdatedAt());
 
         if (courseEntity.getCategory() != null) {
             courseDTO.setCategoryName(courseEntity.getCategory().getName());
             courseDTO.setCategoryId(courseEntity.getCategory().getId());
         }
 
-        if (courseEntity.getUser() != null) {
-            courseDTO.setTeacherName(courseEntity.getUser().getUsername());
-            courseDTO.setTeacherId(courseEntity.getUser().getId());
+        if (courseEntity.getTeacherId() != null) {
+            courseDTO.setTeacherName(userClient.getUserById(courseEntity.getTeacherId()).getData().getUsername());
+            courseDTO.setTeacherId(courseEntity.getTeacherId());
         }
 
         if (courseEntity.getCourseImageEntity() != null) {
@@ -103,21 +78,11 @@ public class MapperConfiguration {
         return modelMapper().map(subLessonEntity, SubLessonDTO.class);
     }
 
-    public CartItemDTO toCartItemDTO(CartItemEntity entity) {
-        return modelMapper().map(entity, CartItemDTO.class);
-    }
 
     public CourseDetailDTO toCourseDetailDTO(CoursesDetailEntity coursesDetailEntity) {
         return modelMapper().map(coursesDetailEntity, CourseDetailDTO.class);
     }
 
-    public OrderDTO.TransactionDTO toOrderDTO(OrderEntity orderEntity) {
-        return modelMapper().map(orderEntity, OrderDTO.TransactionDTO.class);
-    }
-
-    public OrderDetailDTO toOrderDetailDTO(OrderDetailEntity orderDetailEntity) {
-        return modelMapper().map(orderDetailEntity, OrderDetailDTO.class);
-    }
 
     public CommentDTO toCommentDTO(CommentEntity commentEntity) {
         return modelMapper().map(commentEntity, CommentDTO.class);

@@ -3,24 +3,38 @@ package com.coursedemy.course.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+@Entity
+@Table(
+        name = "course_image",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_course_image_course",
+                        columnNames = "course_id"
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity
-@Table(name = "course_image")
 public class CourseImageEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "image_url")
+    @Column(
+            name = "image_url",
+            nullable = false
+    )
     private String imageUrl;
 
-    // Quan he
-    @OneToOne
-    // Khi join phải trùng với tên cột trong db
-    @JoinColumn(name = "course_id")
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "course_id",
+            nullable = false,
+            unique = true
+    )
     private CourseEntity courseEntity;
 }

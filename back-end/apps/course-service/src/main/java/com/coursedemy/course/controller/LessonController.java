@@ -2,12 +2,12 @@ package com.coursedemy.course.controller;
 
 import com.coursedemy.course.dto.LessonDTO;
 import com.coursedemy.course.dto.SubLessonDTO;
-import com.coursedemy.common.dto.response.ApiResponse;
-import com.coursedemy.course.entity.UserEntity;
+
+import com.coursedemy.course.dto.response.ApiResponse;
 import com.coursedemy.course.service.LessonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,10 +30,8 @@ public class LessonController {
     public ResponseEntity<ApiResponse<Void>> createLesson(
             @PathVariable Long courseId,
             @RequestBody LessonDTO lessonDTO,
-            Authentication authentication
+            @RequestHeader("X-User-Id") Long teacherId
     ) {
-        UserEntity userDetails = (UserEntity) authentication.getPrincipal();
-        Long teacherId = userDetails.getId();
         lessonService.createLesson(courseId, lessonDTO, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Thêm phần mới thành công", null));
     }
@@ -41,9 +39,9 @@ public class LessonController {
     // DELETE: Xoá 1 lesson theo id
     @DeleteMapping("/lesson/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteLessonById(@PathVariable Long id,
-                                                              Authentication authentication
+                                                              @RequestHeader("X-User-Id") Long teacherId
     ) {
-        lessonService.deleteLessonById(id);
+        lessonService.deleteLessonById(id, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Xoá thành công", null));
     }
 
@@ -51,9 +49,9 @@ public class LessonController {
     @PutMapping("/lesson/{id}")
     public ResponseEntity<ApiResponse<Void>> updateLessonById(@PathVariable Long id,
                                                               @RequestBody LessonDTO lessonDTO,
-                                                              Authentication authentication
+                                                              @RequestHeader("X-User-Id") Long teacherId
     ) {
-        lessonService.updateLessonById(id, lessonDTO);
+        lessonService.updateLessonById(id, lessonDTO, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Cập nhật thành công", null));
     }
 
@@ -74,10 +72,8 @@ public class LessonController {
     public ResponseEntity<ApiResponse<Void>> createSubLesson(
             @PathVariable Long lessonId,
             @RequestBody SubLessonDTO subLessonDTO,
-            Authentication authentication
+            @RequestHeader("X-User-Id") Long teacherId
     ) {
-        UserEntity userDetails = (UserEntity) authentication.getPrincipal();
-        Long teacherId = userDetails.getId();
         lessonService.createSubLesson(lessonId, subLessonDTO, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Thêm phần mới thành công", null));
     }
@@ -85,8 +81,9 @@ public class LessonController {
 
     // PUT: Update dữ liệu cho sublesson theo id
     @PutMapping("/sublesson/update/{id}")
-    public ResponseEntity<ApiResponse<Void>> updateSublesson(@PathVariable Long id, @RequestBody SubLessonDTO dto) {
-        lessonService.updateSublessonById(id, dto);
+    public ResponseEntity<ApiResponse<Void>> updateSublesson(@PathVariable Long id, @RequestBody SubLessonDTO dto,
+                                                              @RequestHeader("X-User-Id") Long teacherId) {
+        lessonService.updateSublessonById(id, dto, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Cập nhật thông tin bài học thành công", null));
     }
 
@@ -94,17 +91,16 @@ public class LessonController {
     @PostMapping("/upload-video/{sublesson_id}")
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadVideo(
             @PathVariable Long sublesson_id,
-            @RequestParam("file") MultipartFile file
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader("X-User-Id") Long teacherId
     ) throws Exception {
-        String newUrl = lessonService.uploadVideo(sublesson_id, file);
+        String newUrl = lessonService.uploadVideo(sublesson_id, file, teacherId);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("url", newUrl)));
     }
 
     // DELETE: xoá sublesson theo id
     @DeleteMapping("/sublesson/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteSubLessonById(@PathVariable Long id, Authentication authentication) {
-        UserEntity userDetails = (UserEntity) authentication.getPrincipal();
-        Long teacherId = userDetails.getId();
+    public ResponseEntity<ApiResponse<Void>> deleteSubLessonById(@PathVariable Long id, @RequestHeader("X-User-Id") Long teacherId) {
         lessonService.deleteSubLessonById(id, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Xoá bài học thành công", null));
     }
@@ -116,10 +112,8 @@ public class LessonController {
             @RequestParam(required = false) Long referenceSubLessonId,
             @RequestParam(defaultValue = "true") boolean insertAfter,
             @RequestBody SubLessonDTO dto,
-            Authentication authentication
+            @RequestHeader("X-User-Id") Long teacherId
     ) {
-        UserEntity userDetails = (UserEntity) authentication.getPrincipal();
-        Long teacherId = userDetails.getId();
         lessonService.addSubLessonRelative(lessonId, referenceSubLessonId, insertAfter, dto, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Thêm sublesson thành công", null));
     }
@@ -128,10 +122,8 @@ public class LessonController {
     @PutMapping("/lesson/reorder")
     public ResponseEntity<ApiResponse<Void>> updateLessonReorder(
             @RequestBody List<Map<String, Object>> lessonReorder,
-            Authentication authentication
+            @RequestHeader("X-User-Id") Long teacherId
     ) {
-        UserEntity userDetails = (UserEntity) authentication.getPrincipal();
-        Long teacherId = userDetails.getId();
         lessonService.updateLessonReorder(lessonReorder, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Thay đổi thành công", null));
     }
@@ -140,10 +132,8 @@ public class LessonController {
     @PutMapping("/sublesson/reorder")
     public ResponseEntity<ApiResponse<Void>> updateSubLessonReorder(
             @RequestBody List<Map<String, Object>> subLessonReorder,
-            Authentication authentication
+            @RequestHeader("X-User-Id") Long teacherId
     ) {
-        UserEntity userDetails = (UserEntity) authentication.getPrincipal();
-        Long teacherId = userDetails.getId();
         lessonService.updateSubLessonReorder(subLessonReorder, teacherId);
         return ResponseEntity.ok(ApiResponse.ok("Thay đổi thành công", null));
     }

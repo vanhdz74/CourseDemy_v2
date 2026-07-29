@@ -2,7 +2,7 @@ package com.coursedemy.course.controller;
 
 import com.coursedemy.course.dto.CategoryDTO;
 import com.coursedemy.course.dto.RevenueDTO;
-import com.coursedemy.common.dto.response.ApiResponse;
+import com.coursedemy.course.dto.response.ApiResponse;
 import com.coursedemy.course.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +37,7 @@ public class CategotyController {
     }
 
     @DeleteMapping("/category/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.ok(ApiResponse.ok("Xoá danh mục thành công", null));
     }

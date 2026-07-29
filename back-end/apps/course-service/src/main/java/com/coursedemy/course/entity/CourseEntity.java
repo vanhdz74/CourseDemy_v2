@@ -3,63 +3,128 @@ package com.coursedemy.course.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.Date;
-import java.util.List;
 
+@Entity
+@Table(name = "courses")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity
-@Table(name = "courses")
 public class CourseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "title")
+    @Column(
+            name = "title",
+            nullable = false
+    )
     private String title;
 
-    @Column(name = "description")
+    @Column(
+            name = "description",
+            columnDefinition = "TEXT"
+    )
     private String description;
 
-    @Column(name = "price", nullable = false)
-    private Double price;
+    /**
+     * Dùng BigDecimal thay cho Double
+     * để lưu tiền chính xác.
+     */
+    @Column(
+            name = "price",
+            nullable = false,
+            precision = 15,
+            scale = 2
+    )
+    private BigDecimal price;
 
-    @Column(name = "level", nullable = false)
+    @Column(
+            name = "level",
+            nullable = false
+    )
     private Integer level;
 
-    @Column(name = "quantity", nullable = false)
+    /**
+     * Nếu quantity là số lượng học viên
+     * đã đăng ký thì nên đổi tên thành
+     * enrolledCount.
+     *
+     * Nếu đây là giới hạn số học viên
+     * thì nên đổi thành maxStudents.
+     */
+    @Column(
+            name = "quantity",
+            nullable = false
+    )
     private Integer quantity;
 
     @Column(name = "created_at")
+    @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
 
-    @Column(name = "update_at")
-    private Date updateAt;
+    @Column(name = "updated_at")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date updatedAt;
 
-    // Quan he
-    @ManyToOne
+    /**
+     * Category nằm trong Course-Service.
+     *
+     * Có thể dùng JPA relationship.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
 
-    @ManyToOne
-    @JoinColumn(name = "teacher_id")
-    private UserEntity user;
+    /**
+     * Teacher/User thuộc User-Service.
+     *
+     * Chỉ lưu ID.
+     */
+    @Column(
+            name = "teacher_id",
+            nullable = false
+    )
+    private Long teacherId;
 
-    @OneToOne(mappedBy = "courseEntity", cascade = CascadeType.ALL)
+    /**
+     * Course Image.
+     */
+    @OneToOne(
+            mappedBy = "courseEntity",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private CourseImageEntity courseImageEntity;
 
-    @OneToOne(mappedBy = "courseEntity", cascade = CascadeType.ALL)
+    /**
+     * Course Detail.
+     */
+    @OneToOne(
+            mappedBy = "courseEntity",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private CoursesDetailEntity coursesDetailEntity;
+
+
+    // ==============================
+    // Lifecycle
+    // ==============================
 
     @PrePersist
     protected void onCreate() {
+
         Date now = new Date();
 
         if (price == null) {
-            price = 0D;
+            price = BigDecimal.ZERO;
         }
 
         if (level == null) {
@@ -74,13 +139,14 @@ public class CourseEntity {
             createdAt = now;
         }
 
-        if (updateAt == null) {
-            updateAt = now;
+        if (updatedAt == null) {
+            updatedAt = now;
         }
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updateAt = new Date();
+
+        updatedAt = new Date();
     }
 }

@@ -17,9 +17,9 @@ public interface LessonService {
 
     void createLesson(Long courseId, LessonDTO lessonDTO, Long teacherId);
 
-    void deleteLessonById(Long id);
+    void deleteLessonById(Long id, Long teacherId);
 
-    void updateLessonById(Long id, LessonDTO lessonDTO);
+    void updateLessonById(Long id, LessonDTO lessonDTO, Long teacherId);
 
     List<SubLessonDTO> getSubLessonsByLessonId(Long id);
 
@@ -27,9 +27,9 @@ public interface LessonService {
 
     void createSubLesson(Long lessonId, SubLessonDTO subLessonDTO, Long teacherId);
 
-    String uploadVideo(Long id, MultipartFile file) throws IOException;
+    String uploadVideo(Long id, MultipartFile file, Long teacherId) throws IOException;
 
-    void updateSublessonById(Long id, SubLessonDTO dto);
+    void updateSublessonById(Long id, SubLessonDTO dto, Long teacherId);
 
     void deleteSubLessonById(Long id, Long teacherId);
 

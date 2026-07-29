@@ -36,9 +36,8 @@ public class CommentEntity {
     private Date updatedAt;
 
     // ===================== USER =====================
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private UserEntity userEntity;
+    @Column(name = "user_id")
+    private Long userId;
 
     // ===================== SUB LESSON =====================
     @ManyToOne(fetch = FetchType.LAZY)

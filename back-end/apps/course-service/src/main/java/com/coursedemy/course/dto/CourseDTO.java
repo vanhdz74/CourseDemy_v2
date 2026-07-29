@@ -38,7 +38,7 @@ public class CourseDTO {
 
     @JsonProperty("category_id")
     @JsonAlias("categoryId")
-    private Integer categoryId;
+    private Long categoryId;
 
     @JsonProperty("teacher_name")
     private String teacherName;

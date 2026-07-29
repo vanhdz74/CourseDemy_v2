@@ -1,7 +1,6 @@
 package com.coursedemy.user.util;
 
 import com.coursedemy.user.repository.UserCourseRepository;
-import com.coursedemy.user.repository.UserRepository;
 
 public class FindUserCourseUtils {
     
@@ -12,7 +11,7 @@ public class FindUserCourseUtils {
             Long courseId
     ) {
         userCourseRepository
-                .findByUserEntity_IdAndCourseEntity_Id(userId, courseId)
+                .findByUserEntity_IdAndCourseId(userId, courseId)
                 .orElseThrow(() -> new RuntimeException("Người dùng không thuộc khoá học này"));
     }
 }

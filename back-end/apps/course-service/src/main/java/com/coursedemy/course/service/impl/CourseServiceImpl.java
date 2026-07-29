@@ -1,511 +1,328 @@
 package com.coursedemy.course.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.coursedemy.course.mapper.MapperConfiguration;
-import com.coursedemy.course.dto.CourseDTO;
-import com.coursedemy.course.dto.CourseDetailDTO;
-import com.coursedemy.course.dto.RevenueDTO;
+import com.coursedemy.course.dto.*;
 import com.coursedemy.course.dto.response.PageResponse;
+import com.coursedemy.course.client.OrderClient;
+import com.coursedemy.course.client.UserClient;
 import com.coursedemy.course.entity.*;
+import com.coursedemy.course.mapper.MapperConfiguration;
 import com.coursedemy.course.repository.*;
 import com.coursedemy.course.service.CloudinaryService;
 import com.coursedemy.course.service.CourseService;
 import com.coursedemy.course.util.ExtractUtils;
-import jakarta.persistence.criteria.JoinType;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.awt.print.Pageable;
 import java.io.IOException;
-import java.util.*;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
-
     private final CourseRepository courseRepository;
     private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
-    private final CloudinaryService cloudinaryService;
-    private final MapperConfiguration mapperConfiguration;
-    private final UserCourseRepository userCourseRepository;
     private final CourseDetailRepository courseDetailRepository;
     private final CourseImageRepository courseImageRepository;
-    private final OrderRepository orderRepository;
+    private final ReviewRepository reviewRepository;
+    private final CloudinaryService cloudinaryService;
+    private final MapperConfiguration mapperConfiguration;
+    private final UserClient userClient;
+    private final OrderClient orderClient;
 
-
-    @Value("${course.limit}")
+    @Value("${course.limit:9}")
     private String courseLimit;
 
     @Override
     public PageResponse<CourseDTO> findAllHave(@RequestParam Map<String, String> params) {
         Specification<CourseEntity> spec = Specification.where(null);
-
-        if (params.containsKey("keyword")) {
-            String keyword = params.get("keyword");
-            if (keyword != null && !keyword.isBlank()) {
-                String kw = "%" + keyword.toLowerCase() + "%";
-
-                spec = spec.and((root, query, cb) -> {
-                    // Join sang bảng category
-                    var categoriesJoin = root.join("category", JoinType.INNER);
-
-                    return cb.or(
-                            cb.like(cb.lower(root.get("title")), kw),
-                            cb.like(cb.lower(root.get("description")), kw),
-                            cb.like(cb.lower(categoriesJoin.get("name")), kw) // tìm theo tên category
-                    );
-                });
-            }
+        String keyword = params.get("keyword");
+        if (!blank(keyword)) {
+            String like = "%" + keyword.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("title")), like),
+                    cb.like(cb.lower(root.get("description")), like),
+                    cb.like(cb.lower(root.join("category").get("name")), like)));
         }
-
-        // --- Lọc theo teacherId ---
         if (params.containsKey("teacher_id")) {
-            Long teacherId = Long.parseLong(params.get("teacher_id"));
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("user").get("id"), teacherId)
-            );
+            Long teacherId = longValue(params.get("teacher_id"), "Giảng viên không hợp lệ");
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("teacherId"), teacherId));
         }
-
-        // Lọc theo categoryId
         if (params.containsKey("category_id")) {
-            Integer categoryId = Integer.parseInt(params.get("category_id"));
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("category").get("id"), categoryId)
-            );
+            Integer categoryId = intValue(params.get("category_id"), "Danh mục không hợp lệ");
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId));
         }
-
-        // Lọc theo mức giá (minPrice / maxPrice)
         if (params.containsKey("min_price")) {
-            Double minPrice = Double.parseDouble(params.get("min_price"));
-            spec = spec.and((root, query, cb) ->
-                    cb.greaterThanOrEqualTo(root.get("price"), minPrice)
-            );
+            BigDecimal value = price(params.get("min_price"));
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("price"), value));
         }
-
         if (params.containsKey("max_price")) {
-            Double maxPrice = Double.parseDouble(params.get("max_price"));
-            spec = spec.and((root, query, cb) ->
-                    cb.lessThanOrEqualTo(root.get("price"), maxPrice)
+            BigDecimal value = price(params.get("max_price"));
+            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("price"), value));
+        }
+        int page = params.containsKey("p") ? Math.max(0, intValue(params.get("p"), "Trang không hợp lệ") - 1) : 0;
+        Page<CourseEntity> result = courseRepository.findAll(spec, PageRequest.of(page, Math.max(1, intValue(courseLimit, "course.limit không hợp lệ"))));
+        return PageResponse.from(result, result.getContent().stream().map(mapperConfiguration::toCourseDTO).toList());
+    }
+
+    @Override public List<CourseDTO> getCoursesByCategoryId(Long id) {
+        //mapperConfiguration::toCourseDTO tương đương courseEntity -> mapperConfiguration.toCourseDTO(courseEntity)
+        return courseRepository.findByCategoryId(id).stream().map(mapperConfiguration::toCourseDTO).toList();
+    }
+
+    @Override public List<CourseDTO> getCoursesByUserId(Long userId) {
+        String role = userClient.getRoleByUserId(userId).getData();
+        if ("ADMIN".equals(role)) {
+            return courseRepository.findAll().stream().map(mapperConfiguration::toCourseDTO).toList();
+        }
+        if ("TEACHER".equals(role)) {
+            return courseRepository.findAll((root, query, cb) -> cb.equal(root.get("teacherId"), userId))
+                    .stream().map(mapperConfiguration::toCourseDTO).toList();
+        }
+        if ("STUDENT".equals(role)) {
+            List<Long> courseIds = userClient.getCourseIdsByUserId(userId).getData();
+            if (courseIds == null || courseIds.isEmpty()) return List.of();
+            return courseRepository.findAllById(courseIds).stream().map(mapperConfiguration::toCourseDTO).toList();
+        }
+        return List.of();
+    }
+
+    @Override public CourseDTO getCourseById(Long id) { return mapperConfiguration.toCourseDTO(course(id)); }
+
+    @Override public CourseDetailDTO getCourseDetailByCourseId(Long id) {
+        return mapperConfiguration.toCourseDetailDTO(detail(course(id)));
+    }
+
+    @Override public void addCourse(CourseDTO dto) {
+        if (blank(dto.getTitle())) throw new IllegalArgumentException("Tên khóa học không được để trống");
+        if (dto.getTeacherId() == null) throw new IllegalArgumentException("Giảng viên phụ trách không được để trống");
+        String title = dto.getTitle().trim();
+        if (courseRepository.existsByTitleIgnoreCase(title)) throw new IllegalArgumentException("Khóa học đã tồn tại");
+        CategoryEntity categoryEntity=categoryRepository.findById(dto.getCategoryId()).orElse(null);
+        CourseEntity entity = CourseEntity.builder().title(title)
+                .description(dto.getDescription() == null ? "" : dto.getDescription().trim())
+                .price(blank(dto.getPrice()) ? BigDecimal.ZERO : price(dto.getPrice()))
+                .level(dto.getLevel() == null ? 0 : dto.getLevel())
+                .quantity(dto.getQuantity() == null ? 0 : dto.getQuantity().intValue())
+                .teacherId(dto.getTeacherId())
+                .category(categoryEntity).build();
+        CoursesDetailEntity detail = CoursesDetailEntity.builder().courseEntity(entity)
+                .content("").description("").request("").courseInclude("").build();
+        entity.setCoursesDetailEntity(detail);
+        courseRepository.save(entity);
+    }
+
+    @Override public void deleteCourseById(Long id) { courseRepository.delete(course(id)); }
+
+    @Override public void updateCourse(long id, CourseDTO dto) {
+        CourseEntity entity = course(id);
+        if (!blank(dto.getTitle())) {
+            CourseEntity sameTitle = courseRepository.findByTitle(dto.getTitle().trim());
+            if (sameTitle != null && !Objects.equals(sameTitle.getId(), entity.getId())) throw new IllegalArgumentException("Khóa học đã tồn tại");
+            entity.setTitle(dto.getTitle().trim());
+        }
+        if (dto.getDescription() != null) entity.setDescription(dto.getDescription().trim());
+        if (!blank(dto.getPrice())) entity.setPrice(price(dto.getPrice()));
+        if (dto.getLevel() != null) entity.setLevel(dto.getLevel());
+        if (dto.getQuantity() != null) entity.setQuantity(dto.getQuantity().intValue());
+        if (dto.getTeacherId() != null) entity.setTeacherId(dto.getTeacherId());
+        if (dto.getCategoryId() != null) entity.setCategory(categoryRepository.findById(dto.getCategoryId()).orElse(null));
+        courseRepository.save(entity);
+    }
+
+    @Override
+    @Transactional
+    public void updateFullCourse(long id, JsonNode body) {
+
+        // 1. Kiểm tra Course tồn tại
+        CourseEntity entity = course(id);
+
+        // =========================================================
+        // 2. UPDATE COURSE
+        // =========================================================
+
+        JsonNode courseNode = //JsonNode có dạng 1 object 
+                body != null
+                        && body.path("course").isObject()
+                        ? body.path("course")
+                        : null;
+
+        if (courseNode != null) {
+
+            CourseDTO dto = new CourseDTO();
+
+            // Title
+            if (courseNode.has("title")) {
+                dto.setTitle(
+                        text(courseNode, "title")
+                );
+            }
+
+            // Price
+            if (courseNode.has("price")) {
+                dto.setPrice(
+                        text(courseNode, "price")
+                );
+            }
+
+            // Level
+            if (courseNode.has("level")) {
+                dto.setLevel(
+                        Integer(courseNode, "level")
+                );
+            }
+
+            // Category
+            if (courseNode.has("category_id")
+                    || courseNode.has("categoryId")) {
+
+                dto.setCategoryId(
+                        Long(
+                                courseNode,
+                                "category_id",
+                                "categoryId"
+                        )
+                );
+            }
+
+            // Description
+            if (courseNode.has("description")) {
+
+                dto.setDescription(
+                        text(
+                                courseNode,
+                                "description"
+                        )
+                );
+            }
+
+            // Cập nhật Course
+            updateCourse(
+                    id,
+                    dto
+            );
+
+            // =====================================================
+            // 3. UPDATE COURSE IMAGE
+            // =====================================================
+
+            String imageUrl =
+                    text(
+                            courseNode,
+                            "course_img",
+                            "imageUrl"
+                    );
+
+            if (!blank(imageUrl)) {
+
+                saveImage(
+                        entity,
+                        imageUrl
+                );
+            }
+        }
+
+        // =========================================================
+        // 4. UPDATE COURSE DETAIL
+        // =========================================================
+
+        CoursesDetailEntity detail =
+                detail(entity);
+
+        if (has(body, "content")) {
+
+            detail.setContent(
+                    text(
+                            body,
+                            "content"
+                    )
             );
         }
 
-        // Phân trang
-        int page = 0;
-        int size = Integer.parseInt(courseLimit);
+        if (has(body, "description")) {
 
-        if (params.containsKey("p")) {
-            page = Integer.parseInt(params.get("p")) - 1;
-        }
-        PageRequest pageable = PageRequest.of(page, size);
-        Page<CourseEntity> pageResult = courseRepository.findAll(spec, pageable);
-
-        // Lấy danh sách khoá học trong trang hiện tại
-        List<CourseEntity> courseEntities = pageResult.getContent();
-
-        // Chuyển sang DTO
-        List<CourseDTO> result = new ArrayList<>();
-        for (CourseEntity item : courseEntities) {
-            CourseDTO course = mapperConfiguration.toCourseDTO(item);
-            result.add(course);
+            detail.setDescription(
+                    text(
+                            body,
+                            "description"
+                    )
+            );
         }
 
-        return PageResponse.from(pageResult, result);
+        if (has(body, "request")) {
+
+            detail.setRequest(
+                    text(
+                            body,
+                            "request"
+                    )
+            );
+        }
+
+        if (has(
+                body,
+                "course_include",
+                "courseInclude"
+        )) {
+
+            detail.setCourseInclude(
+                    text(
+                            body,
+                            "course_include",
+                            "courseInclude"
+                    )
+            );
+        }
+
+        courseDetailRepository.save(
+                detail
+        );
     }
 
-    @Override
-    public List<CourseDTO> getCoursesByCategoryId(Integer categoryId) {
-        List<CourseEntity> courseEntities = courseRepository.findByCategoryId(categoryId);
-
-        List<CourseDTO> result = new ArrayList<>();
-        for (CourseEntity item : courseEntities) {
-            CourseDTO course = mapperConfiguration.toCourseDTO(item);
-            result.add(course);
-        }
-        return result;
-    }
-
-    @Override
-    public List<CourseDTO> getCoursesByUserId(Long userId) {
-        UserEntity userEntity = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Ngừoi dùng không tồn tại"));
-
-        List<CourseDTO> result = new ArrayList<>();
-
-        if (Objects.equals(userEntity.getRoleEntity().getRoleName(), "ADMIN")) {
-            List<CourseEntity> courseEntities = courseRepository.findAll();
-
-            for (CourseEntity item : courseEntities) {
-                CourseDTO course = mapperConfiguration.toCourseDTO(item);
-                result.add(course);
-            }
-        }
-
-        if (Objects.equals(userEntity.getRoleEntity().getRoleName(), "TEACHER")) {
-            List<CourseEntity> courseEntities = courseRepository.findByUser_id(userId);
-
-            for (CourseEntity item : courseEntities) {
-                CourseDTO course = mapperConfiguration.toCourseDTO(item);
-                result.add(course);
-            }
-        }
-
-        if (Objects.equals(userEntity.getRoleEntity().getRoleName(), "STUDENT")) {
-            // Danh sách tìm thấy trong user_course
-            List<UserCourseEntity> userCourseList = userCourseRepository.findByUserEntity_Id(userId);
-
-            for (UserCourseEntity item : userCourseList) {
-                CourseEntity courseEntity = item.getCourseEntity(); // Lấy khoá học từ quan hệ
-                CourseDTO dto = mapperConfiguration.toCourseDTO(courseEntity); // Map sang DTO
-                result.add(dto);
-            }
-        }
-
-        return result;
-    }
-
-    @Override
-    public CourseDTO getCourseById(Long id) {
-        CourseEntity courseEntity = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khoá học " + id));
-
-        CourseDTO result = mapperConfiguration.toCourseDTO(courseEntity);
-        return result;
-    }
-
-    @Override
-    public CourseDetailDTO getCourseDetailByCourseId(Long id) {
-        CourseEntity courseEntity = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
-
-        CoursesDetailEntity coursesDetailEntity = getOrCreateCourseDetail(courseEntity.getId(), courseEntity);
-        if (coursesDetailEntity.getId() == null) {
-            coursesDetailEntity = courseDetailRepository.save(coursesDetailEntity);
-        }
-        CourseDetailDTO dto = mapperConfiguration.toCourseDetailDTO(coursesDetailEntity);
-
-        return dto;
-    }
-
-    // Thêm khoá học
-    @Override
-    public void addCourse(CourseDTO courseDTO) {
-        if (courseDTO.getTitle() == null || courseDTO.getTitle().isBlank()) {
-            throw new RuntimeException("Tên khoá học không được để trống");
-        }
-
-        if (courseDTO.getCategoryId() == null) {
-            throw new RuntimeException("Danh mục không được để trống");
-        }
-
-        if (courseDTO.getTeacherId() == null) {
-            throw new RuntimeException("Giảng viên phụ trách không được để trống");
-        }
-
-        String title = courseDTO.getTitle().trim();
-        if (courseRepository.existsByTitleIgnoreCase(title)) {
-            throw new RuntimeException("Khoá học đã tồn tại");
-        }
-
-        CategoryEntity category = resolveCategory(courseDTO);
-
-        UserEntity user = userRepository.findById(courseDTO.getTeacherId())
-                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
-
-        // Create detail
-        CoursesDetailEntity detail = new CoursesDetailEntity();
-        detail.setContent("");
-        detail.setDescription("");
-        detail.setRequest("");
-        detail.setCourseInclude("");
-
-        Double price = isBlank(courseDTO.getPrice()) ? 0D : parsePrice(courseDTO.getPrice());
-
-        // Create course
-        CourseEntity course = new CourseEntity();
-        course.setTitle(title);
-        course.setDescription(courseDTO.getDescription() == null ? "" : courseDTO.getDescription().trim());
-        course.setPrice(price);
-        course.setLevel(courseDTO.getLevel() == null ? 0 : courseDTO.getLevel());
-        course.setQuantity(courseDTO.getQuantity() == null ? 0 : courseDTO.getQuantity().intValue());
-        course.setCreatedAt(new Date());
-        course.setUpdateAt(new Date());
-        course.setUser(user);
-        course.setCategory(category);
-
-        // Set mapping 2 chiều
-        course.setCoursesDetailEntity(detail);
-        detail.setCourseEntity(course);
-
-        // Chỉ save course (nếu có cascade)
-        courseRepository.save(course);
-    }
-
-
-    @Override
-    public void deleteCourseById(Long id) {
-        CourseEntity courseEntity = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
-
-        courseRepository.delete(courseEntity);
-    }
-
-    @Override
-    public void updateCourse(long id, CourseDTO courseDTO) {
-        CourseEntity courseEntity = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
-
-        if (!isBlank(courseDTO.getTitle())) {
-            String title = courseDTO.getTitle().trim();
-            CourseEntity exist = courseRepository.findByTitle(title);
-            if (exist != null && !Objects.equals(exist.getId(), courseEntity.getId())) {
-                throw new RuntimeException("Khoá học đã tồn tại");
-            }
-            courseEntity.setTitle(title);
-        }
-
-        if (courseDTO.getDescription() != null) {
-            courseEntity.setDescription(courseDTO.getDescription().trim());
-        }
-
-        if (!isBlank(courseDTO.getPrice())) {
-            courseEntity.setPrice(parsePrice(courseDTO.getPrice()));
-        }
-
-        if (courseDTO.getLevel() != null) {
-            courseEntity.setLevel(courseDTO.getLevel());
-        }
-
-        if (courseDTO.getQuantity() != null) {
-            courseEntity.setQuantity(courseDTO.getQuantity().intValue());
-        }
-
-        if (courseDTO.getTeacherId() != null) {
-            UserEntity userEntity = userRepository.findById(courseDTO.getTeacherId())
-                    .orElseThrow(() -> new RuntimeException("Ngừoi dùng không tồn tại"));
-            courseEntity.setUser(userEntity);
-        }
-
-        if (courseDTO.getCategoryId() != null) {
-            courseEntity.setCategory(resolveCategory(courseDTO));
-        }
-
-        courseRepository.save(courseEntity);
-    }
-
-    @Override
-    public void updateFullCourse(long id, JsonNode body) {
-        CourseEntity courseEntity = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
-
-        JsonNode courseNode = body != null && body.has("course") && body.get("course").isObject()
-                ? body.get("course")
-                : null;
-
-        CourseImageEntity courseImageEntity =
-                courseImageRepository.findByCourseEntity_Id(id)
-                        .orElse(new CourseImageEntity());
-
-        String imageUrl = readText(courseNode, "course_img", "imageUrl");
-        if (courseNode != null && imageUrl != null) {
-            courseImageEntity.setCourseEntity(courseEntity);  // GÁN COURSE
-            courseImageEntity.setImageUrl(imageUrl);  // GÁN IMAGE
-            courseImageRepository.save(courseImageEntity);  // LƯU LẠI
-            courseEntity.setCourseImageEntity(courseImageEntity);
-        }
-
-
-        if (courseNode != null && hasAny(courseNode, "title")) {
-            String title = readText(courseNode, "title");
-            if (isBlank(title)) {
-                throw new RuntimeException("Tên khoá học không được để trống");
-            }
-            CourseEntity exist = courseRepository.findByTitle(title.trim());
-            if (exist != null && !Objects.equals(exist.getId(), courseEntity.getId())) {
-                throw new RuntimeException("Khoá học đã tồn tại");
-            }
-            courseEntity.setTitle(title.trim());
-        }
-
-        if (courseNode != null && hasAny(courseNode, "description")) {
-            String description = readText(courseNode, "description");
-            courseEntity.setDescription(description == null ? "" : description.trim());
-        }
-
-        if (courseNode != null && hasAny(courseNode, "price")) {
-            String price = readText(courseNode, "price");
-            if (!isBlank(price)) {
-                courseEntity.setPrice(parsePrice(price));
-            }
-        }
-
-        if (courseNode != null && hasAny(courseNode, "level")) {
-            Integer level = readInt(courseNode, "level");
-            if (level == null) {
-                throw new RuntimeException("Cấp độ khoá học không hợp lệ");
-            }
-            courseEntity.setLevel(level);
-        }
-
-        if (courseNode != null && hasAny(courseNode, "category_id", "categoryId")) {
-            Integer categoryId = readInt(courseNode, "category_id", "categoryId");
-            CourseDTO courseDTO = new CourseDTO();
-            courseDTO.setCategoryId(categoryId);
-            courseEntity.setCategory(resolveCategory(courseDTO));
-        }
-
-        courseEntity.setUpdateAt(new Date());
-        courseRepository.save(courseEntity);
-
-        // 3. Lấy detail theo course_id
-        CoursesDetailEntity detail = getOrCreateCourseDetail(id, courseEntity);
-
-        // 4. Update detail
-        if (hasAny(body, "content")) {
-            detail.setContent(readText(body, "content"));
-        }
-
-        if (hasAny(body, "description")) {
-            detail.setDescription(readText(body, "description"));
-        }
-
-        if (hasAny(body, "request")) {
-            detail.setRequest(readText(body, "request"));
-        }
-
-        if (hasAny(body, "course_include", "courseInclude")) {
-            detail.setCourseInclude(readText(body, "course_include", "courseInclude"));
-        }
-
-        // 5. Gán lại courseEntity (entity thật)
-        detail.setCourseEntity(courseEntity);
-
-        // 6. Lưu
-        courseDetailRepository.save(detail);
-    }
-
-    @Override
-    public String uploadImg(Long id, MultipartFile file) throws IOException {
-        // 1. Tìm user theo ID
-        CourseEntity courseEntity = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khoá học"));
-
-        // 2. Xóa img cũ nếu có
-        if (courseEntity.getCourseImageEntity() != null) {
-            String publicId = ExtractUtils.extractPublicIdFromUrl(courseEntity.getCourseImageEntity().getImageUrl());
-            if (publicId != null) {
-                cloudinaryService.deleteFile(publicId);
-            }
-        }
-
-        // 3. Upload img mới lên Cloudinary - tạo url
-        Map<String, String> uploadResult = cloudinaryService.uploadImage(file);
-        String newUrl = uploadResult.get("url");
-
+    @Override public String uploadImg(Long id, MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) throw new IllegalArgumentException("File ảnh không được để trống");
+        CourseEntity entity = course(id);
+        String oldUrl = courseImageRepository.findByCourseEntity_Id(id).map(CourseImageEntity::getImageUrl).orElse(null);
+        String newUrl = cloudinaryService.uploadImage(file).get("url");
+        if (blank(newUrl)) throw new IOException("Không nhận được URL ảnh từ Cloudinary");
+        saveImage(entity, newUrl);
+        if (!blank(oldUrl)) { String publicId = ExtractUtils.extractPublicIdFromUrl(oldUrl); if (publicId != null) cloudinaryService.deleteFile(publicId); }
         return newUrl;
     }
 
-    @Override
-    public Double getAverageRatingByCourseId(Long courseId) {
-        CourseEntity course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Khoá học không tồn tại"));
-
-        return 5.0;
+    @Override public Double getAverageRatingByCourseId(Long courseId) {
+        course(courseId);
+        return reviewRepository.findByCourseEntity_Id(courseId).stream().map(ReviewEntity::getRating).filter(Objects::nonNull)
+                .mapToDouble(Double::doubleValue).average().orElse(0D);
     }
-
-    @Override
-    public List<RevenueDTO.TopCourseDTO> getTopCoursesRevenue() {
-        return orderRepository.getTopCoursesRevenue();
+    @Override public List<RevenueDTO.TopCourseDTO> getTopCoursesRevenue() {
+        List<RevenueDTO.TopCourseDTO> result = orderClient.getTopCoursesRevenue().getData();
+        return result == null ? List.of() : result;
     }
+    @Override public void increaseQuantity(Long id) { CourseEntity c = course(id); c.setQuantity((c.getQuantity() == null ? 0 : c.getQuantity()) + 1); courseRepository.save(c); }
+    @Override public void decreaseQuantity(Long id) { CourseEntity c = course(id); c.setQuantity(Math.max(0, (c.getQuantity() == null ? 0 : c.getQuantity()) - 1)); courseRepository.save(c); }
 
-    // Tìm danh mục
-    private CategoryEntity resolveCategory(CourseDTO courseDTO) {
-        if (courseDTO.getCategoryId() == null) {
-            throw new RuntimeException("Danh mục không được để trống");
-        }
-
-        return categoryRepository.findById(courseDTO.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Danh mục không tồn tại"));
-    }
-
-    private CoursesDetailEntity getOrCreateCourseDetail(Long courseId, CourseEntity courseEntity) {
-        List<CoursesDetailEntity> details = courseDetailRepository.findAllByCourseEntity_Id(courseId);
-
-        if (details.isEmpty()) {
-            CoursesDetailEntity detail = new CoursesDetailEntity();
-            detail.setCourseEntity(courseEntity);
-            return detail;
-        }
-
-        CoursesDetailEntity detail = details.get(0);
-        if (details.size() > 1) {
-            courseDetailRepository.deleteAll(details.subList(1, details.size()));
-        }
-        return detail;
-    }
-
-    private boolean hasAny(JsonNode node, String... fields) {
-        if (node == null || node.isNull()) {
-            return false;
-        }
-
-        for (String field : fields) {
-            if (node.has(field)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private String readText(JsonNode node, String... fields) {
-        if (node == null || node.isNull()) {
-            return null;
-        }
-
-        for (String field : fields) {
-            JsonNode value = node.get(field);
-            if (value == null) {
-                continue;
-            }
-            if (value.isNull()) {
-                return null;
-            }
-            return value.asText();
-        }
-
-        return null;
-    }
-
-    private Integer readInt(JsonNode node, String... fields) {
-        String value = readText(node, fields);
-        if (isBlank(value)) {
-            return null;
-        }
-
-        try {
-            return Integer.valueOf(value.trim());
-        } catch (NumberFormatException ex) {
-            throw new RuntimeException("Giá trị số không hợp lệ");
-        }
-    }
-
-    private Double parsePrice(String price) {
-        try {
-            return Double.valueOf(price.trim());
-        } catch (NumberFormatException ex) {
-            throw new RuntimeException("Giá khoá học không hợp lệ");
-        }
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
-    }
+    private CourseEntity course(Long id) { return courseRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Khóa học không tồn tại")); }
+    private CategoryEntity category(Long id) { if (id == null) throw new IllegalArgumentException("Danh mục không được để trống"); return categoryRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại")); }
+    private CoursesDetailEntity detail(CourseEntity course) { CoursesDetailEntity d = courseDetailRepository.findByCourseEntity_Id(course.getId()); return d != null ? d : courseDetailRepository.save(CoursesDetailEntity.builder().courseEntity(course).content("").description("").request("").courseInclude("").build()); }
+    private void saveImage(CourseEntity course, String url) { CourseImageEntity image = courseImageRepository.findByCourseEntity_Id(course.getId()).orElseGet(CourseImageEntity::new); image.setCourseEntity(course); image.setImageUrl(url); course.setCourseImageEntity(courseImageRepository.save(image)); }
+    private static boolean has(JsonNode node, String... fields) { for (String f : fields) if (node != null && node.has(f)) return true; return false; }
+    private static String text(JsonNode node, String... fields) { for (String f : fields) if (node != null && node.has(f) && !node.get(f).isNull()) return node.get(f).asText(); return null; }
+    private static Long Long(JsonNode node, String... fields) { String value = text(node, fields); return blank(value) ? null : longValue(value, "Giá trị số không hợp lệ"); }
+    private static Integer Integer(JsonNode node, String... fields) { String value = text(node, fields); return blank(value) ? null : intValue(value, "Giá trị số không hợp lệ"); }
+    private static Integer intValue(String value, String error) { try { return Integer.valueOf(value.trim()); } catch (Exception e) { throw new IllegalArgumentException(error); } }
+    private static Long longValue(String value, String error) { try { return Long.valueOf(value.trim()); } catch (Exception e) { throw new IllegalArgumentException(error); } }
+    private static BigDecimal price(String value) { try { BigDecimal v = new BigDecimal(value.trim()); if (v.signum() < 0) throw new NumberFormatException(); return v.setScale(2, RoundingMode.HALF_UP); } catch (Exception e) { throw new IllegalArgumentException("Giá khóa học không hợp lệ"); } }
+    private static boolean blank(String value) { return value == null || value.isBlank(); }
 }

@@ -36,6 +36,7 @@
     <modules>
         <module>libs/common</module>
         <module>apps/gateway-service</module>
+        <module>apps/discovery-service</module>
         <module>apps/user-service</module>
         <module>apps/course-service</module>
         <module>apps/order-service</module>
@@ -54,11 +55,11 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>com.coursedemy</groupId>
-                <artifactId>common</artifactId>
-                <version>${coursedemy.common.version}</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>com.coursedemy</groupId>-->
+<!--                <artifactId>common</artifactId>-->
+<!--                <version>${coursedemy.common.version}</version>-->
+<!--            </dependency>-->
             <dependency>
                 <groupId>org.modelmapper</groupId>
                 <artifactId>modelmapper</artifactId>

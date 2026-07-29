@@ -1,13 +1,10 @@
 package com.coursedemy.gateway.controller;
 
-import com.coursedemy.common.dto.response.ApiResponse;
-import com.coursedemy.gateway.constant.AuthResponseMessage;
-import com.coursedemy.gateway.dto.request.RefreshTokenRequest;
-import com.coursedemy.gateway.dto.request.ResetPasswordRequest;
-import com.coursedemy.gateway.dto.request.SendOtpRequest;
-import com.coursedemy.gateway.dto.request.UserLoginRequest;
-import com.coursedemy.gateway.dto.request.UserRegisterRequest;
-import com.coursedemy.gateway.dto.request.VerifyOtpRequest;
+import com.coursedemy.gateway.dto.OtpDTO;
+import com.coursedemy.gateway.dto.ResetPasswordDTO;
+import com.coursedemy.gateway.dto.UserDTO;
+import com.coursedemy.gateway.dto.UserLoginDTO;
+import com.coursedemy.gateway.dto.response.ApiResponse;
 import com.coursedemy.gateway.dto.response.AuthTokenResponse;
 import com.coursedemy.gateway.entity.UserEntity;
 import com.coursedemy.gateway.service.AuthService;
@@ -21,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("${api.prefix}")
 @RequiredArgsConstructor
@@ -28,43 +27,56 @@ public class AuthController {
 
     private final AuthService authService;
 
+    // Xử lý đăng nhập
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthTokenResponse>> login(
-            @Valid @RequestBody UserLoginRequest request) {
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> getUserByEmailAndByPassword(
+            @Valid @RequestBody UserLoginDTO userLoginDTO) throws Exception {
 
         AuthTokenResponse tokens = authService.login(
-                request.getEmail(),
-                request.getPassword()
+                userLoginDTO.getEmail(),
+                userLoginDTO.getPassword()
         );
 
         return ResponseEntity.ok(
-                ApiResponse.ok(AuthResponseMessage.LOGIN_SUCCESS, tokens)
+                ApiResponse.ok("Đăng nhập thành công", tokens)
         );
     }
 
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> refreshToken(
-            @Valid @RequestBody RefreshTokenRequest request) {
+            @RequestBody Map<String, String> request) throws Exception {
 
         AuthTokenResponse tokens = authService.refreshToken(
-                request.getRefreshToken()
+                request.get("refreshToken")
         );
 
         return ResponseEntity.ok(
-                ApiResponse.ok(AuthResponseMessage.REFRESH_TOKEN_SUCCESS, tokens)
+                ApiResponse.ok("Refresh token thành công", tokens)
         );
     }
 
+    // Xử lý tạo tài khoản
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthTokenResponse>> register(
-            @Valid @RequestBody UserRegisterRequest request) {
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> createUser(
+            @Valid @RequestBody UserDTO userDTO) throws Exception {
 
-        AuthTokenResponse tokens = authService.createUser(request);
+        // Kiểm tra mật khẩu nhập lại
+        if (!userDTO.getPassword().equals(userDTO.getRetypePassword())) {
+            return ResponseEntity.badRequest()
+                    .body(
+                            ApiResponse.fail(
+                                    "PASSWORD_MISMATCH",
+                                    "Mật khẩu nhập lại không khớp"
+                            )
+                    );
+        }
+
+        AuthTokenResponse tokens = authService.createUser(userDTO);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(
                         ApiResponse.created(
-                                AuthResponseMessage.REGISTER_SUCCESS,
+                                "Tạo tài khoản thành công",
                                 tokens
                         )
                 );
@@ -72,15 +84,15 @@ public class AuthController {
 
     @PostMapping("/send-otp")
     public ResponseEntity<ApiResponse<Void>> sendOtp(
-            @Valid @RequestBody SendOtpRequest request) {
+            @RequestBody UserLoginDTO userLoginDTO) {
 
         authService.sendOtpEmail(
-                request.getEmail()
+                userLoginDTO.getEmail()
         );
 
         return ResponseEntity.ok(
                 ApiResponse.ok(
-                        AuthResponseMessage.SEND_OTP_SUCCESS,
+                        "OTP đã được gửi",
                         null
                 )
         );
@@ -88,16 +100,16 @@ public class AuthController {
 
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<Void>> verifyOtp(
-            @Valid @RequestBody VerifyOtpRequest request) {
+            @RequestBody OtpDTO req) {
 
         authService.verifyOtpAndSendNewPassword(
-                request.getEmail(),
-                request.getOtp()
+                req.getEmail(),
+                req.getOtp()
         );
 
         return ResponseEntity.ok(
                 ApiResponse.ok(
-                        AuthResponseMessage.VERIFY_OTP_SUCCESS,
+                        "OTP đúng. Mật khẩu mới đã được gửi về email",
                         null
                 )
         );
@@ -105,22 +117,22 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(
-            @Valid @RequestBody ResetPasswordRequest request,
-            Authentication authentication) {
+            @RequestBody ResetPasswordDTO resetPasswordDTO,
+            Authentication authentication) throws Exception {
 
         UserEntity userEntity =
                 (UserEntity) authentication.getPrincipal();
 
         authService.resetPassword(
                 userEntity.getEmail(),
-                request.getCurrentPassword(),
-                request.getNewPassword(),
-                request.getConfirmPassword()
+                resetPasswordDTO.getCurrentPassword(),
+                resetPasswordDTO.getNewPassword(),
+                resetPasswordDTO.getConfirmPassword()
         );
 
         return ResponseEntity.ok(
                 ApiResponse.ok(
-                        AuthResponseMessage.RESET_PASSWORD_SUCCESS,
+                        "Đổi mật khẩu thành công",
                         null
                 )
         );

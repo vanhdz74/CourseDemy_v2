@@ -1,13 +1,11 @@
 package com.coursedemy.course.controller;
 
 import com.coursedemy.course.dto.ReviewDTO;
-import com.coursedemy.common.dto.response.ApiResponse;
-import com.coursedemy.course.entity.UserEntity;
+import com.coursedemy.course.dto.response.ApiResponse;
 import com.coursedemy.course.service.ReviewService;
 //import com.coursedemy.course.service.ReviewLikeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -43,10 +41,9 @@ public class ReviewController {
     public ResponseEntity<ApiResponse<Void>> createReview(
             @RequestBody ReviewDTO reviewDTO,
             @PathVariable Long id,
-            Authentication authentication
+            @RequestHeader("X-User-Id") Long userId
     ) {
-        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-        Long userId = userEntity.getId();
+
         reviewService.createReview(reviewDTO, userId, id);
         return ResponseEntity.ok(ApiResponse.ok("Đánh giá của bạn đã được đăng", null));
     }
@@ -55,10 +52,8 @@ public class ReviewController {
     @DeleteMapping("/review/{id}")
     public ResponseEntity<ApiResponse<ReviewDTO>> removeReview(
             @PathVariable Long id,
-            Authentication authentication
+            @RequestHeader("X-User-Id") Long userId
     ) {
-        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-        Long userId = userEntity.getId();
         ReviewDTO deletedReview = reviewService.removeReview(id, userId);
         return ResponseEntity.ok(ApiResponse.ok(deletedReview));
     }

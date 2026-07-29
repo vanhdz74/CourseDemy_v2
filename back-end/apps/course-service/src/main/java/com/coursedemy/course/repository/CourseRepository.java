@@ -9,9 +9,7 @@ import java.util.Optional;
 
 public interface CourseRepository extends JpaRepository<CourseEntity, Long>,
         JpaSpecificationExecutor<CourseEntity> {
-    List<CourseEntity> findByCategoryId(Integer categoryId);
-
-    List<CourseEntity> findByUser_id(Long teacherId);
+    List<CourseEntity> findByCategoryId(Long categoryId);
 
     CourseEntity findByTitle(String title);
 
