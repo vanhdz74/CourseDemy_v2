@@ -1,9 +1,12 @@
 package com.coursedemy.gateway.controller;
 
-import com.coursedemy.gateway.dto.OtpDTO;
-import com.coursedemy.gateway.dto.ResetPasswordDTO;
-import com.coursedemy.gateway.dto.UserDTO;
-import com.coursedemy.gateway.dto.UserLoginDTO;
+import com.coursedemy.common.constant.CommonResponseMessage;
+import com.coursedemy.gateway.dto.request.RefreshTokenRequest;
+import com.coursedemy.gateway.dto.request.ResetPasswordRequest;
+import com.coursedemy.gateway.dto.request.SendOtpRequest;
+import com.coursedemy.gateway.dto.request.UserLoginRequest;
+import com.coursedemy.gateway.dto.request.UserRegisterRequest;
+import com.coursedemy.gateway.dto.request.VerifyOtpRequest;
 import com.coursedemy.gateway.dto.response.ApiResponse;
 import com.coursedemy.gateway.dto.response.AuthTokenResponse;
 import com.coursedemy.gateway.entity.UserEntity;
@@ -18,8 +21,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("${api.prefix}")
 @RequiredArgsConstructor
@@ -30,94 +31,87 @@ public class AuthController {
     // Xử lý đăng nhập
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> getUserByEmailAndByPassword(
-            @Valid @RequestBody UserLoginDTO userLoginDTO) throws Exception {
+            @Valid @RequestBody UserLoginRequest userLoginRequest) throws Exception {
 
         AuthTokenResponse tokens = authService.login(
-                userLoginDTO.getEmail(),
-                userLoginDTO.getPassword()
+                userLoginRequest.getEmail(),
+                userLoginRequest.getPassword()
         );
 
         return ResponseEntity.ok(
-                ApiResponse.ok("Đăng nhập thành công", tokens)
+                ApiResponse.ok(CommonResponseMessage.LOGIN_SUCCESS, tokens)
         );
     }
 
+    // Refresh token
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> refreshToken(
-            @RequestBody Map<String, String> request) throws Exception {
+            @RequestBody RefreshTokenRequest request) throws Exception {
 
         AuthTokenResponse tokens = authService.refreshToken(
-                request.get("refreshToken")
+                request.getRefreshToken()
         );
 
         return ResponseEntity.ok(
-                ApiResponse.ok("Refresh token thành công", tokens)
+                ApiResponse.ok(CommonResponseMessage.REFRESH_TOKEN_SUCCESS, tokens)
         );
     }
 
     // Xử lý tạo tài khoản
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthTokenResponse>> createUser(
-            @Valid @RequestBody UserDTO userDTO) throws Exception {
+            @Valid @RequestBody UserRegisterRequest request) throws Exception {
 
-        // Kiểm tra mật khẩu nhập lại
-        if (!userDTO.getPassword().equals(userDTO.getRetypePassword())) {
-            return ResponseEntity.badRequest()
-                    .body(
-                            ApiResponse.fail(
-                                    "PASSWORD_MISMATCH",
-                                    "Mật khẩu nhập lại không khớp"
-                            )
-                    );
-        }
-
-        AuthTokenResponse tokens = authService.createUser(userDTO);
+        AuthTokenResponse tokens = authService.createUser(request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(
                         ApiResponse.created(
-                                "Tạo tài khoản thành công",
+                                CommonResponseMessage.CREATE_ACCOUNT_SUCCESS,
                                 tokens
                         )
                 );
     }
 
+    // Gửi otp
     @PostMapping("/send-otp")
     public ResponseEntity<ApiResponse<Void>> sendOtp(
-            @RequestBody UserLoginDTO userLoginDTO) {
+            @Valid @RequestBody SendOtpRequest request) {
 
         authService.sendOtpEmail(
-                userLoginDTO.getEmail()
+                request.getEmail()
         );
 
         return ResponseEntity.ok(
                 ApiResponse.ok(
-                        "OTP đã được gửi",
+                        CommonResponseMessage.SEND_OTP_SUCCESS,
                         null
                 )
         );
     }
 
+    // Xác nhận otp
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<Void>> verifyOtp(
-            @RequestBody OtpDTO req) {
+            @Valid @RequestBody VerifyOtpRequest request) {
 
         authService.verifyOtpAndSendNewPassword(
-                req.getEmail(),
-                req.getOtp()
+                request.getEmail(),
+                request.getOtp()
         );
 
         return ResponseEntity.ok(
                 ApiResponse.ok(
-                        "OTP đúng. Mật khẩu mới đã được gửi về email",
+                        CommonResponseMessage.VERIFY_OTP_SUCCESS,
                         null
                 )
         );
     }
 
+    // Đổi mật khẩu
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(
-            @RequestBody ResetPasswordDTO resetPasswordDTO,
+            @Valid @RequestBody ResetPasswordRequest resetPasswordRequest,
             Authentication authentication) throws Exception {
 
         UserEntity userEntity =
@@ -125,14 +119,14 @@ public class AuthController {
 
         authService.resetPassword(
                 userEntity.getEmail(),
-                resetPasswordDTO.getCurrentPassword(),
-                resetPasswordDTO.getNewPassword(),
-                resetPasswordDTO.getConfirmPassword()
+                resetPasswordRequest.getCurrentPassword(),
+                resetPasswordRequest.getNewPassword(),
+                resetPasswordRequest.getConfirmPassword()
         );
 
         return ResponseEntity.ok(
                 ApiResponse.ok(
-                        "Đổi mật khẩu thành công",
+                        CommonResponseMessage.RESET_PASSWORD_SUCCESS,
                         null
                 )
         );

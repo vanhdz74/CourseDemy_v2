@@ -1,6 +1,6 @@
 package com.coursedemy.gateway.service;
 
-import com.coursedemy.gateway.dto.UserDTO;
+import com.coursedemy.gateway.dto.request.UserRegisterRequest;
 import com.coursedemy.gateway.dto.response.AuthTokenResponse;
 import org.springframework.stereotype.Service;
 
@@ -10,7 +10,7 @@ public interface AuthService {
 
     AuthTokenResponse refreshToken(String refreshToken) throws Exception;
 
-    AuthTokenResponse createUser(UserDTO userDTO) throws Exception;
+    AuthTokenResponse createUser(UserRegisterRequest request) throws Exception;
 
     void sendOtpEmail(String email);
 

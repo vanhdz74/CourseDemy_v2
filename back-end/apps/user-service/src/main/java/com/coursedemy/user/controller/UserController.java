@@ -20,12 +20,6 @@ public class UserController {
 
     private final UserService userService;
 
-    //
-    @GetMapping("/")
-    public ResponseEntity<ApiResponse<String>> hello() {
-        return ResponseEntity.ok(ApiResponse.ok("hello"));
-    }
-
     // GET: lấy toàn bộ users
     @GetMapping("/user/all")
     public ResponseEntity<ApiResponse<List<UserDTO>>> getAllUsers() {

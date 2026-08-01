@@ -2,21 +2,18 @@ package com.coursedemy.gateway.service.impl;
 
 import com.coursedemy.gateway.util.JwtTokenUtil;
 import com.coursedemy.gateway.util.OtpStorage;
-import com.coursedemy.gateway.dto.UserDTO;
+import com.coursedemy.gateway.dto.request.UserRegisterRequest;
 import com.coursedemy.gateway.dto.response.AuthTokenResponse;
 import com.coursedemy.gateway.entity.RoleEntity;
 import com.coursedemy.gateway.entity.UserEntity;
 import com.coursedemy.common.exception.BusinessException;
-import com.coursedemy.common.exception.DataNotFoundException;
 import com.coursedemy.common.exception.ErrorCode;
-import com.coursedemy.common.exception.PermissionDenyException;
 import com.coursedemy.gateway.repository.AuthRepository;
 import com.coursedemy.gateway.repository.RoleRepository;
 import com.coursedemy.gateway.repository.UserRepository;
 import com.coursedemy.gateway.service.AuthService;
 import com.coursedemy.gateway.service.MailService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -55,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
 
         // giải mã và so sánh
         if (!passwordEncoder.matches(rawPassword, existingUser.getPassword())) {
-            throw new BadCredentialsException(ErrorCode.INVALID_CREDENTIALS.getMessage());
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
 //        }
@@ -106,9 +103,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthTokenResponse createUser(UserDTO userDTO) throws Exception {
+    public AuthTokenResponse createUser(UserRegisterRequest request) throws Exception {
+        if (!Objects.equals(request.getPassword(), request.getRetypePassword())) {
+            throw new BusinessException(ErrorCode.PASSWORD_MISMATCH);
+        }
+
         //register user
-        String email = userDTO.getEmail();
+        String email = request.getEmail();
 
         // Kiểm tra xem email đã tồn tại hay chưa
         if (authRepository.existsByEmail(email)) {
@@ -116,32 +117,32 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Chọn vai trò
-        RoleEntity roleEntity = roleRepository.findByRoleName(userDTO.getRole().toUpperCase())
+        RoleEntity roleEntity = roleRepository.findByRoleName(request.getRole().toUpperCase())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROLE_NOT_FOUND));
 
         if (roleEntity.getRoleName().toUpperCase().equals(RoleEntity.ADMIN)) {
             throw new BusinessException(ErrorCode.ADMIN_REGISTER_DENIED);
         }
 
-        String rawPassword = userDTO.getPassword();
+        String rawPassword = request.getPassword();
 
-        // Convert from userDTO => userEntity sử dụng builder pattern
+        // Convert from request => userEntity sử dụng builder pattern
         UserEntity newUser = UserEntity.builder()
-                .username(userDTO.getUsername())
-                .email(userDTO.getEmail())
+                .username(request.getUsername())
+                .email(request.getEmail())
                 .password(passwordEncoder.encode(rawPassword))
-                .phoneNumber(userDTO.getPhoneNumber())
-                .avatarUrl(userDTO.getAvatarUrl())
+                .phoneNumber(request.getPhoneNumber())
+                .avatarUrl(request.getAvatarUrl())
                 .isActive(1)
-//                .facebookAccountId(userDTO.getFacebookAccountId())
-//                .googleAccountId(userDTO.getGoogleAccountId())
+//                .facebookAccountId(request.getFacebookAccountId())
+//                .googleAccountId(request.getGoogleAccountId())
 
                 .build();
 
         newUser.setRoleEntity(roleEntity);
 
         // Kiểm tra nếu có accountId, không yêu cầu password
-        if (userDTO.getFacebookAccountId() == 0 && userDTO.getGoogleAccountId() == 0) {
+        if (request.getFacebookAccountId() == 0 && request.getGoogleAccountId() == 0) {
 
             String encodedPassword = passwordEncoder.encode(rawPassword); // Mã hoá pw
             newUser.setPassword(encodedPassword);
@@ -178,15 +179,15 @@ public class AuthServiceImpl implements AuthService {
         String storedOtp = otpStorage.getOtp(email);
 
         if (storedOtp == null) {
-            throw new RuntimeException("OTP đã hết hạn hoặc không tồn tại");
+            throw new BusinessException(ErrorCode.OTP_EXPIRED_OR_NOT_FOUND);
         }
 
         if (!storedOtp.equals(otp)) {
-            throw new RuntimeException("OTP sai");
+            throw new BusinessException(ErrorCode.INVALID_OTP);
         }
 
         UserEntity user = authRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.EMAIL_NOT_FOUND));
 
         String newPassword = generateRandomPassword();
 
@@ -210,14 +211,14 @@ public class AuthServiceImpl implements AuthService {
 
         UserEntity user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new Exception("Người dùng không tồn tại");
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
         String rawCurrentPassword = curPassword;
 
         // Check mật khẩu hiện tại
         if (!passwordEncoder.matches(rawCurrentPassword, user.getPassword())) {
-            throw new Exception("Mật khẩu hiện tại nhập vào sai");
+            throw new BusinessException(ErrorCode.CURRENT_PASSWORD_INCORRECT);
         }
 
         String rawNewPassword = password;
@@ -225,12 +226,12 @@ public class AuthServiceImpl implements AuthService {
 
         // Check nhập lại
         if (!rawNewPassword.equals(rawRetypePassword)) {
-            throw new BadCredentialsException("Mật khẩu không trùng nhau");
+            throw new BusinessException(ErrorCode.PASSWORD_MISMATCH);
         }
 
         // Không cho trùng mật khẩu cũ
         if (passwordEncoder.matches(rawNewPassword, user.getPassword())) {
-            throw new Exception("Mật khẩu mới không được trùng với mật khẩu cũ");
+            throw new BusinessException(ErrorCode.NEW_PASSWORD_SAME_AS_OLD);
         }
 
         // Encode & lưu mật khẩu mới

@@ -1,5 +1,6 @@
 package com.coursedemy.gateway.dto.response;
 
+import com.coursedemy.common.constant.CommonResponseMessage;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,7 +42,7 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .success(true)
                 .status(200)
-                .message("Lấy dữ liệu thành công")
+                .message(CommonResponseMessage.GET_DATA_SUCCESS)
                 .data(data)
                 .timestamp(Instant.now())
                 .build();
