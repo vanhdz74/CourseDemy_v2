@@ -1,0 +1,15 @@
+{
+  "extends": "../../tooling/typescript/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "paths": {
+      "@repo/contracts": [
+        "../contracts/src"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

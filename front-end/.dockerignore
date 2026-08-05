@@ -3,8 +3,10 @@ Dockerfile
 .env
 .env.*
 node_modules
+apps/*/node_modules
 npm-debug.log
 README.md
 .next
+apps/*/.next
 .git
 tsconfig.tsbuildinfo
