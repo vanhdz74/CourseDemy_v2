@@ -1,0 +1,18 @@
+{
+  "name": "coursedemy-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @coursedemy/web",
+    "build": "npm run build -w @coursedemy/web",
+    "start": "npm run start -w @coursedemy/web",
+    "lint": "npm run lint -w @coursedemy/web"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.101.4"
+  }
+}
