@@ -1,0 +1,21 @@
+server:
+  port: ${SERVER_PORT:8086}
+
+spring:
+  application:
+    name: payment-service
+  config:
+    import:
+      - optional:file:../../.env[.properties]
+      - optional:file:.env[.properties]
+      - optional:classpath:coursedemy-common.yml
+  datasource:
+    url: ${PAYMENT_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${PAYMENT_SERVICE_DB_NAME:payment_service_db}}
+    username: ${PAYMENT_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
+    password: ${PAYMENT_SERVICE_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 6000

@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres-CourseDemy
+    restart: always
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${DB_USERNAME:-${SPRING_DATASOURCE_USERNAME:-postgres}}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-${SPRING_DATASOURCE_PASSWORD:-postgres}}
+      GATEWAY_SERVICE_DB_NAME: ${GATEWAY_SERVICE_DB_NAME:-gateway_service_db}
+      USER_SERVICE_DB_NAME: ${USER_SERVICE_DB_NAME:-user_service_db}
+      COURSE_SERVICE_DB_NAME: ${COURSE_SERVICE_DB_NAME:-course_service_db}
+      ORDER_SERVICE_DB_NAME: ${ORDER_SERVICE_DB_NAME:-order_service_db}
+      PAYMENT_SERVICE_DB_NAME: ${PAYMENT_SERVICE_DB_NAME:-payment_service_db}
+      ENROLLMENT_SERVICE_DB_NAME: ${ENROLLMENT_SERVICE_DB_NAME:-enrollment_service_db}
+      NOTIFICATION_SERVICE_DB_NAME: ${NOTIFICATION_SERVICE_DB_NAME:-notification_service_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    networks:
+      - spring-microservice
+
+  redis:
+    image: redis:7.2
+    container_name: redis-CourseDemy
+    restart: always
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - spring-microservice
+volumes:
+  postgres_data:
+  redis_data:
+networks:
+  spring-microservice:
+    driver: bridge
