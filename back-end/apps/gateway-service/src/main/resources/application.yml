@@ -4,18 +4,25 @@ server:
 spring:
   application:
     name: gateway-service
+  config:
+    import:
+      - optional:file:../../.env[.properties]
+      - optional:file:.env[.properties]
   main:
     web-application-type: reactive
   datasource:
-    url: jdbc:postgresql://localhost:5432/auth_coursedemy_db
-    username: postgres
-    password: hieuit07
+    url: ${GATEWAY_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${GATEWAY_SERVICE_DB_NAME:gateway_service_db}}
+    username: ${GATEWAY_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
+    password: ${GATEWAY_SERVICE_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}}
 
   jpa:
+    show-sql: ${JPA_SHOW_SQL:true}
     hibernate:
-      ddl-auto: update
-
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
 
   mail:
     host: smtp.gmail.com
@@ -32,8 +39,10 @@ spring:
             enable: true
   data:
     redis:
-      host: localhost
-      port: 6380
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:}
+      timeout: 6000
 
   cloud:
     gateway:

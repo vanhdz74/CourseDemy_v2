@@ -5,15 +5,17 @@ spring:
   application:
     name: COURSE-SERVICE
   config:
-    import: optional:file:.env[.properties]
+    import:
+      - optional:file:../../.env[.properties]
+      - optional:file:.env[.properties]
   autoconfigure: #tắt spring security
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:course_coursedemy_db}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:hieuit07}
+    url: ${COURSE_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${COURSE_SERVICE_DB_NAME:course_service_db}}
+    username: ${COURSE_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
+    password: ${COURSE_SERVICE_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}}
   jpa:
     show-sql: ${JPA_SHOW_SQL:true}
     hibernate:
