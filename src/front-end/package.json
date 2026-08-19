@@ -11,8 +11,5 @@
     "build": "npm run build -w @coursedemy/web",
     "start": "npm run start -w @coursedemy/web",
     "lint": "npm run lint -w @coursedemy/web"
-  },
-  "dependencies": {
-    "@tanstack/react-query": "^5.101.4"
   }
 }

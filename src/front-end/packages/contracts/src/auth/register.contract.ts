@@ -6,7 +6,7 @@ export const RegisterSchema = z.object({
   password: z.string().min(1),
   retype_password: z.string().min(1),
   role: z.string(),
-  is_active: z.number(),
+  is_active: z.number().optional(),
 });
 
 export type RegisterPayload = z.infer<typeof RegisterSchema>;

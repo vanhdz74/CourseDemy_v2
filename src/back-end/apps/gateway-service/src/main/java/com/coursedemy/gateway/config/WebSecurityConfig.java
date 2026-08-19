@@ -4,6 +4,7 @@ import com.coursedemy.gateway.filter.JwtTokenFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -25,6 +26,14 @@ public class WebSecurityConfig {
 
                 .csrf(
                         ServerHttpSecurity.CsrfSpec::disable
+                )
+
+                .httpBasic(
+                        ServerHttpSecurity.HttpBasicSpec::disable
+                )
+
+                .formLogin(
+                        ServerHttpSecurity.FormLoginSpec::disable
                 )
 
                 // =================================================
@@ -52,9 +61,14 @@ public class WebSecurityConfig {
                         .permitAll()
 
                         .pathMatchers(
+                                HttpMethod.GET,
+                                "/categories",
                                 "/categories/**",
-//                                "/course/**",
-
+                                "/course/search",
+                                "/course/category/**",
+                                "/course/course-detail/**",
+                                "/course/revenue/top-courses",
+                                "/course/*",
                                 "/public/**",
                                 "/reviews/**"
                         )

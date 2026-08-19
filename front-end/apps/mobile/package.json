@@ -1,8 +1,0 @@
-{
-  "name": "@coursedemy/mobile",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "echo \"Mobile app is not configured yet\""
-  }
-}

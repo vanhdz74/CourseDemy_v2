@@ -13,6 +13,7 @@ import { queryKeys } from "@repo/api";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AlertCircle, SearchX } from "lucide-react";
 import { Skeleton } from "@/modules/shared/components/ui/skeleton";
+import { useI18n } from "@/modules/shared/i18n";
 
 interface CourseDisplayProps {
   apiUrl: string;
@@ -25,6 +26,7 @@ function getSearchParams(apiUrl: string, page: number) {
 }
 
 const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -56,13 +58,11 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
   const courses = data?.courses ?? [];
   const totalPages = data?.totalPages ?? 1;
 
-  //  khi keyword thay đổi thì page = 1, quay lại trang đầu
   useEffect(() => {
     setCurrentPage((page) => (page === 1 ? page : 1));
   }, [filterParams]);
 
   useEffect(() => {
-    // Cập nhật URL nhưng không reload router
     const params = new URLSearchParams(searchParams.toString());
     params.set("p", currentPage.toString());
     const nextQuery = params.toString();
@@ -71,7 +71,6 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
       router.replace(`?${nextQuery}`, { scroll: false });
     }
 
-    // Cuộn mượt lên đầu trang
     if (Number(searchParams.get("p")) !== currentPage) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -83,9 +82,11 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
-            <p className="font-semibold">Không thể tải danh sách khóa học</p>
+            <p className="font-semibold">{t("courses.loadErrorTitle")}</p>
             <p className="mt-1 text-sm text-red-600">
-              {error instanceof Error ? error.message : "Vui lòng thử lại sau."}
+              {error instanceof Error
+                ? error.message
+                : t("courses.loadErrorDescription")}
             </p>
           </div>
         </div>
@@ -131,7 +132,7 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
                 <CourseCard
                   img=""
                   key={course.id}
-                  id={course.id} // phải có id để link tới khoá học
+                  id={course.id}
                   course_img={course.course_img}
                   title={course.title}
                   description={course.description}
@@ -140,7 +141,7 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
                   update_at={dayjs(String(course.update_at)).format(
                     "DD/MM/YYYY HH:mm"
                   )}
-                  beginLessonId={1} // tìm id đầu tiên xh của khoá học -> là bài đầu tiên
+                  beginLessonId={1}
                 />
               ))}
             </motion.div>
@@ -154,11 +155,10 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
             >
               <SearchX className="h-10 w-10 text-slate-400" />
               <h2 className="mt-4 text-lg font-semibold text-slate-950">
-                Không tìm thấy khóa học phù hợp
+                {t("courses.emptyTitle")}
               </h2>
               <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-                Thử thay đổi từ khóa tìm kiếm hoặc chọn một danh mục khác để
-                xem thêm khóa học.
+                {t("courses.emptyDescription")}
               </p>
             </motion.div>
           )}

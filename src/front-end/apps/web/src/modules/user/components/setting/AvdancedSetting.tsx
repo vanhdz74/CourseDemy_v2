@@ -12,15 +12,15 @@ import {
 } from "@/modules/shared/components/ui/select";
 import { Zap } from "lucide-react";
 import { getAdvancedSettings } from "@repo/api";
+import { useI18n, type Locale } from "@/modules/shared/i18n";
 
 export default function AdvancedSetting() {
-  const [language, setLanguage] = useState("vi");
+  const { locale, setLocale, t } = useI18n();
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     async function fetchAdvanced() {
       const json = await getAdvancedSettings();
-      setLanguage(json.language);
       setItemsPerPage(json.itemsPerPage);
     }
     fetchAdvanced();
@@ -30,31 +30,29 @@ export default function AdvancedSetting() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Zap size={18} /> Advanced
+          <Zap size={18} /> {t("settings.advanced")}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <div>
-          <Label className="mb-2">Language</Label>
-          <Select value={language} onValueChange={setLanguage}>
+          <Label className="mb-2">{t("language.label")}</Label>
+          <Select
+            value={locale}
+            onValueChange={(value) => setLocale(value as Locale)}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Select a language" />
+              <SelectValue placeholder={t("settings.selectLanguage")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="vi">Tiếng Việt</SelectItem>
-              <SelectItem value="en" disabled>
-                English
-              </SelectItem>
-              <SelectItem value="jp" disabled>
-                日本語
-              </SelectItem>
+              <SelectItem value="vi">{t("language.vietnamese")}</SelectItem>
+              <SelectItem value="en">{t("language.english")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div>
-          <Label className="mb-2">Items per page</Label>
+          <Label className="mb-2">{t("settings.itemsPerPage")}</Label>
           <input
             type="range"
             min={5}
@@ -63,7 +61,7 @@ export default function AdvancedSetting() {
             onChange={(e) => setItemsPerPage(Number(e.target.value))}
           />
           <div className="text-sm text-muted-foreground">
-            {itemsPerPage} items per page
+            {t("settings.itemsPerPageValue", { count: itemsPerPage })}
           </div>
         </div>
       </CardContent>

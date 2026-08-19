@@ -9,8 +9,10 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/modules/shared/components/ui/carousel";
+import { useI18n } from "@/modules/shared/i18n";
 
 const CarouselPage = () => {
+  const { t } = useI18n();
   const images = [
     "/images/banner/banner1.png",
     "/images/banner/banner2.png",
@@ -67,8 +69,7 @@ const CarouselPage = () => {
       {/* ================= TRUSTED BY ================= */}
       <div className="mx-auto mt-12 max-w-5xl">
         <h3 className="mb-8 text-center text-sm font-medium leading-6 text-slate-500">
-          Được hơn 17.000 công ty và hàng triệu học viên trên khắp thế giới tin
-          dùng
+          {t("home.trustedBy")}
         </h3>
 
         <div className="grid grid-cols-2 place-items-center gap-6 md:grid-cols-4">

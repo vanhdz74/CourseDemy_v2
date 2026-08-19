@@ -7,9 +7,11 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@repo/api";
 import { queryKeys } from "@repo/api";
+import { useI18n } from "@/modules/shared/i18n";
 
 const Categories = () => {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   // clear localStorage khi về home
   useEffect(() => {
@@ -36,10 +38,10 @@ const Categories = () => {
     <section className="pt-10">
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold tracking-tight text-slate-950">
-          Danh mục khóa học
+          {t("home.categoriesTitle")}
         </h2>
         <p className="max-w-2xl text-sm leading-6 text-slate-600">
-          Chọn lĩnh vực bạn quan tâm để tìm nhanh các khóa học phù hợp.
+          {t("home.categoriesDescription")}
         </p>
       </div>
 
@@ -53,11 +55,11 @@ const Categories = () => {
           ))
         ) : error ? (
           <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-            Không thể tải danh mục
+            {t("home.categoriesError")}
           </div>
         ) : categories?.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            Chưa có danh mục nào
+            {t("home.categoriesEmpty")}
           </p>
         ) : (
           categories.map((cat) => (

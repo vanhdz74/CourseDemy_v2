@@ -95,7 +95,7 @@ const CartItemDisplay = () => {
       JSON.stringify(selectedCourses)
     );
     localStorage.setItem(CHECKOUT_ITEMS_STORAGE_KEY, JSON.stringify(selectedItems));
-    router.push("/checkout");
+    router.push("/payment/checkout");
   };
 
   const total = cartItems

@@ -10,7 +10,7 @@ spring:
       - optional:file:.env[.properties]
       - optional:classpath:coursedemy-common.yml
   datasource:
-    url: ${ENROLLMENT_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${ENROLLMENT_SERVICE_DB_NAME:enrollment_service_db}}
+    url: ${ENROLLMENT_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:postgres}?sslmode=${DB_SSLMODE:disable}&currentSchema=${ENROLLMENT_SERVICE_DB_NAME:enrollment_service_db}}
     username: ${ENROLLMENT_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
     password: ${ENROLLMENT_SERVICE_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}}
   data:

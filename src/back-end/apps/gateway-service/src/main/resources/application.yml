@@ -4,25 +4,33 @@ server:
 spring:
   application:
     name: gateway-service
+  config:
+    import:
+      - optional:file:../../.env[.properties]
+      - optional:file:.env[.properties]
   main:
     web-application-type: reactive
   datasource:
-    # jdbc:postgresql://db.xkqcwcedmyflwwngmtcy.supabase.co:5432/postgres?user=postgres&password=[YOUR-PASSWORD]
-    url: jdbc:postgresql://db.xkqcwcedmyflwwngmtcy.supabase.co:5432/auth_coursedemy_db
-    username: postgres
-    password: 1234
+    url: ${GATEWAY_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:postgres}?sslmode=${DB_SSLMODE:disable}&currentSchema=${GATEWAY_SERVICE_DB_NAME:auth_service_db}}
+    username: ${GATEWAY_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
+    password: ${GATEWAY_SERVICE_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}}
 
   jpa:
+    show-sql: ${JPA_SHOW_SQL:true}
     hibernate:
-      ddl-auto: update
-
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    #    username: vanhnekdungso74@gmail.com
+    #    password: odbv zeup ignq lagi
+    username: ${MAIL_USERNAME:hieeusbs05@gmail.com}
+    password: ${MAIL_PASSWORD:xlgvamvkrwuattsc}
     properties:
       mail:
         smtp:
@@ -31,46 +39,51 @@ spring:
             enable: true
   data:
     redis:
-      host: localhost
-      port: 6380
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:}
+      timeout: 6000
 
   cloud:
     gateway:
-      routes:
-        - id: user-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/user/**,/courses/**
+      server:
+        webflux:
+          routes:
 
-        - id: course-service
-          uri: lb://COURSE-SERVICE
-          predicates:
-            - Path=/course/**,/categories,/lesson/**,/sublessons/**,/category/**,/revenue-categories,/sublesson/**
+            - id: user-service
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/user/**,/courses/**
 
-        - id: cart-service
-          uri: lb://CART-SERVICE
-          predicates:
-            - Path=/cart/**
+            - id: course-service
+              uri: lb://COURSE-SERVICE
+              predicates:
+                - Path=/course/**,/categories,/lesson/**,/sublessons/**,/category/**,/revenue-categories,/sublesson/**
 
-        - id: order-service
-          uri: lb://ORDER-SERVICE
-          predicates:
-            - Path=/orders/**
+            - id: cart-service
+              uri: lb://CART-SERVICE
+              predicates:
+                - Path=/cart/**
 
-        - id: payment-service
-          uri: lb://PAYMENT-SERVICE
-          predicates:
-            - Path=/payments/**
+            - id: order-service
+              uri: lb://ORDER-SERVICE
+              predicates:
+                - Path=/orders/**
 
-        - id: enrollment-service
-          uri: lb://ENROLLMENT-SERVICE
-          predicates:
-            - Path=/enrollments/**
+            - id: payment-service
+              uri: lb://PAYMENT-SERVICE
+              predicates:
+                - Path=/payments/**
 
-        - id: notification-service
-          uri: lb://NOTIFICATION-SERVICE
-          predicates:
-            - Path=/notifications/**
+            - id: enrollment-service
+              uri: lb://ENROLLMENT-SERVICE
+              predicates:
+                - Path=/enrollments/**
+
+            - id: notification-service
+              uri: lb://NOTIFICATION-SERVICE
+              predicates:
+                - Path=/notifications/**
 eureka:
   client:
     service-url:

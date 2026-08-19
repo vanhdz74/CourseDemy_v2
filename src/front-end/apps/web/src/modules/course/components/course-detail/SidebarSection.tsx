@@ -109,7 +109,7 @@ export const SidebarSection: React.FC<{
   };
 
   const handleGoToCourse = () => {
-    router.push(`/course/${slugify(course.title)}/lectures/${1}/edit/0`);
+    router.push(`/course/${slugify(course.title)}/${1}/edit/0`);
   };
 
   const goToPayment = () => {
@@ -120,7 +120,7 @@ export const SidebarSection: React.FC<{
       JSON.stringify(courseIds)
     );
     localStorage.setItem(CHECKOUT_ITEMS_STORAGE_KEY, JSON.stringify([course]));
-    router.push("/checkout");
+    router.push("/payment/checkout");
   };
 
   return (

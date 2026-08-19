@@ -60,9 +60,8 @@ export function isStatisticsQuery(query: string): boolean {
 export async function getWebsiteStatistics(): Promise<WebsiteStatistics | null> {
   try {
     // Gọi song song các API để lấy dữ liệu
-    const [usersResponse, coursesResponse, categoriesResponse] = await Promise.all([
-      fetch(`${API_URL}/user/all`).catch(() => null),
-      fetch(`${API_URL}/courses/search`).catch(() => null),
+    const [coursesResponse, categoriesResponse] = await Promise.all([
+      fetch(`${API_URL}/course/search`).catch(() => null),
       fetch(`${API_URL}/categories`).catch(() => null),
     ]);
 
@@ -73,42 +72,6 @@ export async function getWebsiteStatistics(): Promise<WebsiteStatistics | null> 
     let categories: CategoryInfo[] = [];
     let teachers: UserInfo[] = [];
     let students: UserInfo[] = [];
-
-    // Xử lý users - đếm theo role và lấy danh sách chi tiết
-    if (usersResponse && usersResponse.ok) {
-      const users = unwrapApiResponse<Record<string, unknown>[]>(await usersResponse.json());
-      if (Array.isArray(users)) {
-        // Lọc học viên (role = STUDENT hoặc role_id = 3)
-        const studentsList = users.filter(
-          (u: Record<string, unknown>) => 
-            (u.role as string)?.toLowerCase() === 'student' || 
-            (u.role_name as string)?.toLowerCase() === 'student' || 
-            (u.role_id as number) === 3
-        );
-        totalStudents = studentsList.length;
-        students = studentsList.map((u: Record<string, unknown>) => ({
-          id: u.id as number,
-          username: (u.username as string) || 'Chưa có tên',
-          email: (u.email as string) || '',
-          avatar_url: u.avatar_url as string,
-        }));
-
-        // Lọc giảng viên (role = TEACHER hoặc role_id = 2)
-        const teachersList = users.filter(
-          (u: Record<string, unknown>) => 
-            (u.role as string)?.toLowerCase() === 'teacher' || 
-            (u.role_name as string)?.toLowerCase() === 'teacher' || 
-            (u.role_id as number) === 2
-        );
-        totalTeachers = teachersList.length;
-        teachers = teachersList.map((u: Record<string, unknown>) => ({
-          id: u.id as number,
-          username: (u.username as string) || 'Chưa có tên',
-          email: (u.email as string) || '',
-          avatar_url: u.avatar_url as string,
-        }));
-      }
-    }
 
     // Xử lý courses
     if (coursesResponse && coursesResponse.ok) {

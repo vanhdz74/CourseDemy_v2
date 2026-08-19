@@ -11,6 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/modules/shared/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/shared/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/modules/shared/components/ui/tooltip";
+import { ModeToggle } from "@/modules/shared/components/mode-toggle";
+import { LanguageSwitcher, useI18n } from "@/modules/shared/i18n";
 
 import { fetchCartThunk } from "@/modules/cart/store/cartThunk";
 import { useAppDispatch, useAppSelector } from "@/modules/shared/store/hooks";
@@ -18,6 +25,7 @@ import { useAppDispatch, useAppSelector } from "@/modules/shared/store/hooks";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BookOpen,
+  Github,
   LayoutDashboard,
   LogOut,
   Search,
@@ -31,6 +39,7 @@ import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 
 const MainHeader = () => {
+  const { t } = useI18n();
   const { data: session } = useSession();
   const user = session?.user;
   const dispatch = useAppDispatch();
@@ -103,7 +112,7 @@ const MainHeader = () => {
       >
         <Input
           type="text"
-          placeholder="Tìm khóa học, kỹ năng, giảng viên..."
+          placeholder={t("header.searchPlaceholder")}
           className="h-10 w-full rounded-full border-border bg-muted/60 pl-10 pr-4 text-sm shadow-none transition focus-visible:border-ring focus-visible:bg-background focus-visible:ring-ring/30"
           value={keyword}
           onChange={handleChange}
@@ -113,7 +122,40 @@ const MainHeader = () => {
 
       {/* Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* <ModeToggle /> */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <a
+              href="https://github.com/vanhdz74/CourseDemy_v2"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-primary/25 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              aria-label={t("header.openGithub")}
+            >
+              <Github className="h-4 w-4" />
+            </a>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={8}>{t("header.github")}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <LanguageSwitcher />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={8}>
+            {t("language.label")}
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <ModeToggle />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={8}>{t("theme.label")}</TooltipContent>
+        </Tooltip>
 
         {/* Nếu là học viên */}
         {user?.role === "STUDENT" ? (
@@ -121,7 +163,7 @@ const MainHeader = () => {
             <Link
               href="/cart"
               className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-primary/25 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
-              aria-label="Giỏ hàng"
+              aria-label={t("header.cart")}
             >
               <ShoppingCart className="h-4 w-4" />
 
@@ -136,16 +178,16 @@ const MainHeader = () => {
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger className="inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35">
                   <BookOpen className="h-4 w-4" />
-                  Khoá học của tôi
+                  {t("header.myCourses")}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   className="mt-3 w-56 rounded-xl border-border p-2 shadow-lg"
                   align="end"
                 >
-                  <DropdownMenuLabel>Khoá học của tôi</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("header.myCourses")}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
-                    <Link href="/student/my-courses">Xem tất cả</Link>
+                    <Link href="/student/my-course">{t("common.viewAll")}</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -153,9 +195,9 @@ const MainHeader = () => {
           </>
         ) : user?.role === "TEACHER" || user?.role === "ADMIN" ? (
           <Button asChild className="rounded-full">
-            <Link href="/classes">
+            <Link href={`/user-class`}>
               <LayoutDashboard className="mr-2 h-4 w-4" />
-              Trang điều khiển
+              {t("header.dashboard")}
             </Link>
           </Button>
         ) : null}
@@ -164,14 +206,14 @@ const MainHeader = () => {
         {!user ? (
           <>
             <Button asChild className="rounded-full">
-              <Link href="/login">Đăng nhập</Link>
+              <Link href="/login">{t("header.login")}</Link>
             </Button>
             <Button
               asChild
               variant="outline"
               className="hidden rounded-full sm:inline-flex"
             >
-              <Link href="/register">Đăng ký</Link>
+              <Link href="/register">{t("header.register")}</Link>
             </Button>
           </>
         ) : (
@@ -208,9 +250,9 @@ const MainHeader = () => {
 
                 {user?.role === "STUDENT" && (
                   <DropdownMenuItem asChild>
-                    <Link href="/student/my-courses">
+                    <Link href="/student/my-course">
                       <BookOpen className="mr-2 h-4 w-4" />
-                      Khoá học của tôi
+                      {t("header.myCourses")}
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -218,12 +260,12 @@ const MainHeader = () => {
                 <DropdownMenuItem asChild>
                   <Link href={`/setting`}>
                     <UserRound className="mr-2 h-4 w-4" />
-                    Sửa thông tin cá nhân
+                    {t("header.profile")}
                   </Link>
                 </DropdownMenuItem>
 
                 {/* <DropdownMenuItem asChild>
-                  <Link href="/student/transactions">
+                  <Link href="/student/transaction-history">
                     Lịch sử giao dịch
                   </Link>
                 </DropdownMenuItem> */}
@@ -231,7 +273,7 @@ const MainHeader = () => {
                 <DropdownMenuItem asChild>
                   <Link href="/setting">
                     <Settings className="mr-2 h-4 w-4" />
-                    Cài đặt
+                    {t("common.settings")}
                   </Link>
                 </DropdownMenuItem>
 
@@ -239,7 +281,7 @@ const MainHeader = () => {
 
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  Đăng xuất
+                  {t("header.logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

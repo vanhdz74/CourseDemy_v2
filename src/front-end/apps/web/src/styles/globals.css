@@ -269,39 +269,6 @@
   }
 }
 
-@layer components {
-  .coursedemy-loader {
-    display: grid;
-    place-items: center;
-    padding: clamp(1.5rem, 4vw, 3rem);
-    background: var(--background);
-  }
-
-  .coursedemy-loader__logo {
-    width: 4.25rem;
-    height: 4.25rem;
-    display: grid;
-    place-items: center;
-    border-radius: 1.15rem;
-    background: var(--card);
-    box-shadow:
-      0 16px 34px color-mix(in oklab, var(--primary) 18%, transparent),
-      inset 0 0 0 1px var(--border);
-    animation: coursedemy-bounce 0.9s ease-in-out infinite;
-  }
-}
-
-@keyframes coursedemy-bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-0.8rem);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

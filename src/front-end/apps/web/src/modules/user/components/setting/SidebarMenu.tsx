@@ -3,6 +3,7 @@
 import React from "react";
 import { User, Bell, Lock, Sun, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useI18n } from "@/modules/shared/i18n";
 
 interface SidebarNavProps {
   active: string;
@@ -10,15 +11,16 @@ interface SidebarNavProps {
 }
 
 export default function SidebarNav({ active, onChange }: SidebarNavProps) {
+  const { t } = useI18n();
   const { data: session } = useSession();
   const user = session?.user;
 
   const menu = [
-    { key: "profile", label: "Hồ sơ", icon: User },
-    { key: "notification", label: "Thông báo", icon: Bell },
-    { key: "security", label: "Bảo mật", icon: Lock },
-    { key: "appearance", label: "Giao diện", icon: Sun },
-    { key: "advanced", label: "Nâng cao", icon: Zap },
+    { key: "profile", labelKey: "settings.profile", icon: User },
+    { key: "notification", labelKey: "settings.notification", icon: Bell },
+    { key: "security", labelKey: "settings.security", icon: Lock },
+    { key: "appearance", labelKey: "settings.appearance", icon: Sun },
+    { key: "advanced", labelKey: "settings.advanced", icon: Zap },
   ];
 
   return (
@@ -30,7 +32,7 @@ export default function SidebarNav({ active, onChange }: SidebarNavProps) {
         <div>
           <div className="font-medium">{user?.username}</div>
           <div className="text-sm text-muted-foreground">
-            Vai trò: {user?.role}
+            {t("settings.role", { role: user?.role || "" })}
           </div>
         </div>
       </div>
@@ -43,12 +45,12 @@ export default function SidebarNav({ active, onChange }: SidebarNavProps) {
           return (
             <button
               key={item.key}
-              onClick={() => onChange(item.key)} // Khi bấm gọi lên cha
+              onClick={() => onChange(item.key)}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-3
                 ${isActive ? "bg-gray-100 font-semibold" : "hover:bg-gray-50"}
               `}
             >
-              <Icon size={16} /> {item.label}
+              <Icon size={16} /> {t(item.labelKey)}
             </button>
           );
         })}

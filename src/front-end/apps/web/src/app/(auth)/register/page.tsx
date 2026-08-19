@@ -1,16 +1,18 @@
 "use client";
 
 import { SignupForm } from "@/modules/auth/components/form/signup-form";
-import AnimatedRectangles from "@/modules/auth/components/visuals/AnimatedRectangles";
+import AnimatedRectangles from "../login/AnimatedRectangles";
 import { register } from "@repo/api";
 import { isAxiosError } from "axios";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
+import { AuthCloseButton } from "@/modules/auth/components/auth-close-button";
+import { useI18n } from "@/modules/shared/i18n";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -26,7 +28,6 @@ export default function RegisterPage() {
     const payload = {
       ...data,
       role: "STUDENT",
-      is_active: 1,
     };
 
     try {
@@ -38,24 +39,22 @@ export default function RegisterPage() {
       });
 
       if (!result?.ok || result.error) {
-        setServerError(
-          "Đăng ký thành công nhưng chưa thể tự đăng nhập. Vui lòng đăng nhập lại."
-        );
+        setServerError(t("auth.registerAutoLoginFailed"));
         return;
       }
 
-      toast.success("Đăng ký và đăng nhập thành công!");
       router.refresh();
       router.push("/home");
     } catch (err: unknown) {
-      setServerError(getRegisterErrorMessage(err));
+      setServerError(getRegisterErrorMessage(err, t("auth.registerFailed")));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
+    <div className="relative grid min-h-svh lg:grid-cols-2">
+      <AuthCloseButton />
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
@@ -74,9 +73,9 @@ export default function RegisterPage() {
   );
 }
 
-function getRegisterErrorMessage(error: unknown) {
+function getRegisterErrorMessage(error: unknown, fallback: string) {
   if (!isAxiosError(error)) {
-    return error instanceof Error ? error.message : "Đăng ký thất bại";
+    return error instanceof Error ? error.message : fallback;
   }
 
   const data = error.response?.data as
@@ -90,5 +89,5 @@ function getRegisterErrorMessage(error: unknown) {
     return data.errors.join(", ");
   }
 
-  return data?.message || error.message || "Đăng ký thất bại";
+  return data?.message || error.message || fallback;
 }

@@ -8,7 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
 export async function searchCourses(keyword: string): Promise<CourseResult[]> {
   try {
     const response = await fetch(
-      `${API_URL}/courses/search?keyword=${encodeURIComponent(keyword)}`
+      `${API_URL}/course/search?keyword=${encodeURIComponent(keyword)}`
     );
 
     if (!response.ok) {
@@ -39,7 +39,7 @@ export async function searchCoursesByTeacher(teacherName: string): Promise<Cours
     // Lấy tất cả khóa học (không dùng keyword để tìm theo tên giảng viên)
     // vì API backend không hỗ trợ tìm theo teacher_name trong keyword
     const response = await fetch(
-      `${API_URL}/courses/search?page=0&size=100`
+      `${API_URL}/course/search?page=0&size=100`
     );
 
     if (!response.ok) {

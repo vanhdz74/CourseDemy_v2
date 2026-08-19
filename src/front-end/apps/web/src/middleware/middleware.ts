@@ -13,26 +13,18 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Nếu vào khu vực admin nhưng role != ADMIN
+  // Nếu vào admin dashboard nhưng role != ADMIN
   if (pathname.startsWith("/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Nếu vào khu vực teacher nhưng role != TEACHER
+  // Nếu vào teacher dashboard nhưng role != TEACHER
   if (pathname.startsWith("/teacher") && role !== "TEACHER") {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Nếu vào khu vực student nhưng role != STUDENT
+  // Nếu vào student dashboard nhưng role != STUDENT
   if (pathname.startsWith("/student") && role !== "STUDENT") {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  if (
-    (pathname.startsWith("/classes") || pathname.startsWith("/reports")) &&
-    role !== "ADMIN" &&
-    role !== "TEACHER"
-  ) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 

@@ -10,7 +10,7 @@ spring:
       - optional:file:.env[.properties]
       - optional:classpath:coursedemy-common.yml
   datasource:
-    url: ${ORDER_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${ORDER_SERVICE_DB_NAME:order_service_db}}
+    url: ${ORDER_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:postgres}?sslmode=${DB_SSLMODE:disable}&currentSchema=${ORDER_SERVICE_DB_NAME:order_service_db}}
     username: ${ORDER_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
     password: ${ORDER_SERVICE_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}}
   data:

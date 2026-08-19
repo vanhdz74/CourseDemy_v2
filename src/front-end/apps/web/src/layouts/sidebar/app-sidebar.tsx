@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/shared/components/ui/avatar";
 import { cn } from "@/modules/shared/lib/utils";
 import { useSession } from "next-auth/react";
+import { useI18n } from "@/modules/shared/i18n";
 
 const icons = {
   CalendarPlus,
@@ -37,45 +38,41 @@ const icons = {
 const sidebarData = {
   TEACHER: [
     {
-      title: "Xem thông tin học viên",
-      url: "/classes",
+      titleKey: "sidebar.viewStudents",
+      url: "/user-class",
       icon: "CalendarPlus",
     },
     {
-      title: "Quản lý khoá học",
-      url: "/teacher/courses",
+      titleKey: "sidebar.manageCourses",
+      url: "/teacher/my-courses",
       icon: "CalendarPlus",
     },
     {
-      title: "Thống kê doanh thu",
+      titleKey: "sidebar.revenueStats",
       url: "/teacher/revenue",
       icon: "LineChart",
     },
   ],
   ADMIN: [
-    { title: "Quản lý người dùng", url: "/admin/users", icon: "Users" },
-    { title: "Quản lý danh mục", url: "/admin/categories", icon: "Users" },
-    { title: "Quản lý khoá học", url: "/admin/courses", icon: "Library" },
-    { title: "Quản lý học viên", url: "/classes", icon: "UserCheck" },
-    // {
-    //   title: "Thống kê học viên",
-    //   url: "/reports/students",
-    //   icon: "BarChart3",
-    // },
+    { titleKey: "sidebar.manageUsers", url: "/admin/users", icon: "Users" },
+    { titleKey: "sidebar.manageCategories", url: "/admin/categories", icon: "Users" },
+    { titleKey: "sidebar.manageCourses", url: "/admin/courses", icon: "Library" },
+    { titleKey: "sidebar.manageStudents", url: "/user-class", icon: "UserCheck" },
     {
-      title: "Thống kê doanh thu",
-      url: "/reports/revenue",
+      titleKey: "sidebar.revenueStats",
+      url: "/statistics/revenue",
       icon: "LineChart",
     },
     {
-      title: "Quản lý thanh toán",
-      url: "/admin/payments",
+      titleKey: "sidebar.managePayments",
+      url: "/admin/payment_manager",
       icon: "CreditCard",
     },
   ],
 };
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const { t } = useI18n();
   const { data: session } = useSession();
   const user = session?.user;
 
@@ -111,7 +108,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               CourseDemy
             </span>
             <span className="block truncate text-xs text-muted-foreground">
-              Learning workspace
+              {t("header.workspace")}
             </span>
           </div>
         </div>
@@ -144,16 +141,17 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu className="space-y-1.5">
             {menuItems.map((item) => {
               const Icon = icons[item.icon as keyof typeof icons];
+              const title = t(item.titleKey);
               const selected =
                 typeof window !== "undefined" &&
-                localStorage.getItem("select") === item.title;
+                localStorage.getItem("select") === title;
 
               return (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton asChild>
                     <Link
                       href={item.url}
-                      onClick={() => localStorage.setItem("select", item.title)}
+                      onClick={() => localStorage.setItem("select", title)}
                       className={cn(
                         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
                         "text-sidebar-foreground/78 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -164,7 +162,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                     >
                       {Icon && <Icon className="h-4 w-4 shrink-0" />}
                       <span className="truncate group-data-[collapsible=icon]:hidden">
-                        {item.title}
+                        {title}
                       </span>
                     </Link>
                   </SidebarMenuButton>

@@ -6,8 +6,10 @@ import { Label } from "@/modules/shared/components/ui/label";
 import { Switch } from "@/modules/shared/components/ui/switch";
 import { Sun } from "lucide-react";
 import { getAppearanceSettings } from "@repo/api";
+import { useI18n } from "@/modules/shared/i18n";
 
 export default function AppearanceSetting() {
+  const { t } = useI18n();
   const [appearance, setAppearance] = useState("system");
   const [autoPlay, setAutoPlay] = useState(false);
 
@@ -24,13 +26,13 @@ export default function AppearanceSetting() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Sun size={18} /> Appearance
+          <Sun size={18} /> {t("settings.appearance")}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-3">
         <div>
-          <Label>Theme</Label>
+          <Label>{t("settings.theme")}</Label>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {["light", "dark", "system"].map((m) => (
               <button
@@ -40,17 +42,17 @@ export default function AppearanceSetting() {
                   appearance === m ? "ring-2 ring-indigo-300" : ""
                 }`}
               >
-                {m.charAt(0).toUpperCase() + m.slice(1)}
+                {t(`theme.${m}`)}
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <Label>Auto-play previews</Label>
+          <Label>{t("settings.autoplayPreviews")}</Label>
           <div className="flex items-center justify-between mt-2">
             <div className="text-sm text-muted-foreground">
-              Tự phát video/preview khi cuộn
+              {t("settings.autoplayPreviewsDescription")}
             </div>
             <Switch
               checked={autoPlay}

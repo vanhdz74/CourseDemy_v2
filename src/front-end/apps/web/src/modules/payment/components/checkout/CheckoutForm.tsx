@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useApi } from "@/modules/shared/hooks/useApi";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { useI18n } from "@/modules/shared/i18n";
 
 interface CheckoutFormProps {
   courseItems: Course[];
@@ -26,19 +27,19 @@ type ApiError = {
 };
 
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
+  const { t } = useI18n();
   const { post } = useApi();
   const { data: session } = useSession();
   const user = session?.user;
   const [paymentMethod, setPaymentMethod] = useState<string>("");
 
-  // Tổng giá trị đơn hàng
   const totalAmount = Array.isArray(courseItems)
     ? courseItems.reduce((sum, item) => sum + Number(item.price), 0)
     : 0;
 
   const handleSubmit = async () => {
     if (!paymentMethod) {
-      toast.error("Vui lòng chọn phương thức thanh toán!");
+      toast.error(t("checkout.selectPaymentMethod"));
       return;
     }
 
@@ -57,31 +58,31 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
       );
 
       if (!payment.paymentUrl) {
-        toast.error("Không nhận được đường dẫn thanh toán.");
+        toast.error(t("checkout.missingPaymentUrl"));
         return;
       }
 
-      toast.success("Chuyển hướng đến thanh toán");
+      toast.success(t("checkout.redirecting"));
       window.location.assign(payment.paymentUrl);
     } catch (error: unknown) {
       const apiError = error as ApiError;
       const msg =
         apiError.response?.data?.message ||
         apiError.response?.data?.error ||
-        "Đã có lỗi xảy ra!";
+        t("checkout.genericError");
       toast.error(msg);
     }
   };
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-6">Thanh toán khóa học</h2>
+      <h2 className="text-2xl font-semibold mb-6">{t("checkout.title")}</h2>
 
       <div className="md:flex md:gap-8">
         {/* Left: Payment Options */}
         <div className="md:flex-1 mb-6 md:mb-0">
           <div className="mb-6">
-            <h3 className="font-medium mb-2">Phương thức thanh toán</h3>
+            <h3 className="font-medium mb-2">{t("checkout.paymentMethod")}</h3>
             <div className="space-y-3">
               <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:border-blue-500">
                 <input
@@ -121,9 +122,8 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
             </div>
           </div>
 
-          {/* Thông tin khóa học */}
           <div className="mt-10">
-            <h3>Thông tin thanh toán ({courseItems.length})</h3>
+            <h3>{t("checkout.paymentInfo", { count: courseItems.length })}</h3>
             <hr />
             <div>
               {courseItems.map((item) => (
@@ -141,7 +141,11 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
                       </div>
                       <div>{item.title}</div>
                     </div>
-                    <div>{Number(item.price).toLocaleString()} VNĐ</div>
+                    <div>
+                      {t("common.vnd", {
+                        amount: Number(item.price).toLocaleString(),
+                      })}
+                    </div>
                   </div>
                   <hr />
                 </div>
@@ -152,17 +156,19 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
 
         {/* Right: Order Summary */}
         <div className="md:w-76 p-4 border rounded-lg bg-gray-50">
-          <h3 className="font-medium mb-4">Tóm tắt đơn hàng</h3>
+          <h3 className="font-medium mb-4">{t("checkout.orderSummary")}</h3>
           <hr />
           <div className="flex justify-between mb-10">
-            <span>Giá gốc: </span>
-            <span>{totalAmount.toLocaleString()} VNĐ</span>
+            <span>{t("checkout.originalPrice")} </span>
+            <span>
+              {t("common.vnd", { amount: totalAmount.toLocaleString() })}
+            </span>
           </div>
 
           <div className="text-sm text-[#848383] mx-auto mb-3">
-            Bằng việc hoàn tất giao dịch mua, bạn đồng ý với{" "}
+            {t("checkout.termsPrefix")}{" "}
             <Link href={"#"} className="text-blue-600">
-              Điều khoản dịch vụ
+              {t("checkout.terms")}
             </Link>
             .
           </div>
@@ -171,14 +177,15 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ courseItems }) => {
             onClick={handleSubmit}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-sm transition"
           >
-            Thanh toán {totalAmount.toLocaleString()} VNĐ
+            {t("checkout.pay", {
+              amount: t("common.vnd", { amount: totalAmount.toLocaleString() }),
+            })}
           </Button>
 
           <div className="text-center mt-10">
-            <h3 className="text-md">Đảm bảo hoàn tiền trong 30 ngày</h3>
+            <h3 className="text-md">{t("checkout.refundTitle")}</h3>
             <span className="text-sm">
-              Bạn không hài lòng? Nhận lại toàn bộ tiền trong vòng 30 ngày. Đơn
-              giản và dễ hiểu!
+              {t("checkout.refundDescription")}
             </span>
           </div>
         </div>

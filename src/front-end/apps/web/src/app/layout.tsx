@@ -8,6 +8,7 @@ import { Chatbot } from "@/modules/chatbot/components/Chatbot";
 import { Toaster } from "sonner";
 import { AuthSessionProvider } from "@/providers/auth-session-provider";
 import { ApiClientProvider } from "@/providers/api-client-provider";
+import { I18nProvider } from "@/modules/shared/i18n";
 
 export const metadata: Metadata = {
   icons: [
@@ -33,19 +34,25 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthSessionProvider>
-            <ApiClientProvider>
-              <ReduxProvider>
-                <QueryProvider>{children}</QueryProvider>
-                <Chatbot />
-                <Toaster
-                  richColors
-                  position="top-right"
-                  style={{ top: "70px" }}
-                />
-              </ReduxProvider>
-            </ApiClientProvider>
-          </AuthSessionProvider>
+          <I18nProvider>
+            <AuthSessionProvider>
+              <ApiClientProvider>
+                <ReduxProvider>
+                  <QueryProvider>{children}</QueryProvider>
+
+                  {/* Chat bot */}
+                  <Chatbot />
+
+                  {/* Toast */}
+                  <Toaster
+                    richColors
+                    position="top-right"
+                    style={{ top: "70px" }}
+                  />
+                </ReduxProvider>
+              </ApiClientProvider>
+            </AuthSessionProvider>
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>

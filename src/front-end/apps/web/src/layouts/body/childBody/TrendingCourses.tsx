@@ -5,6 +5,7 @@ import { Skeleton } from "@/modules/shared/components/ui/skeleton";
 import { api } from "@repo/api";
 import { queryKeys } from "@repo/api";
 import { useQuery } from "@tanstack/react-query";
+import { useI18n } from "@/modules/shared/i18n";
 
 const CourseSkeleton = () => (
   <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -22,24 +23,27 @@ const CourseSkeleton = () => (
 );
 
 const TrendingCourses = () => {
+  const { t } = useI18n();
   const {
-    data: topCourses,
+    data,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: queryKeys.courses.top,
-    queryFn: api.courses.getTopCourses,
+    queryKey: queryKeys.courses.search({ p: 1 }),
+    queryFn: () => api.courses.searchCourses({ p: 1 }),
   });
+
+  const courses = data?.courses.slice(0, 5) ?? [];
 
   return (
     <section id="trend" className="w-full py-12">
       <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-            Các khoá học đang thịnh hành
+            {t("home.trendingTitle")}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Những khóa học được nhiều học viên quan tâm và đăng ký gần đây.
+            {t("home.trendingDescription")}
           </p>
         </div>
       </div>
@@ -49,24 +53,24 @@ const TrendingCourses = () => {
           Array.from({ length: 5 }).map((_, i) => <CourseSkeleton key={i} />)
         ) : isError ? (
           <p className="col-span-full rounded-xl border border-red-100 bg-red-50 p-5 text-center text-sm text-red-600">
-            Có lỗi xảy ra khi tải dữ liệu
+            {t("home.trendingError")}
           </p>
-        ) : topCourses?.length === 0 ? (
+        ) : courses.length === 0 ? (
           <p className="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
-            Chưa có khoá học thịnh hành
+            {t("home.trendingEmpty")}
           </p>
         ) : (
-          topCourses?.map((item) => (
+          courses.map((course) => (
             <CardDes
-              key={item.course.id}
-              courseId={item.course.id}
-              img={item.course.course_img}
-              title={item.course.title}
-              description={item.course.description}
+              key={course.id}
+              courseId={course.id}
+              img={course.course_img}
+              title={course.title}
+              description={course.description}
               star={5}
-              money={Number(item.course.price)}
-              trending={`${item.students} học viên`}
-              students={item.course.quantity}
+              money={Number(course.price)}
+              trending={t("common.students", { count: course.quantity ?? 0 })}
+              students={course.quantity}
             />
           ))
         )}
