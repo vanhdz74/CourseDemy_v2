@@ -49,7 +49,8 @@ public class VnPayConfig {
         return sb.toString();
     }
 
-    // Tạo rawData để ký (CHUẨN VNPAY)
+    // Tạo rawData để ký (theo đúng code mẫu Java chính thức của VNPAY:
+    // sắp xếp key tăng dần, giá trị URL-encode trước khi HMAC-SHA512)
     public static String buildHashData(Map<String, String> fields) throws Exception {
         List<String> keys = new ArrayList<>(fields.keySet());
         Collections.sort(keys);
