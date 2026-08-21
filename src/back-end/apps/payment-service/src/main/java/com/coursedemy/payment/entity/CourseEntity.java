@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.Date;
-import java.util.List;
 
 @Getter
 @Setter
@@ -38,21 +37,6 @@ public class CourseEntity {
 
     @Column(name = "update_at")
     private Date updateAt;
-
-    // Quan he
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private CategoryEntity category;
-
-    @ManyToOne
-    @JoinColumn(name = "teacher_id")
-    private UserEntity user;
-
-    @OneToOne(mappedBy = "courseEntity", cascade = CascadeType.ALL)
-    private CourseImageEntity courseImageEntity;
-
-    @OneToOne(mappedBy = "courseEntity", cascade = CascadeType.ALL)
-    private CoursesDetailEntity coursesDetailEntity;
 
     @PrePersist
     protected void onCreate() {
