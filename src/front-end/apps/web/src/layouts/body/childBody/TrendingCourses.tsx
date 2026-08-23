@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/modules/shared/i18n";
 
 const CourseSkeleton = () => (
-  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+  <div className="overflow-hidden rounded-xl border border-border/80 bg-card">
     <Skeleton className="aspect-[16/10] w-full rounded-none" />
     <div className="space-y-3 p-4">
       <Skeleton className="h-5 w-4/5" />
@@ -33,30 +33,30 @@ const TrendingCourses = () => {
     queryFn: () => api.courses.searchCourses({ p: 1 }),
   });
 
-  const courses = data?.courses.slice(0, 5) ?? [];
+  const courses = data?.courses?.slice(0, 5) ?? [];
 
   return (
     <section id="trend" className="w-full py-12">
       <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {t("home.trendingTitle")}
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {t("home.trendingDescription")}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
         {isLoading ? (
           Array.from({ length: 5 }).map((_, i) => <CourseSkeleton key={i} />)
         ) : isError ? (
-          <p className="col-span-full rounded-xl border border-red-100 bg-red-50 p-5 text-center text-sm text-red-600">
+          <p className="col-span-full rounded-xl border border-destructive/20 bg-destructive/5 p-5 text-center text-sm text-destructive">
             {t("home.trendingError")}
           </p>
         ) : courses.length === 0 ? (
-          <p className="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
+          <p className="col-span-full rounded-xl border border-dashed border-border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
             {t("home.trendingEmpty")}
           </p>
         ) : (

@@ -155,8 +155,11 @@ public class GlobalExceptionHandler {
             RuntimeException ex,
             ServerWebExchange exchange
     ) {
+        System.err.println("RuntimeException at " + exchange.getRequest().getURI().getPath() + ": " + ex.getMessage());
+        ex.printStackTrace();
         return build(
                 ErrorCode.BUSINESS_ERROR,
+                ex.getMessage(),
                 exchange
         );
     }

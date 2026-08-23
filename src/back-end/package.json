@@ -10,6 +10,7 @@
     "dev:order": "./mvnw -pl apps/order-service -am spring-boot:run -Dspring-boot.run.profiles=dev",
     "dev:payment": "./mvnw -pl apps/payment-service -am spring-boot:run -Dspring-boot.run.profiles=dev",
     "dev:notification": "./mvnw -pl apps/notification-service -am spring-boot:run -Dspring-boot.run.profiles=dev",
+    "dev:all": "concurrently -n \"gateway,user,course,enrollment,order,payment,notification\" -c \"blue,green,yellow,magenta,cyan,red,white\" \"npm:dev:gateway\" \"npm:dev:user\" \"npm:dev:course\" \"npm:dev:enrollment\" \"npm:dev:order\" \"npm:dev:payment\" \"npm:dev:notification\"",
     "build:gateway": "./mvnw -pl apps/gateway-service -am -DskipTests package",
     "build:user": "./mvnw -pl apps/user-service -am -DskipTests package",
     "build:course": "./mvnw -pl apps/course-service -am -DskipTests package",
@@ -17,10 +18,14 @@
     "build:order": "./mvnw -pl apps/order-service -am -DskipTests package",
     "build:payment": "./mvnw -pl apps/payment-service -am -DskipTests package",
     "build:notification": "./mvnw -pl apps/notification-service -am -DskipTests package",
-    "build": "npm run build:gateway && npm run build:user && npm run build:course && npm run build:enrollment && npm run build:order && npm run build:payment && npm run build:notification",
+    "build:discovery": "./mvnw -pl apps/discovery-service -am -DskipTests package",
+    "build": "npm run build:discovery && npm run build:gateway && npm run build:user && npm run build:course && npm run build:enrollment && npm run build:order && npm run build:payment && npm run build:notification",
     "db:init": "docker compose exec postgres bash /docker-entrypoint-initdb.d/init-databases.sh",
     "compose:up": "docker compose up -d --build",
     "compose:down": "docker compose down",
     "compose:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }

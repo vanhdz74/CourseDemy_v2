@@ -9,6 +9,18 @@ spring:
       - optional:file:../../.env[.properties]
       - optional:file:.env[.properties]
       - optional:classpath:coursedemy-common.yml
+  # =========================================================================
+  # CẤU HÌNH DATABASE CHO MICROSERVICE (NOTIFICATION SERVICE):
+  #
+  # [PHƯƠNG ÁN 1] Supabase Cloud PostgreSQL:
+  #   - NOTIFICATION_SERVICE_DATASOURCE_URL=jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require&currentSchema=notification_service_db
+  #
+  # [PHƯƠNG ÁN 2] PostgreSQL Local / Remote Host riêng biệt:
+  #   - Trỏ từ localhost, IP mạng LAN, Docker network, hoặc máy chủ DB riêng:
+  #     DB_HOST=localhost (hoặc 192.168.1.100, host.docker.internal)
+  #     DB_PORT=5432
+  #     NOTIFICATION_SERVICE_DB_NAME=notification_service_db
+  # =========================================================================
   datasource:
     url: ${NOTIFICATION_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:postgres}?sslmode=${DB_SSLMODE:disable}&currentSchema=${NOTIFICATION_SERVICE_DB_NAME:notification_service_db}}
     username: ${NOTIFICATION_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}

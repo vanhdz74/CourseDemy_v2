@@ -31,7 +31,7 @@ course:
 
 jwt:
   secretKey: ${JWT_SECRET}
-  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:3600000}
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:600000}
   refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
 
 fe:

@@ -139,6 +139,7 @@ export const authConfig: NextAuthConfig = {
       try {
         const refreshed = await requestBackendTokens("/refresh-token", {
           refreshToken: String(token.refreshToken || ""),
+          refresh_token: String(token.refreshToken || ""),
         });
 
         return {
@@ -150,7 +151,10 @@ export const authConfig: NextAuthConfig = {
           error: undefined,
         };
       } catch (error) {
-        console.error("Refresh token error", error);
+        console.error(
+          "Session refresh failed",
+          error instanceof Error ? error.message : "Unknown error"
+        );
 
         return {
           ...token,
@@ -160,7 +164,6 @@ export const authConfig: NextAuthConfig = {
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken;
-      session.refreshToken = token.refreshToken;
       session.error = token.error;
       session.user = (token.user ?? {
         id: "0",

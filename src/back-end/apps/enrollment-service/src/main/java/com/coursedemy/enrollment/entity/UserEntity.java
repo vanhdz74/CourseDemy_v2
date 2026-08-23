@@ -60,8 +60,7 @@ public class UserEntity implements UserDetails {
     @JoinColumn(name = "role_id")
     private RoleEntity roleEntity;
 
-    @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL)
-    private CartEntity cartEntity;
+
 
     // Lấy danh sách role, phải extend UserDetails của security để sử dụng
     @Override

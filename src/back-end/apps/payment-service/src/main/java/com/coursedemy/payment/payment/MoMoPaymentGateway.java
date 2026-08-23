@@ -57,9 +57,7 @@ public class MoMoPaymentGateway implements PaymentGateway {
         requestBody.put("orderInfo", "Thanh toan CourseDemy - " + transaction.getTransactionNo());
         requestBody.put("redirectUrl", MomoConfig.redirectUrl);
         requestBody.put("ipnUrl", MomoConfig.ipnUrl);
-        // payWithATM => redirects to the web ATM card form (enter the NCB test card).
-        // captureWallet => opens the MoMo app / QR scan only (no card field).
-        requestBody.put("requestType", "payWithATM");
+        requestBody.put("requestType", "captureWallet");
         requestBody.put("extraData", "");
         requestBody.put("lang", "vi");
 

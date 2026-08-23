@@ -17,7 +17,12 @@ export const publicClient = axios.create({
 attachApiInterceptors(axiosClient, authConfig);
 publicClient.interceptors.response.use(
   normalizeSuccessResponse,
-  normalizeErrorResponse,
+  async (error) => {
+    if (error?.response?.status === 401) {
+      await authConfig.onUnauthorized?.();
+    }
+    return normalizeErrorResponse(error);
+  },
 );
 
 export function configureApiClient(config: ApiClientAuthConfig) {

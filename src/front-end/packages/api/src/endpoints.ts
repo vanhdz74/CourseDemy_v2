@@ -26,12 +26,12 @@ export const endpoints = {
   courses: {
     base: "/course",
     byId: (courseId: number) => `/course/${courseId}`,
-    byUser: (userId: number) => `/courses/user/${userId}`,
+    byUser: (userId: number) => `/course/user/${userId}`,
     detail: (courseId: number) => `/course/course-detail/${courseId}`,
     detailManage: (courseId: number) => `/course/course-detail/m1/${courseId}`,
     search: "/course/search",
     students: (courseId: number) => `/courses/${courseId}/students`,
-    uploadImage: (courseId: number) => `/upload-course-img/${courseId}`,
+    uploadImage: (courseId: number) => `/course/upload-course-img/${courseId}`,
   },
   lessons: {
     byCourse: (courseId: number) => `/lessons/course/${courseId}`,

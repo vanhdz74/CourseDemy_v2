@@ -20,7 +20,7 @@ import java.util.Map;
 
 
 @RestController
-@RequestMapping("/course")
+@RequestMapping({"/course", "/courses"})
 @RequiredArgsConstructor
 public class CourseController {
 
@@ -60,7 +60,7 @@ public class CourseController {
     }
 
     // POST: Thêm khoá học
-    @PostMapping("/")
+    @PostMapping({"", "/"})
     public ResponseEntity<ApiResponse<Void>> addCourse(
             @RequestBody CourseDTO courseDTO
     ) {

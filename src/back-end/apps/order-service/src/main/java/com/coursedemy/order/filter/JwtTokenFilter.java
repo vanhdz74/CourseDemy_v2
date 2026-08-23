@@ -40,42 +40,46 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         // bắt/propagate IO và Servlet exceptions.
             throws ServletException, IOException {
         try {
-            // Ktra request, nếu request “bỏ qua”, không cần kiểm tra JWT → cho đi luôn.
-            if (isBypassToken(request)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            // Ktra respon kèm theo
             final String authHeader = request.getHeader("Authorization");
-            // Check header có bị null hay ko có Bearer đầu
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                final String token = authHeader.substring(7);
+                if (!jwtTokenUtil.isTokenExpired(token) && "access".equals(jwtTokenUtil.extractTokenType(token))) {
+                    final String email = jwtTokenUtil.extractEmail(token);
+                    if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        Object idObj = jwtTokenUtil.extractClaim(token, claims -> claims.get("id"));
+                        Long userId = idObj instanceof Number ? ((Number) idObj).longValue() : (idObj != null ? Long.valueOf(idObj.toString()) : null);
+                        String roleName = jwtTokenUtil.extractClaim(token, claims -> claims.get("role", String.class));
+                        String username = jwtTokenUtil.extractClaim(token, claims -> claims.get("username", String.class));
+
+                        com.coursedemy.order.entity.RoleEntity roleEntity = com.coursedemy.order.entity.RoleEntity.builder()
+                                .roleName(roleName != null ? roleName : "STUDENT")
+                                .build();
+
+                        UserEntity userDetails = UserEntity.builder()
+                                .id(userId)
+                                .email(email)
+                                .username(username)
+                                .roleEntity(roleEntity)
+                                .isActive(1)
+                                .build();
+
+                        UsernamePasswordAuthenticationToken authenticationToken =
+                                new UsernamePasswordAuthenticationToken(userDetails, null,
+                                        userDetails.getAuthorities());
+                        authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                    }
+                }
+            } else if (!isBypassToken(request)) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                 return;
             }
 
-            // Lấy token
-            final String token = authHeader.substring(7);
-
-            // Lấy email token
-            final String email = jwtTokenUtil.extractEmail(token);
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserEntity userDetails = (UserEntity) userDetailsService.loadUserByUsername(email);
-
-                // Check email của token và email lấy đc trong đb khi load
-                if (jwtTokenUtil.validateAccessToken(token, userDetails)) {
-                    UsernamePasswordAuthenticationToken authenticationToken =
-                            new UsernamePasswordAuthenticationToken(userDetails, null,
-                                    userDetails.getAuthorities());
-                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                }
-            }
-
             // Tiếp tục doFilter
-            filterChain.doFilter(request, response); //enable bypass
+            filterChain.doFilter(request, response);
 
         } catch (Exception e) {
+            e.printStackTrace();
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
         }
     }
@@ -92,7 +96,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of("/categories", "GET"),
                 Pair.of("/courses", "GET"),
                 Pair.of("/course/", "GET"),
-                Pair.of("/cart/add", "POST"),
                 Pair.of("/course-detail", "GET"),
                 Pair.of("/api/payment/{provider}/ipn", "POST"),
                 Pair.of("/ipn", "POST"),
@@ -101,8 +104,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of("/reviews", "GET"),
                 Pair.of("/revenue/top-courses", "GET"),
                 Pair.of("/revenue-categories", "GET")
-//                Pair.of("/", "GET")
-//                Pair.of("/upload-len", "POST")
         );
 
         // first: đường dẫn API

@@ -3,7 +3,7 @@ import { getNoCoursesFoundMessage, getNoTeacherCoursesMessage } from "./randomMe
 import { unwrapApiResponse } from "@repo/api";
 import type { PageResponse } from "@repo/contracts";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export async function searchCourses(keyword: string): Promise<CourseResult[]> {
   try {

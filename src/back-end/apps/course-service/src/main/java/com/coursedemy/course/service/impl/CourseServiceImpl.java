@@ -40,6 +40,7 @@ public class CourseServiceImpl implements CourseService {
     private final MapperConfiguration mapperConfiguration;
     private final UserClient userClient;
     private final OrderClient orderClient;
+    private final com.coursedemy.course.event.CourseEventPublisher courseEventPublisher;
 
     @Value("${course.limit:9}")
     private String courseLimit;
@@ -109,7 +110,7 @@ public class CourseServiceImpl implements CourseService {
         if (dto.getTeacherId() == null) throw new IllegalArgumentException("Giảng viên phụ trách không được để trống");
         String title = dto.getTitle().trim();
         if (courseRepository.existsByTitleIgnoreCase(title)) throw new IllegalArgumentException("Khóa học đã tồn tại");
-        CategoryEntity categoryEntity=categoryRepository.findById(dto.getCategoryId()).orElse(null);
+        CategoryEntity categoryEntity = dto.getCategoryId() != null ? categoryRepository.findById(dto.getCategoryId()).orElse(null) : null;
         CourseEntity entity = CourseEntity.builder().title(title)
                 .description(dto.getDescription() == null ? "" : dto.getDescription().trim())
                 .price(blank(dto.getPrice()) ? BigDecimal.ZERO : price(dto.getPrice()))
@@ -121,11 +122,28 @@ public class CourseServiceImpl implements CourseService {
                 .content("").description("").request("").courseInclude("").build();
         entity.setCoursesDetailEntity(detail);
         courseRepository.save(entity);
+
+        courseEventPublisher.publish(com.coursedemy.common.event.CourseSyncEvent.builder()
+                .action(com.coursedemy.common.event.CourseSyncEvent.Action.CREATED)
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .price(entity.getPrice() != null ? entity.getPrice().doubleValue() : 0.0)
+                .level(entity.getLevel())
+                .quantity(entity.getQuantity())
+                .build());
     }
 
-    @Override public void deleteCourseById(Long id) { courseRepository.delete(course(id)); }
+    @Override
+    public void deleteCourseById(Long id) {
+        courseRepository.delete(course(id));
+        courseEventPublisher.publish(com.coursedemy.common.event.CourseSyncEvent.builder()
+                .action(com.coursedemy.common.event.CourseSyncEvent.Action.DELETED)
+                .id(id)
+                .build());
+    }
 
-    @Override public void updateCourse(long id, CourseDTO dto) {
+    @Override
+    public void updateCourse(long id, CourseDTO dto) {
         CourseEntity entity = course(id);
         if (!blank(dto.getTitle())) {
             CourseEntity sameTitle = courseRepository.findByTitle(dto.getTitle().trim());
@@ -139,6 +157,15 @@ public class CourseServiceImpl implements CourseService {
         if (dto.getTeacherId() != null) entity.setTeacherId(dto.getTeacherId());
         if (dto.getCategoryId() != null) entity.setCategory(categoryRepository.findById(dto.getCategoryId()).orElse(null));
         courseRepository.save(entity);
+
+        courseEventPublisher.publish(com.coursedemy.common.event.CourseSyncEvent.builder()
+                .action(com.coursedemy.common.event.CourseSyncEvent.Action.UPDATED)
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .price(entity.getPrice() != null ? entity.getPrice().doubleValue() : 0.0)
+                .level(entity.getLevel())
+                .quantity(entity.getQuantity())
+                .build());
     }
 
     @Override

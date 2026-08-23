@@ -19,10 +19,8 @@ public class VnPayProvider implements PaymentProvider {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
-    private final UserCourseRepository userCourseRepository;
     private final CourseRepository courseRepository;
-    private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
+    private final UserCourseRepository userCourseRepository;
 
     @Override
     public String createPaymentUrl(OrderEntity order, Map<String, String> extraParams) throws Exception {
@@ -132,19 +130,6 @@ public class VnPayProvider implements PaymentProvider {
             // Cập nhật giá vào order deatail
             assert courseEntity != null;
             orderDetailEntity.setPrice(courseEntity.getPrice());
-
-            // Xoá item trong giỏ hàng (chỉ xoá khoá học đã mua)
-            CartEntity cartEntity = cartRepository.findByUserEntity_Id(order.getUserEntity().getId());
-            if (cartEntity != null) {
-                CartItemEntity cartItem = cartItemRepository.findByCartEntity_IdAndCourseEntity_Id(
-                        cartEntity.getId(),
-                        orderDetailEntity.getCourseEntity().getId()
-                );
-
-                if (cartItem != null) {
-                    cartItemRepository.delete(cartItem); // Chỉ xoá item này, không xoá toàn giỏ
-                }
-            }
 
             userCourseRepository.save(userCourseEntity);
         }

@@ -2,13 +2,29 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface CourseState {
   courseId: number | null;
-  courseTitle: string | "";
+  courseTitle: string;
 }
 
-const initialState: CourseState = {
-  courseId: null,
-  courseTitle: "",
+const getStoredCourse = (): CourseState => {
+  if (typeof window === "undefined") {
+    return { courseId: null, courseTitle: "" };
+  }
+  try {
+    const item = localStorage.getItem("course");
+    if (item) {
+      const parsed = JSON.parse(item);
+      return {
+        courseId: parsed.courseId ?? null,
+        courseTitle: parsed.courseTitle ?? "",
+      };
+    }
+  } catch {
+    // ignore parse error
+  }
+  return { courseId: null, courseTitle: "" };
 };
+
+const initialState: CourseState = getStoredCourse();
 
 const courseSlice = createSlice({
   name: "course",
@@ -20,16 +36,20 @@ const courseSlice = createSlice({
     ) => {
       state.courseId = action.payload.courseId;
       state.courseTitle = action.payload.courseTitle;
-      // Lưu vào localStorage
-      localStorage.setItem("course", JSON.stringify(action.payload));
+      if (typeof window !== "undefined") {
+        localStorage.setItem("course", JSON.stringify(action.payload));
+      }
     },
     clearCourse: (state) => {
       state.courseId = null;
       state.courseTitle = "";
-      localStorage.removeItem("course");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("course");
+      }
     },
   },
 });
 
 export const { setCourse, clearCourse } = courseSlice.actions;
 export default courseSlice.reducer;
+

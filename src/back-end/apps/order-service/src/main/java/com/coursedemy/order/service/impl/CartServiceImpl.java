@@ -28,8 +28,12 @@ public class CartServiceImpl implements CartService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
 
+    @org.springframework.transaction.annotation.Transactional
     @Override
     public void addToCart(Long userId, Long courseId) {
+        userRepository.insertUserIfNotExists(userId, "User " + userId, "user" + userId + "@coursedemy.local");
+        courseRepository.insertCourseIfNotExists(courseId, "Course " + courseId);
+
         UserEntity userEntity = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User không tồn tại"));
 
@@ -37,12 +41,12 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new IllegalArgumentException("Course không tồn tại"));
 
         // Tìm cart theo user_id
-        CartEntity cartEntity = cartRepository.findByUserEntity(userEntity)
-                .orElseGet(() -> {
-                    CartEntity newCart = new CartEntity();
-                    newCart.setUserEntity(userEntity);
-                    return cartRepository.save(newCart);
-                });
+        CartEntity cartEntity = cartRepository.findByUserEntity_Id(userId);
+        if (cartEntity == null) {
+            cartEntity = new CartEntity();
+            cartEntity.setUserEntity(userEntity);
+            cartEntity = cartRepository.save(cartEntity);
+        }
 
         // Kiểm tra sản phẩm đã có trong giỏ chưa
         CartItemEntity existingItemOpt = cartItemRepository.findByCartEntity_IdAndCourseEntity_Id(cartEntity.getId(), courseId);
@@ -51,7 +55,7 @@ public class CartServiceImpl implements CartService {
             throw new IllegalStateException("Khóa học đã tồn tại trong giỏ hàng!");
         }
 
-        // Nếu ch có
+        // Nếu chưa có
         CartItemEntity newCartItem = new CartItemEntity();
         newCartItem.setCartEntity(cartEntity);
         newCartItem.setCourseEntity(courseEntity);
@@ -81,15 +85,22 @@ public class CartServiceImpl implements CartService {
 
         // Tìm cart theo user_id
         CartEntity cartEntity = cartRepository.findByUserEntity_Id(userId);
+        if (cartEntity == null) {
+            cartDTO.setId(null);
+            cartDTO.setCartItems(new ArrayList<>());
+            return cartDTO;
+        }
         cartDTO.setId(cartEntity.getId());
 
         // Tìm cart_item theo cart_id
         List<CartItemEntity> cartItemEntities = cartItemRepository.findByCartEntity_Id(cartEntity.getId());
 
         List<CartItemDTO> cartItemDTOs = new ArrayList<>();
-        for (CartItemEntity item : cartItemEntities) {
-            CartItemDTO cartItemDTO = mapperConfiguration.toCartItemDTO(item);
-            cartItemDTOs.add(cartItemDTO);
+        if (cartItemEntities != null) {
+            for (CartItemEntity item : cartItemEntities) {
+                CartItemDTO cartItemDTO = mapperConfiguration.toCartItemDTO(item);
+                cartItemDTOs.add(cartItemDTO);
+            }
         }
 
         cartDTO.setCartItems(cartItemDTOs);

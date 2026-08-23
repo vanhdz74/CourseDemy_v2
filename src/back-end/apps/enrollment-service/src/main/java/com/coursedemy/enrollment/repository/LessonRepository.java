@@ -1,7 +1,6 @@
 package com.coursedemy.enrollment.repository;
 
 import com.coursedemy.enrollment.entity.LessonEntity;
-import com.coursedemy.enrollment.entity.SubLessonEntity;
 import com.coursedemy.enrollment.repository.custom.LessonRepositoryCustom;
 import org.springframework.data.jpa.repository.JpaRepository;
 

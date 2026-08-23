@@ -19,19 +19,19 @@ const SummaryCard: React.FC<Props> = ({
   valueClassName,
 }) => {
   return (
-    <Card className="gap-3 p-5">
-      <CardHeader className="flex flex-row items-center justify-between p-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/40">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           {title}
-        </CardTitle>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+        </span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           {icon}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="p-0">
+      <div className="mt-3">
         <div
-          className={`text-2xl font-bold tracking-tight ${
+          className={`text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground ${
             valueClassName || ""
           }`}
         >
@@ -39,11 +39,12 @@ const SummaryCard: React.FC<Props> = ({
         </div>
 
         {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="mt-1 text-xs text-muted-foreground font-medium">{description}</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
 export default SummaryCard;
+

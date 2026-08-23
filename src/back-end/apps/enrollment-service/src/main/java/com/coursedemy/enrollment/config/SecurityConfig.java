@@ -1,6 +1,7 @@
 package com.coursedemy.enrollment.config;
 
-import com.coursedemy.enrollment.repository.AuthRepository;
+import com.coursedemy.enrollment.entity.UserEntity;
+import com.coursedemy.enrollment.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,15 +17,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final AuthRepository authRepository;
+    private final UserRepository userRepository;
     // user's detail object
     @Bean
     public UserDetailsService userDetailsService() {
-        return email -> authRepository
-                .findByEmail(email)
-                .orElseThrow(() ->
-                        new UsernameNotFoundException(
-                                "Cannot find user with email = "+ email));
+        return email -> {
+            UserEntity user = userRepository.findByEmail(email);
+            if (user == null) {
+                throw new UsernameNotFoundException("Cannot find user with email = " + email);
+            }
+            return user;
+        };
     }
 
     // khai báo @Bean PasswordEncoder

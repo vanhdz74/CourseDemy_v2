@@ -23,7 +23,6 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final OrderDetailRepository orderDetailRepository;
-    private final UserCourseRepository userCourseRepository;
     private final MapperConfiguration mapperConfiguration;
 
     @Override
@@ -66,20 +65,6 @@ public class OrderServiceImpl implements OrderService {
         // Cập nhật trạng thái PENDING -> PAID
         orderEntity.setStatus("PAID");
         orderRepository.save(orderEntity);
-
-        List<OrderDetailEntity> details = orderDetailRepository.findByOrderEntity_Id(orderId);
-        for (OrderDetailEntity detail : details) {
-            Long userId = orderEntity.getUserEntity().getId();
-            Long courseId = detail.getCourseEntity().getId();
-
-            if (!userCourseRepository.existsByUserEntity_IdAndCourseEntity_Id(userId, courseId)) {
-                UserCourseEntity uc = UserCourseEntity.builder()
-                        .userEntity(orderEntity.getUserEntity())
-                        .courseEntity(detail.getCourseEntity())
-                        .build();
-                userCourseRepository.save(uc);
-            }
-        }
     }
 
     @Override

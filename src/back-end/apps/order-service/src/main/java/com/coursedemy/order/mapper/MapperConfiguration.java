@@ -35,18 +35,6 @@ public class MapperConfiguration {
             }
         });
 
-        // Cấu hình map riêng cho CourseEntity → CourseDTO
-        mapper.addMappings(new PropertyMap<CourseEntity, CourseDTO>() {
-            @Override
-            protected void configure() {
-                //  →
-                map().setCategoryName(source.getCategory().getName());
-                map().setTeacherName(source.getUser().getUsername());
-                map().setTeacherId(source.getUser().getId());
-                map().setImageUrl(source.getCourseImageEntity().getImageUrl());
-            }
-        });
-
         // Map CartItemEntity → CartItemDTO
         mapper.addMappings(new PropertyMap<CartItemEntity, CartItemDTO>() {
             @Override
@@ -77,38 +65,18 @@ public class MapperConfiguration {
         courseDTO.setQuantity(courseEntity.getQuantity() == null ? null : courseEntity.getQuantity().doubleValue());
         courseDTO.setCreatedAt(courseEntity.getCreatedAt());
         courseDTO.setUpdateAt(courseEntity.getUpdateAt());
-
-        if (courseEntity.getCategory() != null) {
-            courseDTO.setCategoryName(courseEntity.getCategory().getName());
-            courseDTO.setCategoryId(courseEntity.getCategory().getId());
-        }
-
-        if (courseEntity.getUser() != null) {
-            courseDTO.setTeacherName(courseEntity.getUser().getUsername());
-            courseDTO.setTeacherId(courseEntity.getUser().getId());
-        }
-
-        if (courseEntity.getCourseImageEntity() != null) {
-            courseDTO.setImageUrl(courseEntity.getCourseImageEntity().getImageUrl());
-        }
-
         return courseDTO;
     }
 
-    public LessonDTO toLessonDTO(LessonEntity lessonEntity) {
-        return modelMapper().map(lessonEntity, LessonDTO.class);
-    }
-
-    public SubLessonDTO toSubLessonDTO(SubLessonEntity subLessonEntity) {
-        return modelMapper().map(subLessonEntity, SubLessonDTO.class);
-    }
-
     public CartItemDTO toCartItemDTO(CartItemEntity entity) {
-        return modelMapper().map(entity, CartItemDTO.class);
-    }
-
-    public CourseDetailDTO toCourseDetailDTO(CoursesDetailEntity coursesDetailEntity) {
-        return modelMapper().map(coursesDetailEntity, CourseDetailDTO.class);
+        if (entity == null) return null;
+        CartItemDTO dto = new CartItemDTO();
+        dto.setId(entity.getId());
+        if (entity.getCourseEntity() != null) {
+            dto.setCourseId(entity.getCourseEntity().getId());
+            dto.setPrice(entity.getCourseEntity().getPrice());
+        }
+        return dto;
     }
 
     public OrderDTO.TransactionDTO toOrderDTO(OrderEntity orderEntity) {
@@ -117,13 +85,5 @@ public class MapperConfiguration {
 
     public OrderDetailDTO toOrderDetailDTO(OrderDetailEntity orderDetailEntity) {
         return modelMapper().map(orderDetailEntity, OrderDetailDTO.class);
-    }
-
-    public CommentDTO toCommentDTO(CommentEntity commentEntity) {
-        return modelMapper().map(commentEntity, CommentDTO.class);
-    }
-
-    public ReviewDTO toReviewDTO(ReviewEntity reviewEntity) {
-        return modelMapper().map(reviewEntity, ReviewDTO.class);
     }
 }

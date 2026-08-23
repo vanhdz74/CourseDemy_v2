@@ -9,9 +9,7 @@ export function isApiResponse<T = unknown>(payload: unknown): payload is ApiResp
   return (
     typeof payload === "object" &&
     payload !== null &&
-    "success" in payload &&
-    "code" in payload &&
-    "message" in payload &&
+    ("success" in payload || "status" in payload) &&
     "data" in payload
   );
 }
@@ -26,13 +24,19 @@ export function unwrapApiResponse<T>(payload: unknown): T {
 
 export function normalizeSuccessResponse(response: AxiosResponse) {
   if (isApiResponse(response.data)) {
-    if (response.data.success) {
+    const isOk =
+      response.data.success !== false &&
+      (response.data.status === undefined || response.data.status < 400);
+
+    if (isOk) {
       response.data =
-        response.data.data ?? { code: response.data.code, message: response.data.message };
+        response.data.data !== undefined && response.data.data !== null
+          ? response.data.data
+          : { code: response.data.code, message: response.data.message };
       return response;
     }
 
-    const error = new Error(response.data.message) as AxiosError<ApiResponse<null>>;
+    const error = new Error(response.data.message || "Request failed") as AxiosError<ApiResponse<null>>;
     error.response = {
       ...response,
       data: {

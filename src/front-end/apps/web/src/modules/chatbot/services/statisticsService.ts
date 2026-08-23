@@ -2,7 +2,7 @@
 import { unwrapApiResponse } from "@repo/api";
 import type { PageResponse } from "@repo/contracts";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export interface WebsiteStatistics {
   totalStudents: number;
@@ -65,13 +65,13 @@ export async function getWebsiteStatistics(): Promise<WebsiteStatistics | null> 
       fetch(`${API_URL}/categories`).catch(() => null),
     ]);
 
-    let totalStudents = 0;
-    let totalTeachers = 0;
+    const totalStudents = 0;
+    const totalTeachers = 0;
     let totalCourses = 0;
     let totalCategories = 0;
     let categories: CategoryInfo[] = [];
-    let teachers: UserInfo[] = [];
-    let students: UserInfo[] = [];
+    const teachers: UserInfo[] = [];
+    const students: UserInfo[] = [];
 
     // Xử lý courses
     if (coursesResponse && coursesResponse.ok) {

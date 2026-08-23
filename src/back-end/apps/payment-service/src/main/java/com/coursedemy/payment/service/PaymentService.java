@@ -4,44 +4,159 @@ import com.coursedemy.common.exception.BusinessException;
 import com.coursedemy.common.exception.ErrorCode;
 import com.coursedemy.payment.dto.PaymentRequest;
 import com.coursedemy.payment.dto.PaymentResponse;
-import com.coursedemy.payment.entity.OrderEntity;
-import com.coursedemy.payment.entity.PaymentTransaction;
+import com.coursedemy.payment.entity.*;
 import com.coursedemy.payment.enums.PaymentMethod;
 import com.coursedemy.payment.enums.PaymentStatus;
 import com.coursedemy.payment.payment.PaymentGateway;
 import com.coursedemy.payment.payment.PaymentProvider;
-import com.coursedemy.payment.repository.PaymentTransactionRepository;
+import com.coursedemy.payment.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentService {
 
     private final PaymentProvider vnPayProvider;
     private final List<PaymentGateway> paymentGateways;
     private final PaymentTransactionRepository transactionRepository;
+    private final OrderRepository orderRepository;
+    private final OrderDetailRepository orderDetailRepository;
+    private final UserCourseRepository userCourseRepository;
+    private final CourseRepository courseRepository;
 
     // =========================
-    // LEGACY FLOW (Order-based)
+    // COURSE ORDER PAYMENT FLOW
     // =========================
 
     /**
-     * Legacy method for course-based payment flow.
-     * Creates payment URL for an existing Order.
+     * Create payment details (URL or QR Code) for an existing Order.
+     * Supports: vnpay, momo, qr
      */
-    public String getPaymentUrl(OrderEntity order, String providerName, Map<String, String> extraParams) throws Exception {
-        switch (providerName.toLowerCase()) {
-            case "vnpay":
-                return vnPayProvider.createPaymentUrl(order, extraParams);
+    public Map<String, String> getPaymentDetails(OrderEntity order, String providerName, Map<String, String> extraParams) throws Exception {
+        String provider = providerName.toLowerCase();
+        switch (provider) {
+            case "vnpay": {
+                String paymentUrl = vnPayProvider.createPaymentUrl(order, extraParams);
+                return Map.of(
+                        "code", "00",
+                        "message", "success",
+                        "paymentUrl", paymentUrl,
+                        "provider", "vnpay"
+                );
+            }
+            case "momo": {
+                PaymentGateway momoGateway = getGateway(PaymentMethod.MOMO);
+                String txnNo = "TXN" + order.getId() + "_" + System.currentTimeMillis();
+
+                PaymentTransaction transaction = PaymentTransaction.builder()
+                        .transactionNo(txnNo)
+                        .userId(order.getUserEntity().getId())
+                        .amount(order.getTotalPrice())
+                        .paymentMethod(PaymentMethod.MOMO)
+                        .status(PaymentStatus.PENDING)
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+                transactionRepository.save(transaction);
+
+                PaymentRequest req = new PaymentRequest();
+                req.setAmount(order.getTotalPrice());
+                req.setPaymentMethod(PaymentMethod.MOMO);
+                req.setUserId(order.getUserEntity().getId());
+
+                PaymentResponse momoResp = momoGateway.createPayment(req, transaction);
+                String payUrl = momoResp.getPaymentUrl() != null ? momoResp.getPaymentUrl() : "";
+
+                Map<String, String> result = new HashMap<>();
+                result.put("code", "00");
+                result.put("message", "success");
+                result.put("paymentUrl", payUrl);
+                result.put("transactionNo", txnNo);
+                result.put("provider", "momo");
+                return result;
+            }
+            case "qr": {
+                PaymentGateway qrGateway = getGateway(PaymentMethod.QR);
+                String txnNo = "TXN" + order.getId() + "_" + System.currentTimeMillis();
+
+                PaymentTransaction transaction = PaymentTransaction.builder()
+                        .transactionNo(txnNo)
+                        .userId(order.getUserEntity().getId())
+                        .amount(order.getTotalPrice())
+                        .paymentMethod(PaymentMethod.QR)
+                        .status(PaymentStatus.PENDING)
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+                transactionRepository.save(transaction);
+
+                PaymentRequest req = new PaymentRequest();
+                req.setAmount(order.getTotalPrice());
+                req.setPaymentMethod(PaymentMethod.QR);
+                req.setUserId(order.getUserEntity().getId());
+
+                PaymentResponse qrResp = qrGateway.createPayment(req, transaction);
+                String qrCode = qrResp.getQrCode() != null ? qrResp.getQrCode() : "";
+
+                Map<String, String> result = new HashMap<>();
+                result.put("code", "00");
+                result.put("message", "success");
+                result.put("qrCode", qrCode);
+                result.put("transactionNo", txnNo);
+                result.put("provider", "qr");
+                return result;
+            }
             default:
                 throw new BusinessException(ErrorCode.UNSUPPORTED_PAYMENT_PROVIDER);
+        }
+    }
+
+    public String getPaymentUrl(OrderEntity order, String providerName, Map<String, String> extraParams) throws Exception {
+        Map<String, String> details = getPaymentDetails(order, providerName, extraParams);
+        return details.getOrDefault("paymentUrl", "");
+    }
+
+    /**
+     * Fulfill an order upon successful payment:
+     * - Update order status to SUCCESS
+     * - Enroll student into user_courses
+     * - Increase course student count
+     * - Remove purchased items from cart
+     */
+    @Transactional
+    public void fulfillOrder(OrderEntity order) {
+        if (order == null || "SUCCESS".equals(order.getStatus())) {
+            return;
+        }
+
+        order.setStatus("SUCCESS");
+        order.setPaymentTime(LocalDateTime.now());
+        orderRepository.save(order);
+
+        List<OrderDetailEntity> orderDetails = orderDetailRepository.findByOrderEntity_Id(order.getId());
+        for (OrderDetailEntity orderDetailEntity : orderDetails) {
+            UserCourseEntity userCourseEntity = new UserCourseEntity();
+            userCourseEntity.setUserEntity(order.getUserEntity());
+            userCourseEntity.setCourseEntity(orderDetailEntity.getCourseEntity());
+
+            CourseEntity courseEntity = courseRepository.findById(orderDetailEntity.getCourseEntity().getId()).orElse(null);
+            if (courseEntity != null) {
+                courseEntity.setQuantity(courseEntity.getQuantity() + 1);
+                courseRepository.save(courseEntity);
+            }
+
+            assert courseEntity != null;
+            orderDetailEntity.setPrice(courseEntity.getPrice());
+
+            userCourseRepository.save(userCourseEntity);
         }
     }
 
@@ -53,15 +168,18 @@ public class PaymentService {
             case "vnpay":
                 return vnPayProvider.processCallback(params);
             case "momo":
-                // Route MoMo callbacks to the new gateway
-                return getGateway(PaymentMethod.MOMO).processCallback(params).toMap();
+                PaymentResponse momoResult = getGateway(PaymentMethod.MOMO).processCallback(params);
+                if (momoResult.isSuccess()) {
+                    extractAndFulfillOrder(params.get("orderId"));
+                }
+                return momoResult.toMap();
             default:
                 throw new BusinessException(ErrorCode.UNSUPPORTED_PAYMENT_PROVIDER);
         }
     }
 
     /**
-     * Legacy return URL handler.
+     * Return URL handler for browser redirects.
      */
     public String handleReturn(String providerName, Map<String, String> params) throws Exception {
         switch (providerName.toLowerCase()) {
@@ -69,15 +187,31 @@ public class PaymentService {
                 return vnPayProvider.handleReturn(params);
             case "momo":
                 PaymentResponse momoResult = getGateway(PaymentMethod.MOMO).processCallback(params);
+                if (momoResult.isSuccess()) {
+                    extractAndFulfillOrder(params.get("orderId"));
+                }
                 return renderMomoResult(momoResult);
             default:
                 throw new BusinessException(ErrorCode.UNSUPPORTED_PAYMENT_PROVIDER);
         }
     }
 
-    /**
-     * Render a simple HTML result page after the MoMo payment redirect.
-     */
+    private void extractAndFulfillOrder(String txnRef) {
+        if (txnRef == null || !txnRef.startsWith("TXN")) {
+            return;
+        }
+        try {
+            String idStr = txnRef.substring(3);
+            if (idStr.contains("_")) {
+                idStr = idStr.substring(0, idStr.indexOf("_"));
+            }
+            Long orderId = Long.parseLong(idStr);
+            orderRepository.findById(orderId).ifPresent(this::fulfillOrder);
+        } catch (Exception e) {
+            log.error("Failed to fulfill order for txnRef {}: {}", txnRef, e.getMessage());
+        }
+    }
+
     private String renderMomoResult(PaymentResponse result) {
         boolean success = result.isSuccess();
         String title = success ? "Giao dịch thành công" : "Giao dịch không thành công";
@@ -134,28 +268,20 @@ public class PaymentService {
     }
 
     // =========================
-    // NEW FLOW (Transaction-based)
+    // TRANSACTION-BASED FLOW
     // =========================
 
-    /**
-     * Initiate a new payment transaction.
-     * Creates a PaymentTransaction and delegates to the appropriate gateway.
-     */
     public PaymentResponse initiatePayment(PaymentRequest request) {
-        // Validate amount
         if (request.getAmount() == null || request.getAmount() <= 0) {
             throw new BusinessException("INVALID_AMOUNT", "Amount must be positive");
         }
 
-        // Validate payment method
         if (request.getPaymentMethod() == null) {
             throw new BusinessException("INVALID_PAYMENT_METHOD", "Payment method is required");
         }
 
-        // Find the gateway
         PaymentGateway gateway = getGateway(request.getPaymentMethod());
 
-        // Generate transaction
         PaymentTransaction transaction = PaymentTransaction.builder()
                 .transactionNo(generateTransactionNo())
                 .userId(request.getUserId())
@@ -168,19 +294,14 @@ public class PaymentService {
 
         transactionRepository.save(transaction);
 
-        // QR mock flow is intentionally local-only, no external gateway needed.
         if (request.getPaymentMethod() == PaymentMethod.QR) {
-            return PaymentResponse.pending(
-                    PaymentMethod.QR,
-                    request.getAmount(),
-                    transaction.getTransactionNo(),
-                    null,
-                    "data:image/png;base64,MOCK",
-                    "QR payment created successfully"
-            );
+            try {
+                return gateway.createPayment(request, transaction);
+            } catch (Exception e) {
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create QR code: " + e.getMessage());
+            }
         }
 
-        // Delegate to gateway
         try {
             return gateway.createPayment(request, transaction);
         } catch (BusinessException e) {
@@ -190,20 +311,17 @@ public class PaymentService {
         }
     }
 
-    /**
-     * Process callback for transaction-based payments.
-     * Routes to the appropriate gateway based on the provider.
-     */
     public PaymentResponse processTransactionCallback(String providerName, Map<String, String> params) throws Exception {
         PaymentMethod method = parsePaymentMethod(providerName);
         PaymentGateway gateway = getGateway(method);
-        return gateway.processCallback(params);
+        PaymentResponse response = gateway.processCallback(params);
+        if (response.isSuccess()) {
+            extractAndFulfillOrder(params.get("orderId"));
+        }
+        return response;
     }
 
-    /**
-     * Simulate QR payment success for MOCK/TEST purposes.
-     * This is ONLY for QR demo flow - QR has no real callback.
-     */
+    @Transactional
     public PaymentResponse mockQrSuccess(String transactionNo) {
         PaymentTransaction transaction = transactionRepository.findByTransactionNo(transactionNo)
                 .orElseThrow(() -> new BusinessException("TRANSACTION_NOT_FOUND", "Transaction not found"));
@@ -212,20 +330,12 @@ public class PaymentService {
             throw new BusinessException("INVALID_OPERATION", "Only QR transactions can be mocked");
         }
 
-        if (transaction.getStatus() == PaymentStatus.SUCCESS) {
-            return PaymentResponse.success(
-                    PaymentMethod.QR,
-                    transaction.getAmount(),
-                    transaction.getTransactionNo(),
-                    "Transaction already processed"
-            );
-        }
-
-        // Mark as successful
         transaction.setStatus(PaymentStatus.SUCCESS);
         transaction.setPaidAt(LocalDateTime.now());
         transaction.setUpdatedAt(LocalDateTime.now());
         transactionRepository.save(transaction);
+
+        extractAndFulfillOrder(transactionNo);
 
         return PaymentResponse.success(
                 PaymentMethod.QR,
@@ -235,14 +345,6 @@ public class PaymentService {
         );
     }
 
-    // =========================
-    // Helper Methods
-    // =========================
-
-    /**
-     * Generate a unique transaction number.
-     * Format: TXN{yyyyMMddHHmmssSSS}{random 6 digits}
-     */
     private String generateTransactionNo() {
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
@@ -254,24 +356,18 @@ public class PaymentService {
         return "TXN" + timestamp + randomSuffix;
     }
 
-    /**
-     * Get the gateway for a payment method.
-     */
     private PaymentGateway getGateway(PaymentMethod method) {
         return paymentGateways.stream()
                 .filter(g -> g.getPaymentMethod() == method)
                 .findFirst()
-                .orElseThrow(() -> new BusinessException("UNSUPPORTED_PAYMENT_METHOD", "Payment method not supported"));
+                .orElseThrow(() -> new BusinessException("UNSUPPORTED_PAYMENT_METHOD", "Payment method not supported: " + method));
     }
 
-    /**
-     * Parse provider name to PaymentMethod.
-     */
     private PaymentMethod parsePaymentMethod(String providerName) {
         try {
             return PaymentMethod.valueOf(providerName.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new BusinessException("UNSUPPORTED_PAYMENT_PROVIDER", "Payment provider not supported");
+            throw new BusinessException("UNSUPPORTED_PAYMENT_PROVIDER", "Payment provider not supported: " + providerName);
         }
     }
 }

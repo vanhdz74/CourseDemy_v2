@@ -69,7 +69,7 @@ public class QrPaymentGateway implements PaymentGateway {
     /**
      * Generate QR code as base64 PNG data URI.
      */
-    private String generateQrCode(String content) throws WriterException {
+    private String generateQrCode(String content) throws Exception {
         QRCodeWriter qrWriter = new QRCodeWriter();
         BitMatrix bitMatrix = qrWriter.encode(content, BarcodeFormat.QR_CODE, 250, 250);
 

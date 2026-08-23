@@ -18,10 +18,10 @@ const CourseSearchPage = () => {
   return (
     <div className="py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {t("courses.categoryTitle")}
         </h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {categoryName || t("courses.categoryFallback")}
         </p>
       </div>

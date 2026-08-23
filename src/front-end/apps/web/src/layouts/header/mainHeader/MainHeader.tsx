@@ -32,11 +32,58 @@ import {
   Settings,
   ShoppingCart,
   UserRound,
+  Clock,
+  X,
+  Sparkles,
+  CornerDownLeft,
+  ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, ChangeEvent, useEffect } from "react";
+import { useState, ChangeEvent, useEffect, useRef } from "react";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
+
+const POPULAR_SUGGESTIONS = [
+  "React",
+  "Next.js",
+  "JavaScript",
+  "TypeScript",
+  "Java",
+  "Spring Boot",
+  "Python",
+  "Node.js",
+  "NestJS",
+  "Tailwind CSS",
+  "HTML & CSS",
+  "PostgreSQL",
+  "MongoDB",
+  "Docker",
+  "Kubernetes",
+  "UI/UX Design",
+  "Figma",
+  "Flutter",
+  "Golang",
+  "C++",
+  "C# / .NET",
+  "Machine Learning",
+  "Data Science",
+  "DevOps",
+];
+
+function highlightMatch(text: string, query: string) {
+  if (!query.trim()) return text;
+  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.trim().toLowerCase() ? (
+      <span key={i} className="text-primary font-bold">
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  );
+}
 
 const MainHeader = () => {
   const { t } = useI18n();
@@ -54,11 +101,31 @@ const MainHeader = () => {
 
   // Khi load lại trang, keyword trong input vẫn giữ nguyên
   const [keyword, setKeyword] = useState<string>(keywordFromUrl);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const containerRef = useRef<HTMLFormElement>(null);
 
   // Khi URL thay đổi (ví dụ khi người dùng search mới), cập nhật lại input
   useEffect(() => {
     setKeyword(keywordFromUrl);
   }, [keywordFromUrl]);
+
+  // Load search history from localStorage
+  useEffect(() => {
+    const history = JSON.parse(localStorage.getItem("coursedemy.search-history") || "[]");
+    setSearchHistory(history);
+  }, []);
+
+  // Close search history when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowHistory(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const userId = Number(user?.id);
@@ -73,9 +140,53 @@ const MainHeader = () => {
     setKeyword(e.target.value);
   };
 
+  const saveSearchHistory = (term: string) => {
+    if (!term || !term.trim()) return;
+    const cleanTerm = term.trim();
+    const history = JSON.parse(localStorage.getItem("coursedemy.search-history") || "[]");
+    const updatedHistory = [
+      cleanTerm,
+      ...history.filter((h: string) => h.toLowerCase() !== cleanTerm.toLowerCase())
+    ].slice(0, 5);
+    localStorage.setItem("coursedemy.search-history", JSON.stringify(updatedHistory));
+    setSearchHistory(updatedHistory);
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    router.push(`/courses/search?keyword=${keyword}`);
+    if (keyword.trim()) {
+      saveSearchHistory(keyword);
+      setShowHistory(false);
+      router.push(`/courses/search?keyword=${keyword}`);
+    }
+  };
+
+  const handleHistoryItemClick = (term: string) => {
+    setKeyword(term);
+    setShowHistory(false);
+    saveSearchHistory(term);
+    router.push(`/courses/search?keyword=${term}`);
+  };
+
+  const removeHistoryItem = (e: React.MouseEvent, term: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const updated = searchHistory.filter((h) => h !== term);
+    setSearchHistory(updated);
+    localStorage.setItem("coursedemy.search-history", JSON.stringify(updated));
+  };
+
+  const clearHistory = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setSearchHistory([]);
+    localStorage.removeItem("coursedemy.search-history");
+  };
+
+  const handleFocus = () => {
+    const history = JSON.parse(localStorage.getItem("coursedemy.search-history") || "[]");
+    setSearchHistory(history);
+    setShowHistory(true);
   };
 
   const handleLogout = async () => {
@@ -85,6 +196,20 @@ const MainHeader = () => {
 
   // Ẩn Header trên trang login / register
   if (pathname === "/login" || pathname === "/register") return null;
+
+  const query = keyword.trim().toLowerCase();
+
+  // Lọc từ khóa đã tìm kiếm trước đó khớp với chữ đang gõ
+  const matchedHistory = searchHistory.filter((item) =>
+    item.toLowerCase().includes(query)
+  );
+
+  // Lọc gợi ý từ khóa chủ đề khớp với chữ đang gõ
+  const matchedSuggestions = POPULAR_SUGGESTIONS.filter(
+    (item) =>
+      item.toLowerCase().includes(query) &&
+      !matchedHistory.some((h) => h.toLowerCase() === item.toLowerCase())
+  );
 
   return (
     <header
@@ -106,18 +231,180 @@ const MainHeader = () => {
 
       {/* Input Search */}
       <form
+        ref={containerRef}
         action=""
         onSubmit={handleSubmit}
-        className="relative mx-3 hidden min-w-[220px] max-w-2xl flex-1 items-center sm:flex lg:mx-8 lg:flex-none lg:basis-[42%]"
+        className="relative group mx-3 hidden min-w-[220px] max-w-2xl flex-1 items-center sm:flex lg:mx-8 lg:flex-none lg:basis-[42%]"
       >
         <Input
           type="text"
           placeholder={t("header.searchPlaceholder")}
-          className="h-10 w-full rounded-full border-border bg-muted/60 pl-10 pr-4 text-sm shadow-none transition focus-visible:border-ring focus-visible:bg-background focus-visible:ring-ring/30"
+          className="h-10 w-full rounded-full border-border bg-muted/30 pl-10 pr-4 text-sm shadow-none transition-all duration-300 hover:border-border/80 hover:bg-muted/50 focus-visible:border-primary/50 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/10"
           value={keyword}
           onChange={handleChange}
+          onFocus={handleFocus}
         />
-        <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-muted-foreground/60 transition-colors duration-300 group-focus-within:text-primary" />
+
+        {/* Search History & Live Autocomplete Suggestions Dropdown overlay */}
+        {showHistory && (
+          <div className="absolute top-11 left-0 right-0 z-50 rounded-2xl border border-border bg-popover/95 p-3 shadow-xl backdrop-blur-md flex flex-col gap-2.5">
+            {/* Khi người dùng ĐANG GÕ chữ vào ô tìm kiếm */}
+            {query.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {/* Hành động tìm kiếm trực tiếp từ đang gõ */}
+                <div
+                  onMouseDown={() => handleHistoryItemClick(keyword)}
+                  className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-foreground bg-primary/5 hover:bg-primary/10 border border-primary/20 transition duration-200 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Search className="h-4 w-4 text-primary shrink-0" />
+                    <span className="truncate">
+                      Tìm kiếm cho <span className="font-bold text-primary">"{keyword}"</span>
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-muted-foreground/80 bg-muted px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
+                    Enter <CornerDownLeft className="h-2.5 w-2.5" />
+                  </span>
+                </div>
+
+                {/* Danh sách từ ĐÃ TỪNG TÌM KIẾM khớp với chữ đang gõ */}
+                {matchedHistory.length > 0 && (
+                  <div className="flex flex-col gap-1 border-t border-border/40 pt-2">
+                    <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
+                      <Clock className="h-3 w-3 text-primary" />
+                      Từ khóa đã tìm trước đó
+                    </div>
+                    <div className="flex flex-col gap-0.5 max-h-[140px] overflow-y-auto scrollbar-none">
+                      {matchedHistory.map((term) => (
+                        <div
+                          key={`hist-${term}`}
+                          onMouseDown={() => handleHistoryItemClick(term)}
+                          className="flex items-center justify-between rounded-xl px-2.5 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition duration-200 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground/45 shrink-0" />
+                            <span className="truncate font-medium">
+                              {highlightMatch(term, keyword)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground/70 font-medium">
+                              Lịch sử
+                            </span>
+                            <button
+                              type="button"
+                              onMouseDown={(e) => removeHistoryItem(e, term)}
+                              className="p-1 rounded-full text-muted-foreground/45 hover:text-destructive hover:bg-destructive/10 transition-all duration-200"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Danh sách GỢI Ý CHỦ ĐỀ khớp với chữ đang gõ */}
+                {matchedSuggestions.length > 0 && (
+                  <div className="flex flex-col gap-1 border-t border-border/40 pt-2">
+                    <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      Gợi ý chủ đề liên quan
+                    </div>
+                    <div className="flex flex-col gap-0.5 max-h-[160px] overflow-y-auto scrollbar-none">
+                      {matchedSuggestions.slice(0, 6).map((term) => (
+                        <div
+                          key={`sugg-${term}`}
+                          onMouseDown={() => handleHistoryItemClick(term)}
+                          className="flex items-center justify-between rounded-xl px-2.5 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition duration-200 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Search className="h-3.5 w-3.5 text-muted-foreground/45 shrink-0" />
+                            <span className="truncate font-medium">
+                              {highlightMatch(term, keyword)}
+                            </span>
+                          </div>
+                          <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Khi không khớp cả lịch sử lẫn gợi ý */}
+                {matchedHistory.length === 0 && matchedSuggestions.length === 0 && (
+                  <div className="text-center py-3 text-xs text-muted-foreground select-none">
+                    Nhấn <strong>Enter</strong> để tìm kiếm mọi khóa học liên quan đến "{keyword}".
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Khi ô tìm kiếm ĐANG TRỐNG */
+              <>
+                {searchHistory.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between px-2 pb-1 border-b border-border/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                      <span>Tìm kiếm gần đây</span>
+                      <button
+                        type="button"
+                        onMouseDown={clearHistory}
+                        className="hover:text-destructive transition-colors duration-250 cursor-pointer"
+                      >
+                        Xóa tất cả
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-1 max-h-[160px] overflow-y-auto scrollbar-none">
+                      {searchHistory.map((term) => (
+                        <div
+                          key={term}
+                          onMouseDown={() => handleHistoryItemClick(term)}
+                          className="flex items-center justify-between rounded-xl px-2.5 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition duration-200 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
+                            <span className="font-semibold">{term}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => removeHistoryItem(e, term)}
+                            className="p-1 rounded-full text-muted-foreground/45 hover:text-destructive hover:bg-destructive/10 transition-all duration-250"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-xs text-muted-foreground/80 font-medium select-none">
+                    Chưa có lịch sử tìm kiếm gần đây.
+                  </div>
+                )}
+
+                {/* Popular Suggested Searches */}
+                <div className="border-t border-border/40 pt-2.5 flex flex-col gap-2">
+                  <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                    Gợi ý tìm kiếm phổ biến
+                  </span>
+                  <div className="flex flex-wrap gap-2 px-1">
+                    {["React", "Next.js", "Java", "Spring Boot", "Tailwind CSS", "TypeScript", "Python", "Docker"].map((term) => (
+                      <button
+                        key={term}
+                        type="button"
+                        onMouseDown={() => handleHistoryItemClick(term)}
+                        className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-border/80 bg-background text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all duration-250 cursor-pointer"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </form>
 
       {/* Actions */}
@@ -128,10 +415,10 @@ const MainHeader = () => {
               href="https://github.com/vanhdz74/CourseDemy_v2"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-primary/25 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-background/40 text-muted-foreground shadow-sm transition-all duration-300 hover:scale-105 hover:bg-accent/80 hover:text-foreground hover:border-primary/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
               aria-label={t("header.openGithub")}
             >
-              <Github className="h-4 w-4" />
+              <Github className="h-[1.1rem] w-[1.1rem] transition-transform duration-300 hover:rotate-6" />
             </a>
           </TooltipTrigger>
           <TooltipContent sideOffset={8}>{t("header.github")}</TooltipContent>
@@ -162,13 +449,13 @@ const MainHeader = () => {
           <>
             <Link
               href="/cart"
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-primary/25 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-background/40 text-muted-foreground shadow-sm transition-all duration-300 hover:scale-105 hover:bg-accent/80 hover:text-foreground hover:border-primary/30 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
               aria-label={t("header.cart")}
             >
-              <ShoppingCart className="h-4 w-4" />
+              <ShoppingCart className="h-[1.1rem] w-[1.1rem] transition-transform duration-300 hover:rotate-6" />
 
               {/* Badge */}
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+              <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground ring-2 ring-background animate-pulse">
                 {cartItem.length}
               </span>
             </Link>

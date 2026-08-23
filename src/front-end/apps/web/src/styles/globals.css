@@ -189,7 +189,7 @@
 
   body {
     @apply min-h-screen overflow-y-scroll bg-background text-foreground antialiased;
-    font-size: var(--font-size);
+    font-size: 1rem;
     font-feature-settings:
       "rlig" 1,
       "calt" 1;

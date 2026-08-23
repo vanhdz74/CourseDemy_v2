@@ -12,6 +12,18 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  # =========================================================================
+  # CẤU HÌNH DATABASE CHO MICROSERVICE (COURSE SERVICE):
+  #
+  # [PHƯƠNG ÁN 1] Supabase Cloud PostgreSQL:
+  #   - COURSE_SERVICE_DATASOURCE_URL=jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require&currentSchema=course_service_db
+  #
+  # [PHƯƠNG ÁN 2] PostgreSQL Local / Remote Host riêng biệt:
+  #   - Trỏ từ localhost, IP mạng LAN, Docker network, hoặc máy chủ DB riêng:
+  #     DB_HOST=localhost (hoặc 192.168.1.100, host.docker.internal)
+  #     DB_PORT=5432
+  #     COURSE_SERVICE_DB_NAME=course_service_db
+  # =========================================================================
   datasource:
     url: ${COURSE_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:postgres}?sslmode=${DB_SSLMODE:disable}&currentSchema=${COURSE_SERVICE_DB_NAME:course_service_db}}
     username: ${COURSE_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
@@ -41,10 +53,19 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 6000
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: course-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.coursedemy.common.event"
+
 
 eureka:
   client:
@@ -59,7 +80,7 @@ course:
 
 jwt:
   secretKey: ${JWT_SECRET}
-  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:3600000}
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:600000}
   refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
 
 fe:

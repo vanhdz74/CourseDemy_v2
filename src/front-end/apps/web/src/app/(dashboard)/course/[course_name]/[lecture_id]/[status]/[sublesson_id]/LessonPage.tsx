@@ -6,10 +6,13 @@ import VideoCourse from "@/modules/course/components/course/VideoCourse";
 import { Button } from "@/modules/shared/components/ui/button";
 import { Skeleton } from "@/modules/shared/components/ui/skeleton";
 import { useApi } from "@/modules/shared/hooks/useApi";
-import { useAppSelector } from "@/modules/shared/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/modules/shared/store/hooks";
+import { setCourse } from "@/modules/course/store/courseSlice";
+import { slugify } from "@/modules/shared/lib/utils";
 import { Lesson, SubLesson } from "@repo/contracts";
 import { AlertCircle, BookOpen, PanelRightClose } from "lucide-react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type CourseRouteParams = {
@@ -30,14 +33,19 @@ function getErrorMessage(error: unknown) {
 
 const LessonPage = () => {
   const { get } = useApi();
+  const dispatch = useAppDispatch();
   const params = useParams<CourseRouteParams>();
-  const courseId = useAppSelector((state) => state.course.courseId);
+  const reduxCourseId = useAppSelector((state) => state.course.courseId);
+  // Chờ session sẵn sàng trước khi gọi API
+  const { status: sessionStatus } = useSession();
+  const sessionReady = sessionStatus !== "loading";
 
   const courseName = getParamValue(params.course_name) || "";
   const status = getParamValue(params.status) || "view";
   const routeLessonId = Number(getParamValue(params.lecture_id));
   const routeSubLessonId = Number(getParamValue(params.sublesson_id));
 
+  const [activeCourseId, setActiveCourseId] = useState<number | null>(reduxCourseId);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [openLessonIds, setOpenLessonIds] = useState<number[]>([]);
   const [selectedSubLessonId, setSelectedSubLessonId] = useState<number | null>(
@@ -46,6 +54,49 @@ const LessonPage = () => {
   const [reloadFlag, setReloadFlag] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 1. Auto-resolve course if reduxCourseId is not set
+  useEffect(() => {
+    // Chờ session load xong mới gọi API
+    if (!sessionReady) return;
+
+    if (reduxCourseId) {
+      setActiveCourseId(reduxCourseId);
+      return;
+    }
+
+    async function resolveCourse() {
+      if (!courseName) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const searchKeyword = decodeURIComponent(courseName).replace(/-/g, " ");
+        const res = await get<any>(`/course/search?keyword=${encodeURIComponent(searchKeyword)}`);
+        const items = res?.courses || (Array.isArray(res) ? res : []);
+        const matched =
+          items.find((c: any) => slugify(c.title) === courseName) ||
+          items[0];
+
+        if (matched?.id) {
+          setActiveCourseId(matched.id);
+          dispatch(setCourse({ courseId: matched.id, courseTitle: matched.title }));
+        } else {
+          if (Number.isFinite(routeLessonId) && routeLessonId > 0) {
+            setActiveCourseId(routeLessonId);
+          }
+        }
+      } catch (err) {
+        console.error("Error resolving course by slug:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    resolveCourse();
+  }, [sessionReady, reduxCourseId, courseName, routeLessonId, dispatch, get]);
 
   useEffect(() => {
     setSelectedSubLessonId(Number.isFinite(routeSubLessonId) ? routeSubLessonId : null);
@@ -58,20 +109,23 @@ const LessonPage = () => {
         return foundLesson.sub_lessons;
       }
 
-      const data = await get<SubLesson[]>(`/sublessons/lesson/${lessonId}`);
-      setLessons((prev) =>
-        prev.map((lesson) =>
-          lesson.id === lessonId ? { ...lesson, sub_lessons: data } : lesson,
-        ),
-      );
-      return data;
+      try {
+        const data = await get<SubLesson[]>(`/sublessons/lesson/${lessonId}`);
+        setLessons((prev) =>
+          prev.map((lesson) =>
+            lesson.id === lessonId ? { ...lesson, sub_lessons: data } : lesson,
+          ),
+        );
+        return data;
+      } catch {
+        return [];
+      }
     },
     [get, lessons],
   );
 
   const fetchLessons = useCallback(async () => {
-    if (!courseId) {
-      setIsLoading(false);
+    if (!activeCourseId) {
       return;
     }
 
@@ -79,18 +133,22 @@ const LessonPage = () => {
     setErrorMessage(null);
 
     try {
-      const data = await get<Lesson[]>(`/lessons/course/${courseId}`);
+      const data = await get<Lesson[]>(`/lessons/course/${activeCourseId}`);
       setLessons(data || []);
     } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
-  }, [courseId, get]);
+  }, [activeCourseId, get]);
 
   useEffect(() => {
-    fetchLessons();
-  }, [fetchLessons, reloadFlag]);
+    // Chờ session và courseId mới fetch lessons
+    if (!sessionReady) return;
+    if (activeCourseId) {
+      fetchLessons();
+    }
+  }, [sessionReady, activeCourseId, fetchLessons, reloadFlag]);
 
   useEffect(() => {
     if (!Number.isFinite(routeLessonId) || routeLessonId <= 0 || lessons.length === 0) {
@@ -204,7 +262,7 @@ const LessonPage = () => {
     );
   }
 
-  if (errorMessage) {
+  if (errorMessage && status !== "edit" && lessons.length === 0) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center shadow-sm">
@@ -230,7 +288,9 @@ const LessonPage = () => {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                   <BookOpen className="h-4 w-4 text-primary" />
-                  <span>Không gian học tập</span>
+                  <span>
+                    {status === "edit" ? "Chế độ Quản lý bài giảng" : "Không gian học tập"}
+                  </span>
                 </div>
                 <h1 className="mt-1 truncate text-lg font-semibold text-foreground">
                   {currentSubLesson?.title || "Tổng quan khóa học"}
@@ -255,6 +315,7 @@ const LessonPage = () => {
             lessons={lessons}
             openLessonIds={openLessonIds}
             selectedSubLessonId={selectedSubLessonId}
+            status={status}
             onToggleLesson={handleToggleLesson}
             onSelectSubLesson={handleSelectSubLesson}
           />

@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 export default function StudentPage({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute allowedRoles={["ADMIN"]}>
-      <div className="min-h-[100vh] mt-[var(--navHeight)] mx-auto w-[var(--wBodyMD)] md:[80%]">
+      <div className="w-full">
         {children}
       </div>
     </ProtectedRoute>

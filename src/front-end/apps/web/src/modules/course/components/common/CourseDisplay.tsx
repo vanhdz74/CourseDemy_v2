@@ -78,12 +78,12 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
 
   if (isError) {
     return (
-      <div className="rounded-xl border border-red-100 bg-red-50 p-5 text-red-700">
+      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 text-destructive">
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
-            <p className="font-semibold">{t("courses.loadErrorTitle")}</p>
-            <p className="mt-1 text-sm text-red-600">
+            <p className="font-bold">{t("courses.loadErrorTitle")}</p>
+            <p className="mt-1 text-sm text-destructive-foreground/90">
               {error instanceof Error
                 ? error.message
                 : t("courses.loadErrorDescription")}
@@ -98,20 +98,20 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
     <div className="flex flex-col gap-6">
       {/* Loading skeleton */}
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+              className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm"
             >
               <Skeleton className="aspect-[16/10] w-full rounded-none" />
-              <div className="space-y-3 p-4">
+              <div className="space-y-3.5 p-4">
                 <Skeleton className="h-5 w-4/5" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-2/3" />
-                <div className="flex items-center justify-between pt-3">
-                  <Skeleton className="h-6 w-24" />
-                  <Skeleton className="h-9 w-32 rounded-full" />
+                <div className="flex items-center justify-between pt-3 border-t border-border/40">
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-8 w-28 rounded-full" />
                 </div>
               </div>
             </div>
@@ -126,7 +126,7 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.2 }}
-              className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
             >
               {courses.map((course) => (
                 <CourseCard
@@ -151,13 +151,13 @@ const CourseDisplay: React.FC<CourseDisplayProps> = ({ apiUrl }) => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center"
+              className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 text-center"
             >
-              <SearchX className="h-10 w-10 text-slate-400" />
-              <h2 className="mt-4 text-lg font-semibold text-slate-950">
+              <SearchX className="h-10 w-10 text-muted-foreground/60" />
+              <h2 className="mt-4 text-lg font-bold text-foreground">
                 {t("courses.emptyTitle")}
               </h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
                 {t("courses.emptyDescription")}
               </p>
             </motion.div>

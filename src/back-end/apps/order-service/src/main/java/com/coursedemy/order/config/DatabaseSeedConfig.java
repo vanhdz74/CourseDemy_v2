@@ -17,12 +17,16 @@ public class DatabaseSeedConfig {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final jakarta.persistence.EntityManager entityManager;
 
     private static final String TEST_PASSWORD = "123456";
 
     @Bean
     ApplicationRunner seedDefaultData() {
-        return args -> seedRolesAndTestUsers();
+        return args -> {
+            seedRolesAndTestUsers();
+            syncSequences();
+        };
     }
 
     @Transactional
@@ -34,6 +38,16 @@ public class DatabaseSeedConfig {
         seedUser("Admin Test", "admin@coursedemy.local", adminRole);
         seedUser("Teacher Test", "teacher@coursedemy.local", teacherRole);
         seedUser("Student Test", "student@coursedemy.local", studentRole);
+    }
+
+    @Transactional
+    public void syncSequences() {
+        try {
+            entityManager.createNativeQuery("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users").getSingleResult();
+            entityManager.createNativeQuery("SELECT setval(pg_get_serial_sequence('cart', 'id'), COALESCE(MAX(id), 1)) FROM cart").getSingleResult();
+            entityManager.createNativeQuery("SELECT setval(pg_get_serial_sequence('cart_item', 'id'), COALESCE(MAX(id), 1)) FROM cart_item").getSingleResult();
+        } catch (Exception ignored) {
+        }
     }
 
     private RoleEntity seedRole(String roleName, String description) {

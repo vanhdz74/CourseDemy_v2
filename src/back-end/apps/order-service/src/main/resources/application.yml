@@ -3,12 +3,15 @@ server:
 
 spring:
   application:
-    name: order-service
+    name: ORDER-SERVICE
   config:
     import:
       - optional:file:../../.env[.properties]
       - optional:file:.env[.properties]
       - optional:classpath:coursedemy-common.yml
+  # =========================================================================
+  # CẤU HÌNH DATABASE CHO MICROSERVICE (ORDER SERVICE):
+  # =========================================================================
   datasource:
     url: ${ORDER_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:postgres}?sslmode=${DB_SSLMODE:disable}&currentSchema=${ORDER_SERVICE_DB_NAME:order_service_db}}
     username: ${ORDER_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
@@ -19,3 +22,29 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 6000
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: order-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.coursedemy.common.event"
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka}
+
+jwt:
+  secretKey: ${JWT_SECRET:tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=}
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:600000}
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
+
+api:
+  prefix:

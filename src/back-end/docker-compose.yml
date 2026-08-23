@@ -7,7 +7,6 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_USER: ${DB_USERNAME:-${SPRING_DATASOURCE_USERNAME:-postgres}}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-${SPRING_DATASOURCE_PASSWORD:-postgres}}
-      GATEWAY_SERVICE_DB_NAME: ${GATEWAY_SERVICE_DB_NAME:-gateway_service_db}
       USER_SERVICE_DB_NAME: ${USER_SERVICE_DB_NAME:-user_service_db}
       COURSE_SERVICE_DB_NAME: ${COURSE_SERVICE_DB_NAME:-course_service_db}
       ORDER_SERVICE_DB_NAME: ${ORDER_SERVICE_DB_NAME:-order_service_db}
@@ -32,6 +31,91 @@ services:
       - redis_data:/data
     networks:
       - spring-microservice
+
+  discovery-service:
+    build:
+      context: .
+      dockerfile: apps/discovery-service/Dockerfile
+    container_name: discovery-service-CourseDemy
+    ports:
+      - "8761:8761"
+    networks:
+      - spring-microservice
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: apps/gateway-service/Dockerfile
+    container_name: gateway-service-CourseDemy
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service-CourseDemy:8761/eureka
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
+    depends_on:
+      - discovery-service
+    networks:
+      - spring-microservice
+
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/Dockerfile
+    container_name: user-service-CourseDemy
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - USER_SERVICE_DB_NAME=${USER_SERVICE_DB_NAME:-user_service_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service-CourseDemy:8761/eureka
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
+    depends_on:
+      - redis
+      - discovery-service
+    networks:
+      - spring-microservice
+
+  course-service:
+    build:
+      context: .
+      dockerfile: apps/course-service/Dockerfile
+    container_name: course-service-CourseDemy
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - COURSE_SERVICE_DB_NAME=${COURSE_SERVICE_DB_NAME:-course_service_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service-CourseDemy:8761/eureka
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
+    depends_on:
+      - redis
+      - discovery-service
+    networks:
+      - spring-microservice
+
 volumes:
   postgres_data:
   redis_data:

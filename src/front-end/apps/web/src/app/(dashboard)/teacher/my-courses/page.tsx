@@ -142,7 +142,6 @@ const TeacherCourseManagement = () => {
       level: 0,
       quantity: 0,
     };
-    console.log(payload);
 
     try {
       await createCourseMutation.mutateAsync(payload);

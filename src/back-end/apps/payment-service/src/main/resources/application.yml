@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: payment-service
+    name: PAYMENT-SERVICE
   config:
     import:
       - optional:file:../../.env[.properties]
@@ -11,35 +11,62 @@ spring:
       - optional:file:apps/payment-service/.env[.properties]
       - optional:classpath:coursedemy-common.yml
   datasource:
-    url: jdbc:postgresql://localhost:5432/payment_service_db
-    username: postgres
-    password: hieuit07
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:postgres}?sslmode=${DB_SSLMODE:disable}&currentSchema=${PAYMENT_SERVICE_DB_NAME:payment_service_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update
-
     show-sql: true
-# =========================
-# Payment Configuration
-# =========================
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: ${PAYMENT_SERVICE_DB_NAME:payment_service_db}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: payment-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.coursedemy.common.event"
 
-# VNPay Sandbox/Test
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka}
+
+jwt:
+  secretKey: ${JWT_SECRET:tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=}
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:600000}
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
+
+api:
+  prefix:
+
 vnpay:
-  tmn-code: ${VNPAY_TMN_CODE:}
-  hash-secret: ${VNPAY_HASH_SECRET:}
+  tmn-code: ${VNPAY_TMN_CODE:87UOU6Q8}
+  hash-secret: ${VNPAY_HASH_SECRET:U7378A5VYY03N3L40F5S2995K7BXZ97Y}
   pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
-  return-url: ${VNPAY_RETURN_URL:http://localhost:8086/api/payment/vnpay/return}
-  ipn-url: ${VNPAY_IPN_URL:http://localhost:8086/api/payment/vnpay/ipn}
+  return-url: ${VNPAY_RETURN_URL:http://localhost:8080/api/payment/vnpay/return}
+  ipn-url: ${VNPAY_IPN_URL:http://localhost:8080/api/payment/vnpay/ipn}
 
-# MoMo Sandbox/Test
 momo:
   partner-code: ${MOMO_PARTNER_CODE:}
   access-key: ${MOMO_ACCESS_KEY:}
   secret-key: ${MOMO_SECRET_KEY:}
   endpoint: ${MOMO_PAYMENT_URL:https://test-payment.momo.vn/v2/gateway/api/create}
-  redirect-url: ${MOMO_REDIRECT_URL:http://localhost:8086/api/payment/momo/return}
-  ipn-url: ${MOMO_IPN_URL:http://localhost:8086/api/payment/momo/ipn}
+  redirect-url: ${MOMO_REDIRECT_URL:http://localhost:8080/api/payment/momo/return}
+  ipn-url: ${MOMO_IPN_URL:http://localhost:8080/api/payment/momo/ipn}
 
-# Frontend URL for redirects
 fe:
   url: ${FRONTEND_URL:http://localhost:3000}

@@ -17,14 +17,14 @@ public class VnPayConfig {
     public static String vnp_PayUrl;
     public static String vnp_Returnurl;
 
-    @Value("${vnpay.tmn-code}")
+    @Value("${vnpay.tmn-code:87UOU6Q8}")
     public void setTmnCode(String tmnCode) {
-        VnPayConfig.vnp_TmnCode = tmnCode;
+        VnPayConfig.vnp_TmnCode = (tmnCode != null && !tmnCode.isBlank()) ? tmnCode : "87UOU6Q8";
     }
 
-    @Value("${vnpay.hash-secret}")
+    @Value("${vnpay.hash-secret:U7378A5VYY03N3L40F5S2995K7BXZ97Y}")
     public void setHashSecret(String hashSecret) {
-        VnPayConfig.vnp_HashSecret = hashSecret;
+        VnPayConfig.vnp_HashSecret = (hashSecret != null && !hashSecret.isBlank()) ? hashSecret : "U7378A5VYY03N3L40F5S2995K7BXZ97Y";
     }
 
     @Value("${vnpay.pay-url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")

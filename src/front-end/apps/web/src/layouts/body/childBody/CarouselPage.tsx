@@ -10,6 +10,7 @@ import {
   CarouselPrevious,
 } from "@/modules/shared/components/ui/carousel";
 import { useI18n } from "@/modules/shared/i18n";
+import { motion } from "framer-motion";
 
 const CarouselPage = () => {
   const { t } = useI18n();
@@ -29,9 +30,9 @@ const CarouselPage = () => {
   ];
 
   return (
-    <section className="pt-8">
+    <section className="pt-12 w-full">
       {/* ================= CAROUSEL ================= */}
-      <div className="mx-auto h-[240px] w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm sm:h-[340px] lg:h-[460px]">
+      <div className="mx-auto h-[240px] w-full overflow-hidden rounded-[2rem] border border-border/80 bg-card shadow-md sm:h-[340px] lg:h-[460px]">
         <Carousel
           plugins={[
             Autoplay({
@@ -52,37 +53,38 @@ const CarouselPage = () => {
                     priority={index === 0}
                     quality={100}
                     sizes="100vw"
-                    className="object-cover object-center"
+                    className="object-cover object-center transition-transform duration-700 hover:scale-[1.02]"
                   />
 
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/35 via-slate-950/5 to-transparent" />
+                  {/* Dynamic dark gradient overlay that respects color modes */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-background/10 to-transparent" />
                 </div>
               </CarouselItem>
             ))}
           </CarouselContent>
 
-          <CarouselPrevious className="absolute left-4 border-white/70 bg-white/90 text-slate-800 shadow-sm hover:bg-white" />
-          <CarouselNext className="absolute right-4 border-white/70 bg-white/90 text-slate-800 shadow-sm hover:bg-white" />
+          <CarouselPrevious className="absolute left-4 border-border/50 bg-background/80 text-foreground hover:bg-accent/80 hover:text-accent-foreground backdrop-blur shadow-sm transition-all duration-300" />
+          <CarouselNext className="absolute right-4 border-border/50 bg-background/80 text-foreground hover:bg-accent/80 hover:text-accent-foreground backdrop-blur shadow-sm transition-all duration-300" />
         </Carousel>
       </div>
 
       {/* ================= TRUSTED BY ================= */}
-      <div className="mx-auto mt-12 max-w-5xl">
-        <h3 className="mb-8 text-center text-sm font-medium leading-6 text-slate-500">
+      <div className="mx-auto mt-16 max-w-5xl px-4">
+        <h3 className="mb-8 text-center text-xs font-bold tracking-wider uppercase text-muted-foreground/70">
           {t("home.trustedBy")}
         </h3>
 
-        <div className="grid grid-cols-2 place-items-center gap-6 md:grid-cols-4">
+        <div className="grid grid-cols-2 place-items-center gap-8 md:grid-cols-4">
           {logos.map((logo, i) => (
             <div
               key={logo}
-              className="relative h-14 w-32 transition duration-300 hover:opacity-100 hover:grayscale-0"
+              className="relative h-12 w-28 opacity-45 grayscale transition-all duration-300 hover:opacity-100 hover:grayscale-0 dark:invert dark:brightness-[10] dark:hover:brightness-[12]"
             >
               <Image
                 src={logo}
                 alt={`Partner logo ${i + 1}`}
                 fill
-                sizes="128px"
+                sizes="112px"
                 className="object-contain"
               />
             </div>

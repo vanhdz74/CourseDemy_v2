@@ -26,7 +26,7 @@ const Categories = () => {
 
   // React Query fetch
   const {
-    data: categories = [],
+    data,
     isLoading,
     error,
   } = useQuery({
@@ -34,18 +34,26 @@ const Categories = () => {
     queryFn: api.courses.getCategories,
   });
 
+  const categoryList = Array.isArray(data)
+    ? data
+    : Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : Array.isArray((data as any)?.categories)
+    ? (data as any).categories
+    : [];
+
   return (
-    <section className="pt-10">
+    <section className="pt-12">
       <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-950">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           {t("home.categoriesTitle")}
         </h2>
-        <p className="max-w-2xl text-sm leading-6 text-slate-600">
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
           {t("home.categoriesDescription")}
         </p>
       </div>
 
-      <div className="mt-5 flex gap-3 overflow-x-auto pb-3">
+      <div className="mt-6 flex gap-3 overflow-x-auto pb-3 scrollbar-none">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, index) => (
             <Skeleton
@@ -54,20 +62,20 @@ const Categories = () => {
             />
           ))
         ) : error ? (
-          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {t("home.categoriesError")}
           </div>
-        ) : categories?.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+        ) : categoryList.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
             {t("home.categoriesEmpty")}
           </p>
         ) : (
-          categories.map((cat) => (
+          categoryList.map((cat: any) => (
             <Link
               key={cat.id}
               href={`/courses/category/${cat.id}`}
               onClick={() => saveCategoryName(cat.name)}
-              className="inline-flex h-10 shrink-0 items-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-200"
+              className="inline-flex h-10 shrink-0 items-center rounded-full border border-border/80 bg-card px-4 text-sm font-medium text-muted-foreground shadow-sm transition-all duration-300 hover:border-primary/45 hover:bg-primary/5 hover:text-primary active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {cat.name}
             </Link>

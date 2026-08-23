@@ -93,7 +93,42 @@ export default function Page() {
   }, [user?.id]);
 
   return (
-    <div className="p-6 space-y-12">
+    <div className="space-y-7 pb-10">
+      {/* HEADER & CONTROLS */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-3xl border border-border/80 bg-gradient-to-r from-primary/10 via-card to-background p-6 shadow-sm">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Báo cáo & Thống kê doanh thu
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Phân tích số liệu tài chính chi tiết theo từng danh mục, khóa học và chu kỳ thời gian.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-1.5 shadow-sm">
+            <span className="text-xs font-semibold text-muted-foreground">Course ID:</span>
+            <input
+              type="number"
+              value={courseId ?? ""}
+              placeholder="Tất cả"
+              onChange={(e) =>
+                setCourseId(e.target.value ? Number(e.target.value) : null)
+              }
+              className="w-20 bg-transparent text-xs font-bold focus:outline-none"
+            />
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => setOpenReport(true)}
+            className="rounded-xl gap-2 font-semibold shadow-sm cursor-pointer"
+          >
+            Xuất báo cáo PDF
+          </Button>
+        </div>
+      </div>
+
       {/* SUMMARY CARDS */}
       <DashboardSummary
         totalRevenue={totalRevenue}
@@ -101,66 +136,46 @@ export default function Page() {
         totalCategories={totalCategories}
       />
 
-      {/* 1. Column Chart */}
-      <div>
-        <div className="mb-4 flex items-center gap-3 justify-end">
-          <label className="font-medium">Lọc theo Course ID:</label>
-          <input
-            type="number"
-            value={courseId ?? ""}
-            placeholder="Nhập courseId"
-            onChange={(e) =>
-              setCourseId(e.target.value ? Number(e.target.value) : null)
-            }
-            className="w-40 px-3 py-2 border rounded-lg"
-          />
-        </div>
+      {/* 1. Monthly Revenue Chart */}
+      <RevenueByMonth data={revenueByMonth} />
 
-        <RevenueByMonth data={revenueByMonth} />
-      </div>
-
-      <hr />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* 2. Top 5 khóa học */}
+      {/* 2 & 3. Top Courses & Category Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TopCoursesRevenue data={topCourses} />
-
-        {/* 3. Pie Chart */}
         <RevenueByCategoryPie data={revenueByCategory} />
       </div>
 
-      {/* 4. Line Chart */}
-      <hr />
-      <div className="text-right mb-4 flex justify-end items-center gap-3">
-        Chọn thời gian:
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          className="px-3 py-2 border rounded-lg"
-        />
-        <span className="text-gray-500">→</span>
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          min={fromDate} // không cho chọn ngày nhỏ hơn từ ngày
-          className="px-3 py-2 border rounded-lg"
-        />
-      </div>
-      <DailyRevenueLine data={dailyRevenue} />
+      {/* 4. Daily Revenue Line Chart with Date Filters */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+          <h2 className="text-lg font-bold tracking-tight text-foreground">
+            Xu hướng doanh thu theo ngày
+          </h2>
 
-      <hr />
-      <div className="text-right flex justify-end items-center">
-        <Button
-          className="mr-2 cursor-pointer"
-          onClick={() => setOpenReport(true)}
-        >
-          Xem trước báo cáo
-        </Button>
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-1.5 shadow-sm text-xs">
+            <span className="text-muted-foreground pl-2 font-medium">Khoảng ngày:</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="bg-transparent px-2 py-1 rounded-lg border border-border/60 text-xs focus:outline-none"
+            />
+            <span className="text-muted-foreground font-bold">→</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              min={fromDate}
+              className="bg-transparent px-2 py-1 rounded-lg border border-border/60 text-xs focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <DailyRevenueLine data={dailyRevenue} />
       </div>
 
       {/* REPORT PREVIEW - PDF */}
-      <div className={`${openReport ? "block" : "hidden"}`}>
+      {openReport && (
         <PDFReport
           open={openReport}
           onClose={() => setOpenReport(false)}
@@ -176,7 +191,7 @@ export default function Page() {
           fromDate={fromDate}
           toDate={toDate}
         />
-      </div>
+      )}
     </div>
   );
 }

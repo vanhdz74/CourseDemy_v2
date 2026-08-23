@@ -13,7 +13,6 @@ declare module "next-auth" {
   interface Session {
     user: CourseDemyUser;
     accessToken?: string;
-    refreshToken?: string;
     error?: string;
   }
 

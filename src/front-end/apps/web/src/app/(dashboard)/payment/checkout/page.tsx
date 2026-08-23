@@ -93,35 +93,82 @@ export default function CheckoutPage() {
 
   if (courseIds.length === 0) {
     return (
-      <div className="mx-auto mt-10 max-w-xl rounded-xl border border-border bg-card p-8 text-center">
-        <h1 className="text-xl font-semibold text-foreground">
+      <div className="mx-auto my-12 max-w-lg rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
+          <svg
+            className="h-8 w-8"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+            />
+          </svg>
+        </div>
+        <h1 className="text-xl font-bold text-foreground">
           {t("checkout.emptyTitle")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {t("checkout.emptyDescription")}
         </p>
-        <Link
-          href="/cart"
-          className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
-        >
-          {t("checkout.backToCart")}
-        </Link>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link
+            href="/cart"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition"
+          >
+            {t("checkout.backToCart")}
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-background px-5 text-sm font-semibold text-foreground hover:bg-accent transition"
+          >
+            Khám phá khóa học
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (isLoading && checkoutItems.length === 0) {
     return (
-      <div className="mx-auto mt-10 max-w-xl rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-        {t("checkout.loading")}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+        <div className="lg:col-span-8 space-y-6">
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="h-6 w-48 bg-muted animate-pulse rounded-md" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div className="h-24 bg-muted/60 animate-pulse rounded-xl" />
+              <div className="h-24 bg-muted/60 animate-pulse rounded-xl" />
+              <div className="h-24 bg-muted/60 animate-pulse rounded-xl" />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="h-6 w-40 bg-muted animate-pulse rounded-md" />
+            <div className="h-20 bg-muted/60 animate-pulse rounded-xl" />
+            <div className="h-20 bg-muted/60 animate-pulse rounded-xl" />
+          </div>
+        </div>
+        <div className="lg:col-span-4">
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="h-6 w-32 bg-muted animate-pulse rounded-md" />
+            <div className="space-y-2 pt-2">
+              <div className="h-4 w-full bg-muted/60 animate-pulse rounded" />
+              <div className="h-4 w-3/4 bg-muted/60 animate-pulse rounded" />
+            </div>
+            <div className="h-12 bg-muted animate-pulse rounded-xl mt-4" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (isError && checkoutItems.length === 0) {
     return (
-      <div className="mx-auto mt-10 max-w-xl rounded-xl border border-border bg-card p-8 text-center">
-        <h1 className="text-xl font-semibold text-foreground">
+      <div className="mx-auto my-12 max-w-lg rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
+        <h1 className="text-xl font-bold text-destructive">
           {t("checkout.loadErrorTitle")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -129,7 +176,7 @@ export default function CheckoutPage() {
         </p>
         <Link
           href="/cart"
-          className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
+          className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition"
         >
           {t("checkout.backToCart")}
         </Link>

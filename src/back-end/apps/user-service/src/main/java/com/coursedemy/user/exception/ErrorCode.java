@@ -26,6 +26,12 @@ public enum ErrorCode {
     EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "EMAIL_NOT_FOUND", "Email không tồn tại"),
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "COURSE_NOT_FOUND", "Không tìm thấy khóa học"),
 
+    OTP_EXPIRED_OR_NOT_FOUND(HttpStatus.BAD_REQUEST, "OTP_EXPIRED_OR_NOT_FOUND", "OTP đã hết hạn hoặc không tồn tại"),
+    INVALID_OTP(HttpStatus.BAD_REQUEST, "INVALID_OTP", "OTP sai"),
+    CURRENT_PASSWORD_INCORRECT(HttpStatus.BAD_REQUEST, "CURRENT_PASSWORD_INCORRECT", "Mật khẩu hiện tại nhập vào sai"),
+    NEW_PASSWORD_SAME_AS_OLD(HttpStatus.BAD_REQUEST, "NEW_PASSWORD_SAME_AS_OLD", "Mật khẩu mới không được trùng với mật khẩu cũ"),
+    JWT_TOKEN_CREATION_FAILED(HttpStatus.UNAUTHORIZED, "JWT_TOKEN_CREATION_FAILED", "Không thể tạo JWT token"),
+
     UNSUPPORTED_PAYMENT_PROVIDER(HttpStatus.BAD_REQUEST, "UNSUPPORTED_PAYMENT_PROVIDER", "Nhà cung cấp thanh toán không được hỗ trợ"),
     COURSE_ID_EMPTY(HttpStatus.BAD_REQUEST, "COURSE_ID_EMPTY", "Danh sách khóa học không được để trống"),
     INVALID_TOTAL_PRICE(HttpStatus.BAD_REQUEST, "INVALID_TOTAL_PRICE", "Tổng thanh toán không hợp lệ"),

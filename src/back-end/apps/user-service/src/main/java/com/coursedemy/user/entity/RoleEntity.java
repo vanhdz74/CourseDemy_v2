@@ -20,6 +20,10 @@ import lombok.*;
 @Builder
 public class RoleEntity {
 
+    public static final String ADMIN = "ADMIN";
+    public static final String TEACHER = "TEACHER";
+    public static final String STUDENT = "STUDENT";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

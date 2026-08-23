@@ -160,6 +160,7 @@ public class GlobalExceptionHandleForOtherService {
             RuntimeException ex,
             HttpServletRequest request
     ) {
+        log.error("RuntimeException at path {}: ", request.getRequestURI(), ex);
         return build(
                 ErrorCode.BUSINESS_ERROR,
                 ex.getMessage(),

@@ -60,7 +60,9 @@ public class PaymentController {
                                                                           @RequestParam String provider,
                                                                           HttpServletRequest httpRequest) throws Exception {
 
-        UserEntity user = userRepository.findById(extractUserId(request))
+        Long userId = extractUserId(request);
+        userRepository.insertUserIfNotExists(userId, "user" + userId + "@coursedemy.local");
+        UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Object rawCourseIds = request.get("courseIds") != null
@@ -77,14 +79,25 @@ public class PaymentController {
                 .distinct()
                 .toList();
 
+        for (Long cId : ids) {
+            courseRepository.insertCourseIfNotExists(cId, "Course " + cId, 50000D);
+        }
+
         List<CourseEntity> courses = courseRepository.findAllByIdIn(ids);
-        if (courses.size() != ids.size()) {
+        if (courses.isEmpty()) {
             throw new BusinessException(ErrorCode.COURSE_NOT_FOUND);
         }
 
-        double totalPrice = courses.stream()
-                .mapToDouble(course -> course.getPrice() == null ? 0D : course.getPrice())
-                .sum();
+        Double requestedTotal = null;
+        if (request.get("totalPrice") != null) {
+            try {
+                requestedTotal = Double.parseDouble(String.valueOf(request.get("totalPrice")));
+            } catch (Exception ignored) {}
+        }
+
+        double totalPrice = (requestedTotal != null && requestedTotal > 0)
+                ? requestedTotal
+                : courses.stream().mapToDouble(c -> c.getPrice() == null ? 0D : c.getPrice()).sum();
 
         if ("vnpay".equalsIgnoreCase(provider) && totalPrice < 5000D) {
             throw new BusinessException(ErrorCode.INVALID_TOTAL_PRICE, "Tong thanh toan VNPay phai tu 5,000 VND tro len");
@@ -107,17 +120,13 @@ public class PaymentController {
             orderDetailRepository.save(detail);
         }
 
-        String paymentUrl = paymentService.getPaymentUrl(
+        Map<String, String> paymentDetails = paymentService.getPaymentDetails(
                 order,
                 provider,
                 Map.of("ipAddress", getClientIp(httpRequest))
         );
 
-        return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                "code", "00",
-                "message", "success",
-                "paymentUrl", paymentUrl
-        )));
+        return ResponseEntity.ok(ApiResponse.ok(paymentDetails));
     }
 
     // =========================

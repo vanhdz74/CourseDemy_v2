@@ -12,6 +12,18 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  # =========================================================================
+  # CẤU HÌNH DATABASE CHO MICROSERVICE (USER SERVICE):
+  #
+  # [PHƯƠNG ÁN 1] Supabase Cloud PostgreSQL:
+  #   - USER_SERVICE_DATASOURCE_URL=jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require&currentSchema=user_service_db
+  #
+  # [PHƯƠNG ÁN 2] PostgreSQL Local / Remote Host riêng biệt:
+  #   - Trỏ từ localhost, IP mạng LAN, Docker network, hoặc máy chủ DB riêng:
+  #     DB_HOST=localhost (hoặc 192.168.1.100, host.docker.internal)
+  #     DB_PORT=5432
+  #     USER_SERVICE_DB_NAME=user_service_db
+  # =========================================================================
   datasource:
     url: ${USER_SERVICE_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_DATABASE:postgres}?sslmode=${DB_SSLMODE:disable}&currentSchema=${USER_SERVICE_DB_NAME:user_service_db}}
     username: ${USER_SERVICE_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}}
@@ -31,10 +43,26 @@ spring:
       port: ${REDIS_PORT:6380}
       password: ${REDIS_PASSWORD:}
       timeout: 6000
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+
+jwt:
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION:600000}
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000}
+  secretKey: ${JWT_SECRET:tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=}
 
 eureka:
   client:

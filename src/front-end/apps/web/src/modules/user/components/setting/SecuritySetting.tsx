@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, CardHeader, CardContent, CardTitle } from "@/modules/shared/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/modules/shared/components/ui/card";
 import { Input } from "@/modules/shared/components/ui/input";
 import { Label } from "@/modules/shared/components/ui/label";
 import { Switch } from "@/modules/shared/components/ui/switch";
@@ -56,43 +56,47 @@ export default function SecuritySetting() {
   };
 
   return (
-    <Card>
+    <Card className="border-border/80 bg-card shadow-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Lock size={18} /> Bảo mật
+        <CardTitle className="flex items-center gap-2 text-foreground">
+          <Lock className="h-5 w-5 text-primary" /> Cài đặt bảo mật
         </CardTitle>
+        <CardDescription>
+          Thiết lập mật khẩu bảo mật và kích hoạt các phương thức xác thực tài khoản.
+        </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6 pt-2">
         {/* 2FA */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="font-medium">Bảo mật 2 lớp</div>
-            <div className="text-sm text-muted-foreground">
-              Tăng cường bảo mật tài khoản
+        <div className="flex items-center justify-between pb-4 border-b border-border/40">
+          <div className="space-y-1">
+            <Label className="text-sm font-semibold text-foreground">Bảo mật 2 lớp (2FA)</Label>
+            <div className="text-xs text-muted-foreground">
+              Yêu cầu xác nhận mã OTP trên điện thoại khi đăng nhập từ thiết bị lạ.
             </div>
           </div>
           <Switch
             checked={twoFA}
             onCheckedChange={(val) => setTwoFA(Boolean(val))}
+            className="data-[state=checked]:bg-primary"
           />
         </div>
 
         {/* Đổi mật khẩu */}
-        <div className="pt-4">
-          <Label className="text-sm font-medium">Thay đổi mật khẩu</Label>
+        <div className="space-y-4">
+          <Label className="text-sm font-semibold text-foreground">Thay đổi mật khẩu</Label>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
             {/* Current password */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">
                 Mật khẩu hiện tại
               </Label>
               <div className="relative">
                 <Input
                   type={showPw.current ? "text" : "password"}
-                  placeholder="Current password"
-                  className="pr-10 rounded-xl focus:ring-2 focus:ring-indigo-300"
+                  placeholder="Mật khẩu cũ"
+                  className="pr-10 bg-background border-border rounded-xl focus-visible:ring-2 focus-visible:ring-primary/45"
                   onChange={(e) =>
                     setResetPw((prev) => ({
                       ...prev,
@@ -102,7 +106,7 @@ export default function SecuritySetting() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-indigo-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors duration-300"
                   onClick={() =>
                     setShowPw((prev) => ({
                       ...prev,
@@ -110,21 +114,21 @@ export default function SecuritySetting() {
                     }))
                   }
                 >
-                  {showPw.current ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPw.current ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             {/* New password */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">
                 Mật khẩu mới
               </Label>
               <div className="relative">
                 <Input
                   type={showPw.next ? "text" : "password"}
-                  placeholder="New password"
-                  className="pr-10 rounded-xl focus:ring-2 focus:ring-indigo-300"
+                  placeholder="Mật khẩu mới"
+                  className="pr-10 bg-background border-border rounded-xl focus-visible:ring-2 focus-visible:ring-primary/45"
                   onChange={(e) =>
                     setResetPw((prev) => ({
                       ...prev,
@@ -134,7 +138,7 @@ export default function SecuritySetting() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-indigo-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors duration-300"
                   onClick={() =>
                     setShowPw((prev) => ({
                       ...prev,
@@ -142,21 +146,21 @@ export default function SecuritySetting() {
                     }))
                   }
                 >
-                  {showPw.next ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPw.next ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             {/* Confirm password */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">
-                Nhập lại mật khẩu
+                Xác nhận mật khẩu mới
               </Label>
               <div className="relative">
                 <Input
                   type={showPw.confirm ? "text" : "password"}
-                  placeholder="Confirm password"
-                  className="pr-10 rounded-xl focus:ring-2 focus:ring-indigo-300"
+                  placeholder="Nhập lại mật khẩu"
+                  className="pr-10 bg-background border-border rounded-xl focus-visible:ring-2 focus-visible:ring-primary/45"
                   onChange={(e) =>
                     setResetPw((prev) => ({
                       ...prev,
@@ -166,7 +170,7 @@ export default function SecuritySetting() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-indigo-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors duration-300"
                   onClick={() =>
                     setShowPw((prev) => ({
                       ...prev,
@@ -174,18 +178,20 @@ export default function SecuritySetting() {
                     }))
                   }
                 >
-                  {showPw.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPw.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
           </div>
 
-          <Button
-            onClick={handleUpdatePassword}
-            className="mt-4 w-full md:w-auto rounded-xl px-6 py-2 bg-indigo-600 hover:bg-indigo-700 transition"
-          >
-            Cập nhật
-          </Button>
+          <div className="pt-2 flex justify-end">
+            <Button
+              onClick={handleUpdatePassword}
+              className="w-full md:w-auto rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 shadow-sm transition-all duration-300 hover:scale-105 active:scale-95"
+            >
+              Cập nhật mật khẩu
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

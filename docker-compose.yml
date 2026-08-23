@@ -1,80 +1,361 @@
 services:
-  backend:
-    build: ./back-end
-    container_name: coursedemy-backend
-    ports:
-      - "${BACKEND_PORT:-8080}:8080"
-    environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/coursedemy_db}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      JWT_SECRET: ${JWT_SECRET:-ZGV2LW9ubHktY291cnNlZGVteS1qd3Qtc2VjcmV0LTEyMzQ1Ng==}
-      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION:-3600000}
-      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
-      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
-      VNPAY_PAY_URL: ${VNPAY_PAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
-      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8080/api/payment/vnpay/return}
-      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@coursedemy.local}
-      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-1234}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - my-network
+  # -------------------------------------------------------------
+  # DATABASE: PostgreSQL 16 (Tạm thời tắt để dùng Supabase)
+  # -------------------------------------------------------------
+  # postgres:
+  #   image: postgres:16
+  #   container_name: coursedemy-postgres
+  #   restart: always
+  #   environment:
+  #     POSTGRES_DB: postgres
+  #     POSTGRES_USER: ${DB_USERNAME:-postgres}
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+  #     # Danh sách tên các schema tương ứng với từng service
+  #     GATEWAY_SERVICE_DB_NAME: ${GATEWAY_SERVICE_DB_NAME:-gateway_service_db}
+  #     USER_SERVICE_DB_NAME: ${USER_SERVICE_DB_NAME:-user_service_db}
+  #     COURSE_SERVICE_DB_NAME: ${COURSE_SERVICE_DB_NAME:-course_service_db}
+  #     ORDER_SERVICE_DB_NAME: ${ORDER_SERVICE_DB_NAME:-order_service_db}
+  #     PAYMENT_SERVICE_DB_NAME: ${PAYMENT_SERVICE_DB_NAME:-payment_service_db}
+  #     ENROLLMENT_SERVICE_DB_NAME: ${ENROLLMENT_SERVICE_DB_NAME:-enrollment_service_db}
+  #     NOTIFICATION_SERVICE_DB_NAME: ${NOTIFICATION_SERVICE_DB_NAME:-notification_service_db}
+  #   ports:
+  #     - "${POSTGRES_PORT:-5434}:5432" # Map port ra ngoài host (mặc định: 5434)
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     # File script tự động chạy ở lần đầu khởi động để tạo sẵn các database/schema
+  #     - ./src/back-end/docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+  #   networks:
+  #     - coursedemy-network
 
-  frontend:
-    container_name: coursedemy-frontend
+  # -------------------------------------------------------------
+  # CACHE: Redis 7.2 (Quản lý Session, Cache, và OTP)
+  # -------------------------------------------------------------
+  redis:
+    image: redis:7.2
+    container_name: coursedemy-redis
+    restart: always
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # MESSAGE BROKER: Apache Kafka 3.8 (KRaft mode - không cần Zookeeper)
+  # Topic chính: course.sync - đồng bộ dữ liệu khóa học giữa các service
+  # -------------------------------------------------------------
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: coursedemy-kafka
+    restart: always
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # SERVICE DISCOVERY: Eureka Server (Đăng ký & quản lý các Microservices)
+  # -------------------------------------------------------------
+  discovery-service:
     build:
-      context: ./front-end
+      context: ./src/back-end
+      dockerfile: apps/discovery-service/Dockerfile
+    container_name: coursedemy-discovery-service
+    ports:
+      - "8761:8761" # Dashboard Eureka kiểm tra trạng thái các service
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # API GATEWAY: Cổng tích hợp chung, xác thực JWT, định tuyến API
+  # -------------------------------------------------------------
+  gateway-service:
+    build:
+      context: ./src/back-end
+      dockerfile: apps/gateway-service/Dockerfile
+    container_name: coursedemy-gateway-service
+    ports:
+      - "${BACKEND_PORT:-8080}:8080" # Cổng gọi API chính từ Frontend (mặc định: 8080)
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - JWT_SECRET=${JWT_SECRET:-tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-600000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-2592000}
+    depends_on:
+      - discovery-service
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # USER SERVICE: Quản lý xác thực (Auth), tài khoản & hồ sơ người dùng
+  # -------------------------------------------------------------
+  user-service:
+    build:
+      context: ./src/back-end
+      dockerfile: apps/user-service/Dockerfile
+    container_name: coursedemy-user-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - USER_SERVICE_DB_NAME=${USER_SERVICE_DB_NAME:-user_service_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - JWT_SECRET=${JWT_SECRET:-tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-600000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-2592000}
+    depends_on:
+      - redis
+      - discovery-service
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # COURSE SERVICE: Quản lý danh mục, khóa học, chương trình học, bài giảng
+  # -------------------------------------------------------------
+  course-service:
+    build:
+      context: ./src/back-end
+      dockerfile: apps/course-service/Dockerfile
+    container_name: coursedemy-course-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - COURSE_SERVICE_DB_NAME=${COURSE_SERVICE_DB_NAME:-course_service_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - JWT_SECRET=${JWT_SECRET:-tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-600000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-2592000}
+    depends_on:
+      - redis
+      - kafka
+      - discovery-service
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # ENROLLMENT SERVICE: Quản lý học viên đăng ký khóa học, tiến độ học tập
+  # -------------------------------------------------------------
+  enrollment-service:
+    build:
+      context: ./src/back-end
+      dockerfile: apps/enrollment-service/Dockerfile
+    container_name: coursedemy-enrollment-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - ENROLLMENT_SERVICE_DB_NAME=${ENROLLMENT_SERVICE_DB_NAME:-enrollment_service_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - JWT_SECRET=${JWT_SECRET:-ZGV2LW9ubHktY291cnNlZGVteS1qd3Qtc2VjcmV0LTEyMzQ1Ng==}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-3600000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
+    depends_on:
+      - redis
+      - kafka
+      - discovery-service
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # ORDER SERVICE: Quản lý Giỏ hàng (Cart) và Đơn đặt hàng (Order)
+  # -------------------------------------------------------------
+  order-service:
+    build:
+      context: ./src/back-end
+      dockerfile: apps/order-service/Dockerfile
+    container_name: coursedemy-order-service
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - ORDER_SERVICE_DB_NAME=${ORDER_SERVICE_DB_NAME:-order_service_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - JWT_SECRET=${JWT_SECRET:-tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-600000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-2592000}
+    depends_on:
+      - redis
+      - kafka
+      - discovery-service
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # PAYMENT SERVICE: Xử lý giao dịch thanh toán (VNPay,...)
+  # -------------------------------------------------------------
+  payment-service:
+    build:
+      context: ./src/back-end
+      dockerfile: apps/payment-service/Dockerfile
+    container_name: coursedemy-payment-service
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - PAYMENT_SERVICE_DB_NAME=${PAYMENT_SERVICE_DB_NAME:-payment_service_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - JWT_SECRET=${JWT_SECRET:-tqg3uhc3x4X+ebUfzqOLnG7yBQhJzhZbg4q27tU8jzE=}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-600000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-2592000}
+      - VNPAY_TMN_CODE=${VNPAY_TMN_CODE:-87UOU6Q8}
+      - VNPAY_HASH_SECRET=${VNPAY_HASH_SECRET:-U7378A5VYY03N3L40F5S2995K7BXZ97Y}
+      - VNPAY_PAY_URL=${VNPAY_PAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      - VNPAY_RETURN_URL=${VNPAY_RETURN_URL:-http://localhost:8080/api/payment/vnpay/return}
+      - VNPAY_IPN_URL=${VNPAY_IPN_URL:-http://localhost:8080/api/payment/vnpay/ipn}
+    depends_on:
+      - redis
+      - kafka
+      - discovery-service
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # NOTIFICATION SERVICE: Xử lý gửi email thông báo, OTP, hóa đơn
+  # -------------------------------------------------------------
+  notification-service:
+    build:
+      context: ./src/back-end
+      dockerfile: apps/notification-service/Dockerfile
+    container_name: coursedemy-notification-service
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-postgres}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - NOTIFICATION_SERVICE_DB_NAME=${NOTIFICATION_SERVICE_DB_NAME:-notification_service_db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - JWT_SECRET=${JWT_SECRET:-ZGV2LW9ubHktY291cnNlZGVteS1qd3Qtc2VjcmV0LTEyMzQ1Ng==}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION:-3600000}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
+    depends_on:
+      - redis
+      - discovery-service
+    networks:
+      - coursedemy-network
+
+  # -------------------------------------------------------------
+  # FRONTEND: Ứng dụng client Next.js
+  # -------------------------------------------------------------
+  frontend:
+    build:
+      context: ./src/front-end
+      dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
         NEXT_PUBLIC_GEMINI_API_KEY: ${NEXT_PUBLIC_GEMINI_API_KEY:-}
         NEXT_PUBLIC_WEATHER_API_KEY: ${NEXT_PUBLIC_WEATHER_API_KEY:-}
-    environment:
-      AUTH_SECRET: ${AUTH_SECRET:-dev-only-change-me}
-      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
-      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8080}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
-      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
-      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
-      NEXT_PUBLIC_GEMINI_API_KEY: ${NEXT_PUBLIC_GEMINI_API_KEY:-}
-      NEXT_PUBLIC_WEATHER_API_KEY: ${NEXT_PUBLIC_WEATHER_API_KEY:-}
+    container_name: coursedemy-frontend
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
-    networks:
-      - my-network
-
-  postgres:
-    image: postgres:15
-    container_name: coursedemy-postgres
+      - "${FRONTEND_PORT:-3000}:3000" # Mở port 3000 để chạy frontend
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-coursedemy_db}
-    ports:
-      - "${POSTGRES_PORT:-5434}:5432"
+      - NODE_ENV=production
+      - AUTH_SECRET=${AUTH_SECRET:-dev-only-change-me}
+      - AUTH_URL=${AUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://gateway-service:8080}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    depends_on:
+      - gateway-service
     networks:
-      - my-network
+      - coursedemy-network
 
-    #    Cấu hình ổ đĩa
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-coursedemy_db}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-# các container cần bridge kết nối
-networks:
-  my-network:
-    driver: bridge
-
+# -------------------------------------------------------------
+# DỮ LIỆU ĐĨA ẢO (VOLUMES)
+# -------------------------------------------------------------
 volumes:
-  postgres-data:
+  # postgres_data: # Lưu trữ dữ liệu database lâu dài (Tắt khi dùng Supabase)
+  redis_data:    # Lưu trữ dữ liệu đĩa Redis lâu dài
+  kafka_data:    # Lưu trữ Kafka log lâu dài
+
+# -------------------------------------------------------------
+# MẠNG NỘI BỘ DOCKER (NETWORKS)
+# -------------------------------------------------------------
+networks:
+  coursedemy-network:
+    driver: bridge

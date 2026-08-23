@@ -1,10 +1,11 @@
 export interface ApiResponse<T> {
-  success: boolean;
-  code: string;
-  message: string;
+  success?: boolean;
+  status?: number;
+  code?: string;
+  message?: string;
   data: T | null;
-  errors: unknown | null;
-  timestamp: string;
+  errors?: unknown | null;
+  timestamp?: string;
 }
 
 export interface PageResponse<T> {

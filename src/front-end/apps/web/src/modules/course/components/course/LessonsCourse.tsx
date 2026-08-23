@@ -58,6 +58,7 @@ interface LessonsCourseProps {
   lessons: Lesson[];
   openLessonIds: number[];
   selectedSubLessonId: number | null;
+  status?: string;
   onToggleLesson: (lessonId: number) => void;
   onSelectSubLesson: (lessonId: number, subLessonId: number) => void;
 }
@@ -118,21 +119,21 @@ const SortableLesson = ({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className="border-b border-border bg-card"
+      className="border-b border-border/80 bg-card last:border-b-0"
     >
-      <div className="flex items-start gap-2 px-3 py-3">
+      <div className="flex items-center">
         {isDraggable && (
           <button
             type="button"
-            {...listeners}
+            className="cursor-grab p-2 text-muted-foreground transition hover:text-foreground active:cursor-grabbing"
             {...attributes}
-            className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+            {...listeners}
             aria-label="Kéo để sắp xếp phần học"
           >
             <GripVertical className="h-4 w-4" />
           </button>
         )}
-        <div className="min-w-0 flex-1">{children}</div>
+        <div className="flex-1">{children}</div>
       </div>
     </div>
   );
@@ -161,20 +162,20 @@ const SortableSubLesson = ({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className="flex items-center gap-2"
+      className="flex items-center gap-1"
     >
       {isDraggable && (
         <button
           type="button"
-          {...listeners}
+          className="cursor-grab p-1.5 text-muted-foreground transition hover:text-foreground active:cursor-grabbing"
           {...attributes}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+          {...listeners}
           aria-label="Kéo để sắp xếp bài học"
         >
-          <GripVertical className="h-4 w-4" />
+          <GripVertical className="h-3.5 w-3.5" />
         </button>
       )}
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="flex-1">{children}</div>
     </div>
   );
 };
@@ -182,8 +183,9 @@ const SortableSubLesson = ({
 const LessonsCourse = ({
   onReload,
   lessons,
-  selectedSubLessonId,
   openLessonIds,
+  selectedSubLessonId,
+  status = "view",
   onToggleLesson,
   onSelectSubLesson,
 }: LessonsCourseProps) => {
@@ -206,7 +208,8 @@ const LessonsCourse = ({
   const [editingLessonId, setEditingLessonId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
 
-  const canManage = user?.role === "ADMIN" || user?.role === "TEACHER";
+  const role = (user?.role || "").toUpperCase().replace("ROLE_", "");
+  const canManage = role === "ADMIN" || role === "TEACHER" || status === "edit";
   const totalSubLessons = useMemo(
     () =>
       lessonList.reduce(
@@ -769,6 +772,16 @@ const LessonsCourse = ({
             <p className="mt-1 text-sm text-muted-foreground">
               Thêm phần mới để bắt đầu xây dựng nội dung khóa học.
             </p>
+            {canManage && (
+              <Button
+                size="sm"
+                className="mt-4"
+                onClick={() => setNewLessonForm({ show: true, title: "" })}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                Thêm phần học đầu tiên
+              </Button>
+            )}
           </div>
         </div>
       )}

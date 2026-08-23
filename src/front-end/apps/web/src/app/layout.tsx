@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "@/styles/globals.css";
 
 import { ThemeProvider } from "@/providers/theme-provider";
@@ -9,6 +10,12 @@ import { Toaster } from "sonner";
 import { AuthSessionProvider } from "@/providers/auth-session-provider";
 import { ApiClientProvider } from "@/providers/api-client-provider";
 import { I18nProvider } from "@/modules/shared/i18n";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["vietnamese", "latin"],
+  variable: "--font-geist-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   icons: [
@@ -26,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
+    <html lang="en" className={plusJakarta.variable} suppressHydrationWarning>
+      <body className="antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

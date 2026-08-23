@@ -21,7 +21,7 @@ public class CloudinaryService {
                 file.getBytes(),
                 ObjectUtils.asMap(
                         "resource_type", "image",
-                        "folder", "upload_img"
+                        "folder", "CourseDemy/avatars"
                 )
         );
         return Map.of(
@@ -45,7 +45,7 @@ public class CloudinaryService {
                     file.getBytes(),
                     ObjectUtils.asMap(
                             "resource_type", "video",
-                            "folder", "upload_video"
+                            "folder", "CourseDemy/videos"
                     )
             );
 

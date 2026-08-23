@@ -17,6 +17,10 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import static org.springframework.http.HttpMethod.*;
 
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+
 @Configuration
 @EnableWebSecurity
 @EnableWebMvc
@@ -27,17 +31,27 @@ public class WebSecurityConfig {
     private String apiPrefix;
 
     private final JwtTokenFilter jwtTokenFilter;
-    private final CorsConfigurationSource corsConfigurationSource;
+    // private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 //  Kích hoạt CORS
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .cors(AbstractHttpConfigurer::disable)
 
                 //  Tắt CSRF (vì bạn dùng JWT)
-//                .csrf(AbstractHttpConfigurer::disable)
-                .csrf(customizer -> customizer.disable())
+                .cors(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable)
+
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
+
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                response.setStatus(HttpServletResponse.SC_FORBIDDEN))
+                )
 
                 //  Thêm JWT filter
                 .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
@@ -52,7 +66,6 @@ public class WebSecurityConfig {
                                         String.format("%s/courses/**", apiPrefix),
                                         ("/course/**"),
                                         ("/course-detail/{id}"),
-                                        ("/cart/add"),
                                         ("/api/payment/{provider}/ipn**"),
                                         ("/api/payment/{provider}/return**"),
                                         ("/public/lessons/course/{id}"),
@@ -62,8 +75,6 @@ public class WebSecurityConfig {
                                         ("/revenue-categories"),
                                         ("/send-otp"),
                                         ("/verify-otp")
-//                                        ("/")
-//                                ("/upload-len")
                                 ).permitAll()
 
                                 // user
@@ -80,8 +91,7 @@ public class WebSecurityConfig {
                                 .requestMatchers(DELETE, "/courses/{course_id}/students/{student_id}").hasAnyRole(RoleEntity.ADMIN, RoleEntity.TEACHER)
 
                                 // cart
-                                .requestMatchers(DELETE, "/cart/remove*").hasRole(RoleEntity.STUDENT)
-                                .requestMatchers(POST, "/cart/{id}").hasRole(RoleEntity.STUDENT)
+                                .requestMatchers("/cart/**").authenticated()
 
                                 //course
                                 .requestMatchers(GET, "/courses/user/{id}").authenticated()
